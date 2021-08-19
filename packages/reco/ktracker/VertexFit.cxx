@@ -776,7 +776,6 @@ int VertexFit::findVertex()
       LogInfo("_vtxpar_curr._r[2][0] = " << _vtxpar_curr._r[2][0] << " and _trkpar_curr[j]._z = " << _trkpar_curr[j]._z);
 #endif
       _node_vertex.setZ(_vtxpar_curr._r[2][0]);
-
       _kmfit->setCurrTrkpar(_trkpar_curr[j]);
       if (!_kmfit->fit_node(_node_vertex))
       {
