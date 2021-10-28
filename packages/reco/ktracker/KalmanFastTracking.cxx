@@ -77,7 +77,6 @@ namespace
     static bool COARSE_MODE;
 
     //if displaced, skip fit to the target/vertex
-    static bool NOT_DISPLACED;
   static bool TRACK_ELECTRONS; //please see comment in framework/phool/recoConsts.cc
   static bool TRACK_DISPLACED; //please see comment in framework/phool/recoConsts.cc
 
@@ -94,7 +93,6 @@ namespace
             COSMIC_MODE = rc->get_BoolFlag("COSMIC_MODE");
             COARSE_MODE = rc->get_BoolFlag("COARSE_MODE");
 
-            NOT_DISPLACED = rc->get_BoolFlag("NOT_DISPLACED");
             TRACK_ELECTRONS = rc->get_BoolFlag("TRACK_ELECTRONS");
             TRACK_DISPLACED = rc->get_BoolFlag("TRACK_DISPLACED");
 
@@ -848,7 +846,7 @@ void KalmanFastTracking::buildGlobalTracks()
 
                 ///Set vertex information - only applied when KF is enabled
                 ///TODO: maybe in the future add a Genfit-based equivalent here, for now leave as is
-                if(enable_KF && NOT_DISPLACED)
+                if(enable_KF && !TRACK_DISPLACED)
                 {
                     _timers["global_kalman"]->restart();
                     SRecTrack recTrack = processOneTracklet(tracklet_global);
@@ -868,7 +866,7 @@ void KalmanFastTracking::buildGlobalTracks()
                 LogInfo("Comparison I: " << (tracklet_global < tracklet_best_prob));
                 LogInfo("Quality I   : " << acceptTracklet(tracklet_global));
 
-                if(enable_KF && NOT_DISPLACED)
+                if(enable_KF && !TRACK_DISPLACED)
                 {
                     LogInfo("Current best by vtx:");
                     tracklet_best_vtx.print();
@@ -881,11 +879,11 @@ void KalmanFastTracking::buildGlobalTracks()
             _timers["global_link"]->stop();
 
             //The selection logic is, prefer the tracks with best p-value, as long as it's not low-pz
-            if(enable_KF && NOT_DISPLACED && tracklet_best_prob.isValid() > 0 && 1./tracklet_best_prob.invP > 18.)
+            if(enable_KF && !TRACK_DISPLACED && tracklet_best_prob.isValid() > 0 && 1./tracklet_best_prob.invP > 18.)
             {
                 tracklet_best[i] = tracklet_best_prob;
             }
-            else if(enable_KF && NOT_DISPLACED && tracklet_best_vtx.isValid() > 0) //otherwise select the one with best vertex chisq, TODO: maybe add a z-vtx constraint
+            else if(enable_KF && !TRACK_DISPLACED && tracklet_best_vtx.isValid() > 0) //otherwise select the one with best vertex chisq, TODO: maybe add a z-vtx constraint
             {
                 tracklet_best[i] = tracklet_best_vtx;
             }
