@@ -52,7 +52,6 @@ void recoConsts::set_defaults()
   set_BoolFlag("MC_MODE", false);
   set_BoolFlag("COSMIC_MODE", false);
 
-  set_BoolFlag("NOT_DISPLACED", true);
   set_BoolFlag("TARGETONLY", false);
   set_BoolFlag("DUMPONLY", false);
   set_BoolFlag("TRACK_ELECTRONS", false); /**This flag is used to turn off hit requirements in proportional tubes and tracking layers after the DarkQuest ECal*/
