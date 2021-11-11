@@ -176,6 +176,7 @@ public:
     double Eval(const double* par);
     double Eval4(const double* par);
     double calcChisq();
+    double getTotalDCA(); //WPM
 
     //Add dummy hits
     void addDummyHits();
@@ -237,6 +238,55 @@ public:
     double x0;
     double y0;
     double invP;
+
+    double z0 = 0; //WPM
+    std::vector<double> possibleXSlopes; //WPM
+    std::vector<double> possibleUSlopes; //WPM
+    std::vector<double> possibleVSlopes; //WPM
+    std::vector<double> possibleXIntercepts; //WPM
+    std::vector<double> possibleUIntercepts; //WPM
+    std::vector<double> possibleVIntercepts; //WPM
+    std::vector<std::vector<double>> possibleXCombos; //WPM 
+    std::vector<std::vector<double>> possibleUCombos; //WPM 
+    std::vector<std::vector<double>> possibleVCombos; //WPM 
+
+    struct linedef {
+      double slopeX;
+      double slopeY;
+      double initialX;
+      double initialY;
+      double initialZ;
+      double slopeU;
+      double initialU;
+      double slopeV;
+      double initialV;
+
+      double wireHit1Pos;
+      double wireHit2Pos;
+      double wireHit1PosX;
+      double wireHit2PosX;
+      double wireHit1PosY;
+      double wireHit2PosY;
+      double wireHit1PosZ;
+      double wireHit2PosZ;
+      double wire1Slope;
+      double wire2Slope;
+      double wireIntercept1;
+      double wireIntercept2;
+      
+      void print(){
+	std::cout<<"slopeX: "<<slopeX<<" slopeY: "<<slopeY<<" initialX: "<<initialX<<" initialY: "<<initialY<<" initialZ: "<<initialZ<<" slopeU: "<<slopeU<<" initialU: "<<initialU<<" slopeV: "<<slopeV<<" initialV: "<<initialV<<std::endl;
+      }
+
+    } ; //WPM
+
+    std::vector<linedef> possibleXLines; //WPM
+    std::vector<linedef> possibleULines; //WPM
+    std::vector<linedef> possibleVLines; //WPM
+    void getSlopes(Hit hit1, Hit hit2, std::string type); //WPM
+    void getSlopesX(Hit hit1, Hit hit2); //WPM
+    void getSlopesU(Hit hit1, Hit hit2); //WPM
+    void getSlopesV(Hit hit1, Hit hit2); //WPM
 
     double err_tx;
     double err_ty;

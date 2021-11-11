@@ -234,7 +234,8 @@ public:
     double getInterception(int detectorID, double tx, double ty, double x0, double y0) const { return planes[detectorID].intercept(tx, ty, x0, y0); }
     double getInterceptionFast(int detectorID, double tx, double ty, double x0, double y0) const;
     double getInterceptionFast(int detectorID, double x_exp, double y_exp) const { return planes[detectorID].getW(x_exp, y_exp); }
-    double getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0);
+    //double getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0); //WPM
+    double getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0, double z0 = 0.); //WPM
 
     ///Convert the detectorID and elementID to the actual hit position
     void getMeasurement(int detectorID, int elementID, double& measurement, double& dmeasurement);

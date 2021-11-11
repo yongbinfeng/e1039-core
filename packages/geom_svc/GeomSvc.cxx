@@ -936,17 +936,27 @@ double GeomSvc::getInterceptionFast(int detectorID, double tx, double ty, double
     return (tx*planes[detectorID].zc + x0)*planes[detectorID].costheta + (ty*planes[detectorID].zc + y0)*planes[detectorID].sintheta;
 }
 
-double GeomSvc::getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0)
+//double GeomSvc::getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0)
+double GeomSvc::getDCA(int detectorID, int elementID, double tx, double ty, double x0, double y0, double z0) //WPM
 {
-    TVector3 trkp0(x0, y0, 0.);
+  TVector3 trkp0(x0, y0, 0.); //WPM
+    //TVector3 trkp0(x0, y0, 500.); //WPM
+  //TVector3 trkp0(x0, y0, z0); //WPM
+  //TVector3 trkp0(x0, y0, 1340); //WPM
     TVector3 trkdir(tx, ty, 1.);
+
+    //std::cout<<"x0 = "<<x0<<" y0 = "<<y0<<" z0 = "<<z0<<" tx = "<<tx<<" ty = "<<ty<<std::endl; //WPM
 
     TVector3 ep1, ep2;
     getEndPoints(detectorID, elementID, ep1, ep2);
     TVector3 wiredir = ep2 - ep1;
 
+    //std::cout<<"ep1 = "<<ep1.X()<<","<<ep1.Y()<<","<<ep1.Z()<<" ep2 = "<<ep2.X()<<","<<ep2.Y()<<","<<ep2.Z()<<" wiredir = "<<wiredir.X()<<","<<wiredir.Y()<<","<<wiredir.Z()<<std::endl; //WPM
+
     TVector3 norm = trkdir.Cross(wiredir);
     norm.SetMag(1.);
+    //std::cout<<"norm = "<<norm.X()<<","<<norm.Y()<<","<<norm.Z()<<std::endl; //WPM
+    //std::cout<<"(ep1 - trkp0) = "<<(ep1 - trkp0).X()<<","<<(ep1 - trkp0).Y()<<","<<(ep1 - trkp0).Z()<<std::endl; //WPM
     return (ep1 - trkp0).Dot(norm);
 }
 

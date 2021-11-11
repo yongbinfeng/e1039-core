@@ -69,6 +69,8 @@ public:
     bool muonID_search(Tracklet& tracklet);
     bool muonID_hodoAid(Tracklet& tracklet);
 
+    bool compareTracklets(Tracklet& tracklet1, Tracklet& tracklet2); //WPM
+
     void buildPropSegments();
 
     //Resolve left-right when possible

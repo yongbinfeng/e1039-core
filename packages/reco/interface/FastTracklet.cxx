@@ -497,7 +497,9 @@ void PropSegment::linearFit_iterative()
 }
 
 
-Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(9999.), chisq_vtx(9999.), tx(0.), ty(0.), x0(0.), y0(0.), invP(0.1), err_tx(-1.), err_ty(-1.), err_x0(-1.), err_y0(-1.), err_invP(-1.)
+//Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(9999.), chisq_vtx(9999.), tx(0.), ty(0.), x0(0.), y0(0.), invP(0.1), err_tx(-1.), err_ty(-1.), err_x0(-1.), err_y0(-1.), err_invP(-1.) //WPM
+Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(9999.), chisq_vtx(9999.), tx(0.), ty(0.), x0(0.), y0(0.), z0(0.), invP(0.1), err_tx(-1.), err_ty(-1.), err_x0(-1.), err_y0(-1.), err_invP(-1.), possibleXSlopes({0.,0.}), possibleUSlopes({0.,0.}), possibleVSlopes({0.,0.}), possibleXIntercepts({0.,0.}), possibleUIntercepts({0.,0.}), possibleVIntercepts({0.,0.}) //WPM
+//Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(9999.), chisq_vtx(9999.), tx(0.), ty(0.), x0(10.), y0(10.), invP(0.1), err_tx(1.), err_ty(1.), err_x0(1.), err_y0(1.), err_invP(1.) //WPM
 {
     for(int i = 0; i < nChamberPlanes; i++) residual[i] = 999.;
     initGlobalVariables();
@@ -505,21 +507,31 @@ Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(999
 
 int Tracklet::isValid() const
 {
+  //std::cout<<"in isValid"<<std::endl; //WPM
     if(stationID < 1 || stationID > nStations) return 0;
+    //std::cout<<"pass ID"<<std::endl; //WPM
     if(fabs(tx) > TX_MAX || fabs(x0) > X0_MAX) return 0;
+    //std::cout<<"pass x info"<<std::endl; //WPM
     if(fabs(ty) > TY_MAX || fabs(y0) > Y0_MAX) return 0;
+    //std::cout<<"pass y info"<<std::endl; //WPM
     if(err_tx < 0 || err_ty < 0 || err_x0 < 0 || err_y0 < 0) return 0;
-
+    //std::cout<<"pass errors"<<std::endl; //WPM
+  
     double prob = getProb();
     if(stationID != nStations && prob < PROB_LOOSE) return 0;
+    //std::cout<<"pass prob"<<std::endl; //WPM
     
     //Tracklets in each station
     int nHits = nXHits + nUHits + nVHits;
+    //std::cout<<"nHits = "<<nHits<<" and stationID = "<<stationID<<" and nStations-1 = "<<nStations-1<<std::endl; //WPM 
     if(stationID < nStations-1)
     {
         if(nXHits < 1 || nUHits < 1 || nVHits < 1) return 0;
+	//std::cout<<"pass various hits"<<std::endl; //WPM
         if(nHits < 4) return 0;
+	//std::cout<<"pass nHits"<<std::endl; //WPM
         if(chisq > 40.) return 0;
+	//std::cout<<"pass chisq"<<std::endl; //WPM 
     }
     else
     {
@@ -933,12 +945,14 @@ double Tracklet::calcChisq()
         getXZInfoInSt1(tx_st1, x0_st1);
     }
 
+    //std::cout<<"In calcChisq now.  About to loop over hits"<<std::endl; //WPM
     for(std::list<SignedHit>::const_iterator iter = hits.begin(); iter != hits.end(); ++iter)
     {
         if(iter->hit.index < 0) continue;
 
         int detectorID = iter->hit.detectorID;
         int index = detectorID - 1;
+	//std::cout<<"detectorID = "<<detectorID<<" and index = "<<index<<std::endl; //WPM
 
         double sigma;
         if(iter->sign == 0 || COARSE_MODE) 
@@ -947,25 +961,418 @@ double Tracklet::calcChisq()
         else
             sigma = p_geomSvc->getPlaneResolution(detectorID);
 
+	//std::cout<<"sigma = "<<sigma<<" and p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.) = "<<p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.)<<" and p_geomSvc->getPlaneResolution(detectorID) = "<<p_geomSvc->getPlaneResolution(detectorID)<<std::endl; //WPM
+
         //double p = iter->hit.pos + iter->sign*fabs(iter->hit.driftDistance);
         if(KMAG_ON && stationID == nStations && detectorID <= 12)
         {
             //residual[index] = p - p_geomSvc->getInterception(detectorID, tx_st1, ty, x0_st1, y0);
-            residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0, z0); //WPM
+	  //std::cout<<"In KMAG if statement"<<std::endl; //WPM
         }
         else
         {
             //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
-            residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0, z0); //WPM
+	  //std::cout<<"not in KMAG if statement"<<std::endl; //WPM
+	    //std::cout<<"iter->sign = "<<iter->sign<<" and iter->hit.driftDistance = "<<iter->hit.driftDistance<<" and p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0) = "<<residual[index]<<std::endl; //WPM
         }
 
         chisq += (residual[index]*residual[index]/sigma/sigma);
+	//std::cout<<"chisq contribution = "<<(residual[index]*residual[index]/sigma/sigma)<<std::endl; //WPM
         //std::cout << iter->hit.detectorID << "  " << iter->hit.elementID << "  " << iter->sign << "  " << iter->hit.pos << "  " << iter->hit.driftDistance << "  " << residual[index] << "  " <<  sigma << "  " << chisq << std::endl;
     }
 
     //std::cout << chisq << std::endl;
     return chisq;
 }
+
+double Tracklet::getTotalDCA()
+{
+    chisq = 0.;
+
+    double tx_st1, x0_st1;
+    if(stationID == nStations && KMAG_ON)
+    {
+        getXZInfoInSt1(tx_st1, x0_st1);
+    }
+
+    //std::cout<<"In getTotalDCA now.  About to loop over hits"<<std::endl; //WPM
+    for(std::list<SignedHit>::const_iterator iter = hits.begin(); iter != hits.end(); ++iter)
+    {
+        if(iter->hit.index < 0) continue;
+
+        int detectorID = iter->hit.detectorID;
+        int index = detectorID - 1;
+	//std::cout<<"detectorID = "<<detectorID<<" and index = "<<index<<std::endl; //WPM
+
+        double sigma;
+        if(iter->sign == 0 || COARSE_MODE) 
+            sigma = p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.);
+            //sigma = fabs(iter->hit.driftDistance)/sqrt(12.);
+        else
+            sigma = p_geomSvc->getPlaneResolution(detectorID);
+
+	//std::cout<<"sigma = "<<sigma<<" and p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.) = "<<p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.)<<" and p_geomSvc->getPlaneResolution(detectorID) = "<<p_geomSvc->getPlaneResolution(detectorID)<<std::endl; //WPM
+
+        //double p = iter->hit.pos + iter->sign*fabs(iter->hit.driftDistance);
+        if(KMAG_ON && stationID == nStations && detectorID <= 12)
+        {
+            //residual[index] = p - p_geomSvc->getInterception(detectorID, tx_st1, ty, x0_st1, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0, z0); //WPM
+	  //std::cout<<"In KMAG if statement"<<std::endl; //WPM
+        }
+        else
+        {
+            //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0, z0); //WPM
+	  //std::cout<<"not in KMAG if statement"<<std::endl; //WPM
+	  //std::cout<<"iter->sign = "<<iter->sign<<" and iter->hit.driftDistance = "<<iter->hit.driftDistance<<" and p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0) = "<<residual[index]<<std::endl; //WPM
+        }
+
+        chisq += (residual[index]*residual[index]);
+	//std::cout<<"chisq contribution = "<<(residual[index]*residual[index]/sigma/sigma)<<std::endl; //WPM
+        //std::cout << iter->hit.detectorID << "  " << iter->hit.elementID << "  " << iter->sign << "  " << iter->hit.pos << "  " << iter->hit.driftDistance << "  " << residual[index] << "  " <<  sigma << "  " << chisq << std::endl;
+    }
+
+    //std::cout << chisq << std::endl;
+    return chisq;
+}//WPM
+
+void Tracklet::getSlopes(Hit hit1, Hit hit2, std::string type){
+  double zDist = p_geomSvc->getPlanePosition(hit1.detectorID) - p_geomSvc->getPlanePosition(hit2.detectorID);
+  std::vector<double> slopes;
+  slopes.push_back(((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist);
+  slopes.push_back(((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist);
+  slopes.push_back(((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist);
+  slopes.push_back(((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist);
+  z0 = std::min(p_geomSvc->getPlanePosition(hit1.detectorID), p_geomSvc->getPlanePosition(hit2.detectorID));
+  if(type == "X"){
+    possibleXSlopes = slopes;
+    if(hit1.detectorID < hit2.detectorID){
+      possibleXIntercepts.push_back(hit1.pos + hit1.driftDistance);
+      possibleXIntercepts.push_back(hit1.pos - hit1.driftDistance);
+      possibleXCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    } else{
+      possibleXIntercepts.push_back(hit2.pos + hit2.driftDistance);
+      possibleXIntercepts.push_back(hit2.pos - hit2.driftDistance);
+      possibleXCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleXCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    }
+  }
+  if(type == "U"){
+    possibleUSlopes = slopes;
+    if(hit1.detectorID < hit2.detectorID){
+      possibleUIntercepts.push_back(hit1.pos + hit1.driftDistance);
+      possibleUIntercepts.push_back(hit1.pos - hit1.driftDistance);
+      possibleUCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    } else{
+      possibleUIntercepts.push_back(hit2.pos + hit2.driftDistance);
+      possibleUIntercepts.push_back(hit2.pos - hit2.driftDistance);
+      possibleUCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleUCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    }
+  }
+  if(type == "V"){
+    possibleVSlopes = slopes;
+    if(hit1.detectorID < hit2.detectorID){
+      possibleVIntercepts.push_back(hit1.pos + hit1.driftDistance);
+      possibleVIntercepts.push_back(hit1.pos - hit1.driftDistance);
+      possibleVCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit1.pos + hit1.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit1.pos - hit1.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    } else{
+      possibleVIntercepts.push_back(hit2.pos + hit2.driftDistance);
+      possibleVIntercepts.push_back(hit2.pos - hit2.driftDistance);
+      possibleVCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit2.pos + hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos + hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos + hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+      possibleVCombos.push_back({(hit2.pos - hit2.driftDistance), ((hit1.pos - hit1.driftDistance) - (hit2.pos - hit2.driftDistance))/zDist});
+    }
+  }
+} //WPM
+
+
+void Tracklet::getSlopesX(Hit hit1, Hit hit2){
+  double zDist = std::abs(p_geomSvc->getPlanePosition(hit1.detectorID) - p_geomSvc->getPlanePosition(hit2.detectorID));
+  std::vector<Hit> twoHits;
+  if(p_geomSvc->getPlanePosition(hit1.detectorID) <= p_geomSvc->getPlanePosition(hit2.detectorID)){
+    twoHits.push_back(hit1);
+    twoHits.push_back(hit2);
+  } else{
+    twoHits.push_back(hit2);
+    twoHits.push_back(hit1);
+  }
+  linedef testline1;
+  testline1.slopeX = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline1.initialX = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  linedef testline2;
+  testline2.slopeX = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline2.initialX = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  linedef testline3;
+  testline3.slopeX = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline3.initialX = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  linedef testline4;
+  testline4.slopeX = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline4.initialX = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline4.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  
+  possibleXLines.push_back(testline1);
+  possibleXLines.push_back(testline2);
+  possibleXLines.push_back(testline3);
+  possibleXLines.push_back(testline4);
+} //WPM
+
+void Tracklet::getSlopesU(Hit hit1, Hit hit2){
+  double zDist = std::abs(p_geomSvc->getPlanePosition(hit1.detectorID) - p_geomSvc->getPlanePosition(hit2.detectorID));
+  std::vector<Hit> twoHits;
+  if(p_geomSvc->getPlanePosition(hit1.detectorID) <= p_geomSvc->getPlanePosition(hit2.detectorID)){
+    twoHits.push_back(hit1);
+    twoHits.push_back(hit2);
+  } else{
+    twoHits.push_back(hit2);
+    twoHits.push_back(hit1);
+  }
+
+  double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
+  double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
+
+  linedef testline1;
+  testline1.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline1.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline1.wire1Slope = w1Slope;
+  testline1.wire2Slope = w2Slope;
+  testline1.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance);
+  testline1.wireHit2Pos = (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+  testline1.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline1.wireHit1Pos;
+  testline1.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline1.wireHit2Pos;
+  testline1.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline1.wireHit1Pos;
+  testline1.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline1.wireHit2Pos;
+  testline1.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline1.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline1.wireIntercept1 = testline1.wireHit1PosY - testline1.wire1Slope * testline1.wireHit1PosX;
+  testline1.wireIntercept2 = testline1.wireHit2PosY - testline1.wire2Slope * testline1.wireHit2PosX;
+  linedef testline2;
+  testline2.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline2.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline2.wire1Slope = w1Slope;
+  testline2.wire2Slope = w2Slope;
+  testline2.wireHit1Pos = (twoHits.at(0).pos - twoHits.at(0).driftDistance);
+  testline2.wireHit2Pos = (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+  testline2.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline2.wireHit1Pos;
+  testline2.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline2.wireHit2Pos;
+  testline2.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline2.wireHit1Pos;
+  testline2.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline2.wireHit2Pos;
+  testline2.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline2.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline2.wireIntercept1 = testline2.wireHit1PosY - testline2.wire1Slope * testline2.wireHit1PosX;
+  testline2.wireIntercept2 = testline2.wireHit2PosY - testline2.wire2Slope * testline2.wireHit2PosX;
+  linedef testline3;
+  testline3.slopeU = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline3.initialU = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline3.wire1Slope = w1Slope;
+  testline3.wire2Slope = w2Slope;
+  testline3.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance);
+  testline3.wireHit2Pos = (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+  testline3.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline3.wireHit1Pos;
+  testline3.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline3.wireHit2Pos;
+  testline3.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline3.wireHit1Pos;
+  testline3.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline3.wireHit2Pos;
+  testline3.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline3.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline3.wireIntercept1 = testline3.wireHit1PosY - testline3.wire1Slope * testline3.wireHit1PosX;
+  testline3.wireIntercept2 = testline3.wireHit2PosY - testline3.wire2Slope * testline3.wireHit2PosX;
+  linedef testline4;
+  testline4.slopeU = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline4.initialU = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline4.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline4.wire1Slope = w1Slope;
+  testline4.wire2Slope = w2Slope;
+  testline4.wireHit1Pos = (twoHits.at(0).pos - twoHits.at(0).driftDistance);
+  testline4.wireHit2Pos = (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+  testline4.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline4.wireHit1Pos;
+  testline4.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline4.wireHit2Pos;
+  testline4.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline4.wireHit1Pos;
+  testline4.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline4.wireHit2Pos;
+  testline4.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline4.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline4.wireIntercept1 = testline4.wireHit1PosY - testline4.wire1Slope * testline4.wireHit1PosX;
+  testline4.wireIntercept2 = testline4.wireHit2PosY - testline4.wire2Slope * testline4.wireHit2PosX;
+  
+  possibleULines.push_back(testline1);
+  possibleULines.push_back(testline2);
+  possibleULines.push_back(testline3);
+  possibleULines.push_back(testline4);
+} //WPM
+
+void Tracklet::getSlopesV(Hit hit1, Hit hit2){
+  double zDist = std::abs(p_geomSvc->getPlanePosition(hit1.detectorID) - p_geomSvc->getPlanePosition(hit2.detectorID));
+  std::vector<Hit> twoHits;
+  if(p_geomSvc->getPlanePosition(hit1.detectorID) <= p_geomSvc->getPlanePosition(hit2.detectorID)){
+    twoHits.push_back(hit1);
+    twoHits.push_back(hit2);
+  } else{
+    twoHits.push_back(hit2);
+    twoHits.push_back(hit1);
+  }
+
+  double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
+  double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
+
+  linedef testline1;
+  testline1.slopeV = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline1.initialV = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline1.wire1Slope = w1Slope;
+  testline1.wire2Slope = w2Slope;
+  testline1.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance);
+  testline1.wireHit2Pos = (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+  testline1.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline1.wireHit1Pos;
+  testline1.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline1.wireHit2Pos;
+  testline1.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline1.wireHit1Pos;
+  testline1.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline1.wireHit2Pos;
+  testline1.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline1.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline1.wireIntercept1 = testline1.wireHit1PosY - testline1.wire1Slope * testline1.wireHit1PosX;
+  testline1.wireIntercept2 = testline1.wireHit2PosY - testline1.wire2Slope * testline1.wireHit2PosX;
+  linedef testline2;
+  testline2.slopeV = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline2.initialV = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline2.wire1Slope = w1Slope;
+  testline2.wire2Slope = w2Slope;
+  testline2.wireHit1Pos = (twoHits.at(0).pos - twoHits.at(0).driftDistance);
+  testline2.wireHit2Pos = (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+  testline2.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline2.wireHit1Pos;
+  testline2.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline2.wireHit2Pos;
+  testline2.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline2.wireHit1Pos;
+  testline2.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline2.wireHit2Pos;
+  testline2.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline2.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline2.wireIntercept1 = testline2.wireHit1PosY - testline2.wire1Slope * testline2.wireHit1PosX;
+  testline2.wireIntercept2 = testline2.wireHit2PosY - testline2.wire2Slope * testline2.wireHit2PosX;
+  linedef testline3;
+  testline3.slopeV = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
+  testline3.initialV = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline3.wire1Slope = w1Slope;
+  testline3.wire2Slope = w2Slope;
+  testline3.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance);
+  testline3.wireHit2Pos = (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+  testline3.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline3.wireHit1Pos;
+  testline3.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline3.wireHit2Pos;
+  testline3.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline3.wireHit1Pos;
+  testline3.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline3.wireHit2Pos;
+  testline3.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline3.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline3.wireIntercept1 = testline3.wireHit1PosY - testline3.wire1Slope * testline3.wireHit1PosX;
+  testline3.wireIntercept2 = testline3.wireHit2PosY - testline3.wire2Slope * testline3.wireHit2PosX;
+  linedef testline4;
+  testline4.slopeV = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
+  testline4.initialV = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline4.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline4.wire1Slope = w1Slope;
+  testline4.wire2Slope = w2Slope;
+  testline4.wireHit1Pos = (twoHits.at(0).pos - twoHits.at(0).driftDistance);
+  testline4.wireHit2Pos = (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+  testline4.wireHit1PosX = p_geomSvc->getCostheta(twoHits.at(0).detectorID)*testline4.wireHit1Pos;
+  testline4.wireHit2PosX = p_geomSvc->getCostheta(twoHits.at(1).detectorID)*testline4.wireHit2Pos;
+  testline4.wireHit1PosY = p_geomSvc->getSintheta(twoHits.at(0).detectorID)*testline4.wireHit1Pos;
+  testline4.wireHit2PosY = p_geomSvc->getSintheta(twoHits.at(1).detectorID)*testline4.wireHit2Pos;
+  testline4.wireHit1PosZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  testline4.wireHit2PosZ = p_geomSvc->getPlanePosition(twoHits.at(1).detectorID);
+  testline4.wireIntercept1 = testline4.wireHit1PosY - testline4.wire1Slope * testline4.wireHit1PosX;
+  testline4.wireIntercept2 = testline4.wireHit2PosY - testline4.wire2Slope * testline4.wireHit2PosX;
+  
+  possibleVLines.push_back(testline1);
+  possibleVLines.push_back(testline2);
+  possibleVLines.push_back(testline3);
+  possibleVLines.push_back(testline4);
+} //WPM
+
+
+
+/*
+void Tracklet::getSlopesU(Hit hit1, Hit hit2){
+  double zDist = std::abs(p_geomSvc->getPlanePosition(hit1.detectorID) - p_geomSvc->getPlanePosition(hit2.detectorID));
+  std::vector<Hit> twoHits;
+  if(p_geomSvc->getPlanePosition(hit1.detectorID) <= p_geomSvc->getPlanePosition(hit2.detectorID)){
+    twoHits.push_back(hit1);
+    twoHits.push_back(hit2);
+  } else{
+    twoHits.push_back(hit2);
+    twoHits.push_back(hit1);
+  }
+  std::vector<double> twoPosZ;
+  twoPosZ.push_back(std::min(p_geomSvc->getPlanePosition(hit1.detectorID), p_geomSvc->getPlanePosition(hit2.detectorID)));
+  twoPosZ.push_back(std::max(p_geomSvc->getPlanePosition(hit1.detectorID), p_geomSvc->getPlanePosition(hit2.detectorID)));
+  //std::vector<std::vector<double>> twoPosX;
+  for(unsigned int s1 = 0; s1 < possibleXLines.size(); s1++){
+    double frontX = possibleXLines.at(s1).slopeX*(twoPosZ.at(0) - possibleXLines.at(s1).initialZ) + possibleXLines.at(s1).initialX;
+    double backX = possibleXLines.at(s1).slopeX*(twoPosZ.at(1) - possibleXLines.at(s1).initialZ) + possibleXLines.at(s1).initialX;
+    //twoPosX.push_back({frontX, backX});
+
+    linedef testline1;
+    testline1.slopeX = possibleXLines.at(s1).slopeX;
+    testline1.initialX = frontX;
+    testline1.initialZ = twoPosZ.at(0);
+    double y1_1 = ( p_geomSvc->getCostheta(twoHits.at(1).detectorID) / p_geomSvc->getSintheta(twoHits.at(1).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos + twoHits.at(1).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+    double y1_0 = ( p_geomSvc->getCostheta(twoHits.at(0).detectorID) / p_geomSvc->getSintheta(twoHits.at(0).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(0).pos + twoHits.at(0).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(1).pos + twoHits.at(0).driftDistance);
+    testline1.slopeY = (y1_1 - y1_0)/zDist;
+    testline1.initialY = y1_0;
+
+    linedef testline2;
+    testline2.slopeX = possibleXLines.at(s1).slopeX;
+    testline2.initialX = frontX;
+    testline2.initialZ = twoPosZ.at(0);
+    double y2_1 = ( p_geomSvc->getCostheta(twoHits.at(1).detectorID) / p_geomSvc->getSintheta(twoHits.at(1).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos + twoHits.at(1).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos + twoHits.at(1).driftDistance);
+    double y2_0 = ( p_geomSvc->getCostheta(twoHits.at(0).detectorID) / p_geomSvc->getSintheta(twoHits.at(0).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(0).pos - twoHits.at(0).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(1).pos - twoHits.at(0).driftDistance);
+    testline2.slopeY = (y2_1 - y2_0)/zDist;
+    testline2.initialY = y2_0;
+    
+    linedef testline3;
+    testline3.slopeX = possibleXLines.at(s1).slopeX;
+    testline3.initialX = frontX;
+    testline3.initialZ = twoPosZ.at(0);
+    double y3_1 = ( p_geomSvc->getCostheta(twoHits.at(1).detectorID) / p_geomSvc->getSintheta(twoHits.at(1).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos - twoHits.at(1).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+    double y3_0 = ( p_geomSvc->getCostheta(twoHits.at(0).detectorID) / p_geomSvc->getSintheta(twoHits.at(0).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(0).pos + twoHits.at(0).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(1).pos + twoHits.at(0).driftDistance);
+    testline3.slopeY = (y3_1 - y3_0)/zDist;
+    testline3.initialY = y3_0;
+
+    linedef testline4;
+    testline4.slopeX = possibleXLines.at(s1).slopeX;
+    testline4.initialX = frontX;
+    testline4.initialZ = twoPosZ.at(0);
+    double y4_1 = ( p_geomSvc->getCostheta(twoHits.at(1).detectorID) / p_geomSvc->getSintheta(twoHits.at(1).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos - twoHits.at(1).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(1).detectorID) * (twoHits.at(1).pos - twoHits.at(1).driftDistance);
+    double y4_0 = ( p_geomSvc->getCostheta(twoHits.at(0).detectorID) / p_geomSvc->getSintheta(twoHits.at(0).detectorID) ) * ( backX - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(0).pos - twoHits.at(0).driftDistance)) - p_geomSvc->getCostheta(twoHits.at(0).detectorID) * (twoHits.at(1).pos - twoHits.at(0).driftDistance);
+    testline4.slopeY = (y4_1 - y4_0)/zDist;
+    testline4.initialY = y4_0;
+
+    possibleULines.push_back(testline1);
+    possibleULines.push_back(testline2);
+    possibleULines.push_back(testline3);
+    possibleULines.push_back(testline4);
+  }
+
+} //WPM
+*/
 
 SignedHit Tracklet::getSignedHit(int index)
 {
@@ -989,7 +1396,8 @@ double Tracklet::Eval(const double* par)
     if(KMAG_ON) invP = par[4];
 
     //std::cout << tx << "  " << ty << "  " << x0 << "  " << y0 << "  " << 1./invP << std::endl;
-    return calcChisq();
+    return calcChisq(); //WPM
+    //return getTotalDCA(); //WPM
 }
 
 double Tracklet::Eval4(const double* par)
