@@ -176,7 +176,6 @@ public:
     double Eval(const double* par);
     double Eval4(const double* par);
     double calcChisq();
-    double getTotalDCA(); //WPM
 
     //Add dummy hits
     void addDummyHits();
@@ -239,17 +238,7 @@ public:
     double y0;
     double invP;
 
-    double z0 = 0; //WPM
-    std::vector<double> possibleXSlopes; //WPM
-    std::vector<double> possibleUSlopes; //WPM
-    std::vector<double> possibleVSlopes; //WPM
-    std::vector<double> possibleXIntercepts; //WPM
-    std::vector<double> possibleUIntercepts; //WPM
-    std::vector<double> possibleVIntercepts; //WPM
-    std::vector<std::vector<double>> possibleXCombos; //WPM 
-    std::vector<std::vector<double>> possibleUCombos; //WPM 
-    std::vector<std::vector<double>> possibleVCombos; //WPM 
-
+    //This is an admittedly messy way of keeping track of various bits of needed information to describe the possible particle trajectories in a single-station tracklet
     struct linedef {
       double slopeX;
       double slopeY;
@@ -278,15 +267,14 @@ public:
 	std::cout<<"slopeX: "<<slopeX<<" slopeY: "<<slopeY<<" initialX: "<<initialX<<" initialY: "<<initialY<<" initialZ: "<<initialZ<<" slopeU: "<<slopeU<<" initialU: "<<initialU<<" slopeV: "<<slopeV<<" initialV: "<<initialV<<std::endl;
       }
 
-    } ; //WPM
+    } ;
 
-    std::vector<linedef> possibleXLines; //WPM
-    std::vector<linedef> possibleULines; //WPM
-    std::vector<linedef> possibleVLines; //WPM
-    void getSlopes(Hit hit1, Hit hit2, std::string type); //WPM
-    void getSlopesX(Hit hit1, Hit hit2); //WPM
-    void getSlopesU(Hit hit1, Hit hit2); //WPM
-    void getSlopesV(Hit hit1, Hit hit2); //WPM
+    std::vector<linedef> possibleXLines;
+    std::vector<linedef> possibleULines;
+    std::vector<linedef> possibleVLines;
+    void getSlopesX(Hit hit1, Hit hit2);
+    void getSlopesU(Hit hit1, Hit hit2);
+    void getSlopesV(Hit hit1, Hit hit2);
 
     double err_tx;
     double err_ty;

@@ -54,6 +54,7 @@ void recoConsts::set_defaults()
   set_BoolFlag("DUMPONLY", false);
   set_BoolFlag("TRACK_ELECTRONS", false); /**This flag is used to turn off hit requirements in proportional tubes and tracking layers after the DarkQuest ECal*/
   set_BoolFlag("TRACK_DISPLACED", false); /**When this flag is turned on, an expected-position window is not used when connecting station2+3 tracklets to station 1 tracklets, AND both charges are checked for every station1+2+3 tracklet.  The charge that yields a lower chi2 in the tracklet fit is used.  This is needed for displaced tracks, where the tracklet's charge cannot be determined from x0 position alone.*/
+  set_BoolFlag("OLD_TRACKING", false); /**This flag can be used to turn on the old version of tracking, where tracklets in station 2 and 3 are matched based on the minimization of the sum of the DCA^2 <- that's distance of closest approach*/
 
   //Following values are fed to GeomSvc
   set_BoolFlag("OnlineAlignment", false);
