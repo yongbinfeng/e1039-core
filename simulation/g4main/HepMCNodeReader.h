@@ -13,7 +13,8 @@
 
 class PHHepMCGenEvent;
 class PHCompositeNode;
-namespace HepMC {
+namespace HepMC
+{
   class GenParticle;
 }
 
@@ -21,7 +22,7 @@ namespace HepMC {
 //! For HepMC subevent which is already simulated, they will not be simulated again in Geant4.
 class HepMCNodeReader : public SubsysReco
 {
- public:
+public:
   HepMCNodeReader(const std::string &name = "HEPMCREADER");
   virtual ~HepMCNodeReader();
 
@@ -54,21 +55,21 @@ class HepMCNodeReader : public SubsysReco
     use_seed = 1;
   }
 
-  void set_particle_filter_on(const bool a) {_particle_filter_on = a;}
-  void insert_particle_filter_pid(const int a) {_particle_filter_pid.push_back(a);}
+  void set_particle_filter_on(const bool a) { _particle_filter_on = a; }
+  void insert_particle_filter_pid(const int a) { _particle_filter_pid.push_back(a); }
 
   void enable_position_filter(const double x_min, const double x_max, const double y_min, const double y_max, const double z_min, const double z_max);
 
-  bool PassParticleFilter(HepMC::GenParticle * p);
+  bool PassParticleFilter(HepMC::GenParticle *p);
 
   ///@some added filter interface for bkg decay study
   //! Sets the inclusive background generation filters on
-  void Set_bkg_mode(){_bkg_mode = true;}// abi
-  //! Sets the minimum Px(y)/Pz cut for inclusvie background generation 
-  void Set_pxy2pz_rat (const double rat){_pxy2pz_rat = rat;}
+  void Set_bkg_mode() { _bkg_mode = true; } // abi
+  //! Sets the minimum Px(y)/Pz cut for inclusvie background generation
+  void Set_pxy2pz_rat(const double rat) { _pxy2pz_rat = rat; }
   ///@
 
- private:
+private:
   double smeargauss(const double width);
   double smearflat(const double width);
   int use_seed;
@@ -83,11 +84,14 @@ class HepMCNodeReader : public SubsysReco
 
   bool _particle_filter_on;
   std::vector<int> _particle_filter_pid;
-  
+
   ///@some added interface for inclusive bkg study
-  bool _bkg_mode; 
-  double _pxy2pz_rat;//Abi
+  bool _bkg_mode;
+  double _pxy2pz_rat; // Abi
   ///@
+
+  bool _bkg_mode;
+  double _pxy2pz_rat;
 
   bool _position_filter_on;
   double _pos_filter_x_min;
