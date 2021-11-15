@@ -24,7 +24,7 @@ Created: 05-28-2013
 #include "KalmanFastTracking.h"
 #include "TriggerRoad.h"
 
-//#define _DEBUG_ON
+#define _DEBUG_ON
 
 namespace 
 {
@@ -997,7 +997,7 @@ void KalmanFastTracking::resolveLeftRight(Tracklet& tracklet, double threshold)
 
                 double tx, ty, x0, y0;
                 double err_tx, err_ty, err_x0, err_y0;
-                if(tracklet.stationID == 6 && hit1->hit.detectorID <= 6)
+		if(tracklet.stationID == 7 && hit1->hit.detectorID <= 6)
                 {
                     tracklet.getXZInfoInSt1(tx, x0);
                     tracklet.getXZErrorInSt1(err_tx, err_x0);
@@ -1013,7 +1013,7 @@ void KalmanFastTracking::resolveLeftRight(Tracklet& tracklet, double threshold)
                 y0 = tracklet.y0;
                 err_ty = tracklet.err_ty;
                 err_y0 = tracklet.err_y0;
-
+		
                 double slope_exp = costheta_plane[hit1->hit.detectorID]*tx + sintheta_plane[hit1->hit.detectorID]*ty;
                 double err_slope = fabs(costheta_plane[hit1->hit.detectorID]*err_tx) + fabs(sintheta_plane[hit2->hit.detectorID]*err_ty);
                 double inter_exp = costheta_plane[hit1->hit.detectorID]*x0 + sintheta_plane[hit1->hit.detectorID]*y0;
@@ -2272,7 +2272,7 @@ bool KalmanFastTracking::compareTracklets(Tracklet& tracklet2, Tracklet& trackle
 
   //Give the station 2 and station 3 tracklets the same tx and ty value.  I could get an X0 and Y0 extrapolation, but that doesn't seem to be strictly necessary.  The X0 and Y0 values are found in the fittracklet function for the combined station 2 + station 3 tracklet
   tracklet2.tx = (line2X.slopeX + line3X.slopeX)/2;
-  tracklet2.ty = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(line3U.wireHit1PosZ - line2V.wireHit1PosZ); //The y slope is found by taking the average Y position in the station3 and stubtracting the average Y position in station2.  This is then divided by the z difference, of course  
+  tracklet2.ty = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(line3U.wireHit1PosZ - line2V.wireHit1PosZ); //The y slope is found by taking the average Y position in the station3 and subtracting the average Y position in station2.  This is then divided by the z difference, of course  
   tracklet3.tx = (line2X.slopeX + line3X.slopeX)/2;
   tracklet3.ty = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(line3U.wireHit1PosZ - line2V.wireHit1PosZ);
 
