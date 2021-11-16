@@ -277,7 +277,14 @@ int TruthNodeMaker::process_event(PHCompositeNode* topNode)
       }
     }
 
-    if(rtrkid >= 0 && double(n_match)/double(ttrkid_hitidvec[ttrkid].size()) > m_matching_threshold) {
+    int ntruthhits = ttrkid_hitidvec[ttrkid].size();
+    if (ntruthhits > 18) {
+        // noticed in some cases the number of truth hits are 24
+        // (hitting DC1, DC2, DC3U and DU3D??)
+        // remove the extra hits when count matching
+        ntruthhits = 18;
+    }
+    if(rtrkid >= 0 && double(n_match)/double(ntruthhits) > m_matching_threshold) {
       trk->set_rec_track_id(rtrkid);
     }
   }
