@@ -660,7 +660,7 @@ void KalmanFastTracking::buildBackPartialTracks()
         Tracklet tracklet_best;
         for(std::list<Tracklet>::iterator tracklet2 = trackletsInSt[1].begin(); tracklet2 != trackletsInSt[1].end(); ++tracklet2)
         {
-	  tracklet2->print();
+	  //tracklet2->print();
             if(!COARSE_MODE)
             {
 	      if(OLD_TRACKING){
