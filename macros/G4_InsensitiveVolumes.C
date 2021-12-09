@@ -72,7 +72,10 @@ void SetupInsensitiveVolumes(
     g4Reco->registerSubsystem(shielding);
   }
 
-  if(false) { // false by default at present.  Change to true manually when necessary
+  if(toggle_shielding && true) { 
+    // concrete between fmag and true by default at present.  
+    // Change to true manually when necessary
+    // recently added: need to validate
     const double inch = 2.54;
     PHG4BlockSubsystem* shielding_behind_fmag = new PHG4BlockSubsystem("ShieldingBehindFmag", 0);
     shielding_behind_fmag->set_double_param("place_x",   0.0); // Place and size are preliminary.  See DocDB 9732
