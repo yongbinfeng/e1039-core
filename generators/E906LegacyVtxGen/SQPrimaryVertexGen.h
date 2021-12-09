@@ -86,9 +86,6 @@ public:
 
   //! beam profile function
   static double funcBeamProfile(double* val, double* par);
-
-  void set_targetOnlyMode();
-  void set_dumpOnlyMode();
   
 private:
   //! Real initialization - should not be called directly
@@ -131,7 +128,6 @@ private:
   //! flag for using target and dump only
   bool targetOnlyMode;
   std::string material_mode;
-  bool dumpOnlyMode;
 
   //! Start/Stop position for Z search
   double z_start;
