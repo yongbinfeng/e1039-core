@@ -7,6 +7,7 @@
 #include <phhepmc/PHHepMCGenEventMap.h>
 
 #include <fun4all/Fun4AllReturnCodes.h>
+#include <phool/recoConsts.h>
 #include <phool/PHCompositeNode.h>
 #include <phool/PHIODataNode.h>
 #include <phool/PHRandomSeed.h>
@@ -17,8 +18,9 @@
 #include <Pythia8Plugins/HepMC2.h>
 
 #include <boost/format.hpp>
-#include <TRandom3.h>
+
 #include <gsl/gsl_randist.h>
+
 #include <cassert>
 #include <cstdlib>
 
@@ -102,12 +104,16 @@ int PHPythia8::Init(PHCompositeNode *topNode)
   }
 
   {
-    ppGen->readString("Beams:idB = 2212");
-    pnGen->readString("Beams:idB = 2112");
-
-    ppGen->init();
-    pnGen->init();
+    _pythia->readString("Random:setSeed = on");
+    _pythia->readString(str(boost::format("Random:seed = %1%") % seed));
   }
+  else
+  {
+    cout << PHWHERE << " ERROR: seed " << seed << " is not valid" << endl;
+    exit(1);
+  }
+
+  _pythia->init();
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -116,6 +122,8 @@ int PHPythia8::End(PHCompositeNode *topNode)
 {
   if (verbosity >= VERBOSITY_MORE)
     cout << "PHPythia8::End - I'm here!" << endl;
+
+  recoConsts::instance()->set_IntFlag("PYTHIA8_EVENT_COUNT", _eventcount);
 
   if (verbosity >= VERBOSITY_SOME)
   {

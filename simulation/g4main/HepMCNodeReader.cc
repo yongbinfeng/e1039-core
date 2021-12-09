@@ -21,8 +21,6 @@
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 
-#include <TRandom3.h>
-
 #include <cassert>
 #include <list>
 
