@@ -56,7 +56,7 @@ SQDigitizer::SQDigitizer(const std::string& name, const int verbose):
   p_geomSvc(nullptr),
   enableDC1(false),
   enableDPHodo(true),
-  digitize_secondaries(false)
+  digitize_secondaries(true)
 {
   detIDByName.clear();
   Verbosity(0);

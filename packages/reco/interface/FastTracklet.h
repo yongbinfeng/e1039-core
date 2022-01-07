@@ -238,6 +238,44 @@ public:
     double y0;
     double invP;
 
+    //This is an admittedly messy way of keeping track of various bits of needed information to describe the possible particle trajectories in a single-station tracklet
+    struct linedef {
+      double slopeX;
+      double slopeY;
+      double initialX;
+      double initialY;
+      double initialZ;
+      double slopeU;
+      double initialU;
+      double slopeV;
+      double initialV;
+
+      double wireHit1Pos;
+      double wireHit2Pos;
+      double wireHit1PosX;
+      double wireHit2PosX;
+      double wireHit1PosY;
+      double wireHit2PosY;
+      double wireHit1PosZ;
+      double wireHit2PosZ;
+      double wire1Slope;
+      double wire2Slope;
+      double wireIntercept1;
+      double wireIntercept2;
+      
+      void print(){
+	std::cout<<"slopeX: "<<slopeX<<" slopeY: "<<slopeY<<" initialX: "<<initialX<<" initialY: "<<initialY<<" initialZ: "<<initialZ<<" slopeU: "<<slopeU<<" initialU: "<<initialU<<" slopeV: "<<slopeV<<" initialV: "<<initialV<<std::endl;
+      }
+
+    } ;
+
+    std::vector<linedef> possibleXLines;
+    std::vector<linedef> possibleULines;
+    std::vector<linedef> possibleVLines;
+    void getSlopesX(Hit hit1, Hit hit2);
+    void getSlopesU(Hit hit1, Hit hit2);
+    void getSlopesV(Hit hit1, Hit hit2);
+
     double err_tx;
     double err_ty;
     double err_x0;
@@ -246,6 +284,10 @@ public:
 
     //Residuals of all pos
     double residual[nChamberPlanes];
+
+    bool _chargeSet = false;
+    int _charge = 0;
+    void setCharge(int chrg);
 
     ClassDef(Tracklet, 4)
 };

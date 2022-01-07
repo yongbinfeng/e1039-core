@@ -40,6 +40,7 @@ TruthNodeMaker::TruthNodeMaker()
   , m_do_evt_header(true)
   , m_do_truthtrk_tagging(true)
   , m_matching_threshold(0.75)
+  , m_process_type(4)
 {
   for(int i = 0; i <= nChamberPlanes; ++i) {
     m_g4hc[i] = nullptr;
@@ -91,18 +92,28 @@ int TruthNodeMaker::process_event(PHCompositeNode* topNode)
       m_evt->set_spill_id(0);
       m_evt->set_event_id(evt->event_number());
       m_mcevt->set_process_id(evt->signal_process_id());
-
+      if (evt){
+	// set last weight in weight container as the weight
+	double weight = 1;
+	for ( HepMC::WeightContainer::const_iterator wgt = evt->weights().begin(); wgt != evt->weights().end(); ++wgt){
+	  weight = weight * (*wgt);
+	}
+	m_mcevt->set_weight(weight);
+      }
       //HepMC::GenVertex* vtx = evt->signal_process_vertex(); // Return 0 as of 2019-11-19.
+      // process_type: 4 means you will have 4 particles in the primary process: 0 + 1 -> 2 + 3
+      // process type: 3 means you will have 3 particles in the primary process: 1 -> 2 + 3
       HepMC::GenEvent::particle_const_iterator it = evt->particles_begin();
-      it++; // Skip the 1st beam particle.
-      for (int iii = 0; iii < 4; iii++) {
-        it++;
+      if(m_process_type==4) it++; // Skip the 1st beam particle.
+      for (int iii = 0; iii < m_process_type; iii++) {
         const HepMC::GenParticle* par = *it;
         const HepMC::FourVector * mom = &par->momentum();
         TLorentzVector lvec;
         lvec.SetPxPyPzE(mom->px(), mom->py(), mom->pz(), mom->e());
         m_mcevt->set_particle_id(iii, par->pdg_id());
         m_mcevt->set_particle_momentum(iii, lvec);
+	// cout << "set particle id " << par->pdg_id() << " and momentum " << lvec.E() << std::endl;
+	it++;
       }
     }
   }
@@ -119,7 +130,7 @@ int TruthNodeMaker::process_event(PHCompositeNode* topNode)
   for (auto it = g4true->GetPrimaryParticleRange().first; it != g4true->GetPrimaryParticleRange().second; ++it) {
     PHG4Particle* par = it->second;
     int pid = par->get_pid();
-    if (abs(pid) != 13) continue; // not muon
+    if (abs(pid) != 13 && abs(pid) != 11) continue; // not muon or electron
     int trk_id = par->get_track_id();
     int vtx_id = par->get_vtx_id();
     PHG4VtxPoint* vtx = g4true->GetVtx(vtx_id);
