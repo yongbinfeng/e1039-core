@@ -15,13 +15,13 @@ test -z "$OFFLINE_MAIN" && echo "Need set 'OFFLINE_MAIN'.  Abort." && exit
 test -z "$MY_INSTALL"   && echo   "Need set 'MY_INSTALL'.  Abort." && exit
 
 src=$(dirname $(readlink -f $0))
-build=`pwd`/build
+build=$src/../core-build
 install=$MY_INSTALL
 
 mode=all
 OPTIND=1
 cmake_args=""
-while getopts ":s:r:i:c:b:" OPT ; do
+while getopts ":s:r:i:c:b:B" OPT ; do
     case $OPT in
         s ) mode='single'
             package=$OPTARG
@@ -38,7 +38,7 @@ while getopts ":s:r:i:c:b:" OPT ; do
         c ) cmake_args=$OPTARG
             echo " - pass additional args $cmake_args to cmake"
             ;;
-        b ) build=$OPTARG
+        b ) build=$(readlink -e $OPTARG)
             echo "Build directory = $build"
             ;;
         * ) echo 'Unsupported option.  Abort.'
@@ -58,8 +58,8 @@ if [ $mode = 'single' ] || [ $mode = 'increment' ]; then
 else # 'all' or 'resume'
   declare -a packages=(
     packages/global_consts
-    packages/db_svc
     framework/phool
+    packages/db_svc
     packages/geom_svc
     framework/ffaobjects
     framework/fun4all
@@ -75,12 +75,12 @@ else # 'all' or 'resume'
     generators/E906LegacyVtxGen
     generators/phhepmc
     generators/PHPythia8
-    simulation/g4decayer
     simulation/g4gdml
     simulation/g4main
     simulation/g4detectors
     simulation/g4eval
     generators/E906LegacyGen
+    packages/calibrator
     packages/evt_filter
     packages/dptrigger
     #packages/db2g4

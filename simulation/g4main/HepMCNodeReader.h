@@ -14,7 +14,7 @@
 class PHHepMCGenEvent;
 class PHCompositeNode;
 namespace HepMC {
-	class GenParticle;
+  class GenParticle;
 }
 
 //! HepMCNodeReader take input from all subevents from PHHepMCGenEventMap and send them to simulation in Geant4
@@ -57,7 +57,16 @@ class HepMCNodeReader : public SubsysReco
   void set_particle_filter_on(const bool a) {_particle_filter_on = a;}
   void insert_particle_filter_pid(const int a) {_particle_filter_pid.push_back(a);}
 
+  void enable_position_filter(const double x_min, const double x_max, const double y_min, const double y_max, const double z_min, const double z_max);
+
   bool PassParticleFilter(HepMC::GenParticle * p);
+
+  ///@some added filter interface for bkg decay study
+  //! Sets the inclusive background generation filters on
+  void Set_bkg_mode(){_bkg_mode = true;}// abi
+  //! Sets the minimum Px(y)/Pz cut for inclusvie background generation 
+  void Set_pxy2pz_rat (const double rat){_pxy2pz_rat = rat;}
+  ///@
 
  private:
   double smeargauss(const double width);
@@ -74,7 +83,19 @@ class HepMCNodeReader : public SubsysReco
 
   bool _particle_filter_on;
   std::vector<int> _particle_filter_pid;
+  
+  ///@some added interface for inclusive bkg study
+  bool _bkg_mode; 
+  double _pxy2pz_rat;//Abi
+  ///@
 
+  bool _position_filter_on;
+  double _pos_filter_x_min;
+  double _pos_filter_x_max;
+  double _pos_filter_y_min;
+  double _pos_filter_y_max;
+  double _pos_filter_z_min;
+  double _pos_filter_z_max;
 
 #ifndef __CINT__
   gsl_rng *RandomGenerator;

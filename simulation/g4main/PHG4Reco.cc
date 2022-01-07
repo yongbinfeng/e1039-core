@@ -12,9 +12,6 @@
 #include "PHG4UIsession.h"
 #include "PHG4Utils.h"
 
-#include <g4decayer/EDecayType.hh>
-#include <g4decayer/P6DExtDecayerPhysics.hh>
-
 #include <phgeom/PHGeomUtility.h>
 
 #include <g4gdml/PHG4GDMLUtility.hh>
@@ -138,9 +135,6 @@ PHG4Reco::PHG4Reco(const string &name)
 #else
   , physicslist("QGSP_BERT")
 #endif
-  , active_decayer_(true)
-  , active_force_decay_(false)
-  , force_decay_type_(kAll)
   , save_DST_geometry_(true)
   , optical_photon_(false)
   , energy_threshold_(0.0005)
@@ -242,12 +236,6 @@ int PHG4Reco::Init(PHCompositeNode *topNode)
     gSystem->Exit(1);
   }
 
-  if (active_decayer_)
-  {
-    P6DExtDecayerPhysics *decayer = new P6DExtDecayerPhysics();
-    if (active_force_decay_) decayer->SetForceDecay(force_decay_type_);
-    myphysicslist->RegisterPhysics(decayer);
-  }
   myphysicslist->RegisterPhysics(new G4StepLimiterPhysics());
 // initialize cuts so we can ask the world region for it's default
 // cuts to propagate them to other regions in DefineRegions()
@@ -315,6 +303,19 @@ int PHG4Reco::InitField(PHCompositeNode *topNode)
   field_ = new G4TBMagneticFieldSetup(phfield);
 
   return Fun4AllReturnCodes::EVENT_OK;
+}
+
+void PHG4Reco::set_field_map()
+{
+  recoConsts *rc = recoConsts::instance();
+  ostringstream oss;
+  oss << rc->get_CharFlag("fMagFile") << " "
+      << rc->get_CharFlag("kMagFile") << " "
+      << rc->get_DoubleFlag("FMAGSTR") << " "
+      << rc->get_DoubleFlag("KMAGSTR") << " "
+      << rc->get_DoubleFlag("TMAGSTR");
+  if (verbosity > 0) cout << "PHG4Reco::set_field_map(): " << oss.str() << "." << endl;
+  set_field_map(oss.str(), PHFieldConfig::RegionalConst);
 }
 
 int PHG4Reco::InitRun(PHCompositeNode *topNode)
@@ -699,7 +700,7 @@ int PHG4Reco::setupInputEventNodeReader(PHCompositeNode *topNode)
     dstNode = dynamic_cast<PHCompositeNode *>(iter.findFirst("PHCompositeNode", "DST"));
 
     ineve = new PHG4InEvent();
-    PHDataNode<PHObject> *newNode = new PHDataNode<PHObject>(ineve, "PHG4INEVENT", "PHObject");
+    PHIODataNode<PHObject> *newNode = new PHIODataNode<PHObject>(ineve, "PHG4INEVENT", "PHObject");
     dstNode->addNode(newNode);
   }
   generatorAction_ = new PHG4PrimaryGeneratorAction();

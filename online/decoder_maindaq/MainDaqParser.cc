@@ -89,6 +89,7 @@ int MainDaqParser::ParseOneSpill()
       case GO_EVENT: // do nothing
         break;
       case END_EVENT:
+        ret = ProcessCodaEnd(event_words);
         coda->ForceEnd(); //if (dec_par.verbose) printf ("End Event Processed\n");
         break;
       default:
@@ -162,6 +163,18 @@ int MainDaqParser::ProcessCodaPrestart(int* words)
     coda->SetRunNumber(dec_par.runID);
 
     return 0;
+}
+
+/**
+ * Process one Coda End event.
+ *  - words[0] = Word length.
+ *  - words[1] = Event type (End).
+ */
+int MainDaqParser::ProcessCodaEnd(int* words)
+{
+  run_data.utime_e = words[2];
+  cout << "  ProcessCodaEnd " << run_data.utime_e << endl;
+  return 0;
 }
 
 int MainDaqParser::ProcessCodaFee(int* words)
@@ -608,7 +621,10 @@ int MainDaqParser::ProcessPhysFlush(int* words)
     
     idx++; // go to next position to get ROCID
     int rocID = get_hex_bits (words[idx], 5, 2);
-    if (rocID > 32) {
+    if (rocID == 25) { // Skip this ROC temporarily, during development of CRL code
+      idx = idx_roc_end;
+      continue; // Move to next ROC
+    } else if (rocID > 32) {
       dec_err.SetFlushError(true);
       cerr << "ERROR: rocID > 32." << endl;
       ret = -1;
