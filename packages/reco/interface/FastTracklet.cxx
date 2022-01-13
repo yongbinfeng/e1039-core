@@ -1326,6 +1326,19 @@ void Tracklet::print(std::ostream& os)
     os << "KMAG projection: X =  " << getExpPositionX(Z_KMAG_BEND) << " +/- " << getExpPosErrorX(Z_KMAG_BEND) << endl;
     os << "KMAG projection: Y =  " << getExpPositionY(Z_KMAG_BEND) << " +/- " << getExpPosErrorY(Z_KMAG_BEND) << endl;
     os << "KMAGSTR =  " << KMAGSTR << endl;
+    os << "and for good measure, let's print out the possible slope info" << endl;
+    os << "possible X lines" << endl;
+    for(unsigned int sl = 0; sl<possibleXLines.size(); sl++){
+      possibleXLines.at(sl).print();
+    }
+    os << "possible U lines" << endl;
+    for(unsigned int sl = 0; sl<possibleULines.size(); sl++){
+      possibleULines.at(sl).print();
+    }
+    os << "possible V lines" << endl;
+    for(unsigned int sl = 0; sl<possibleVLines.size(); sl++){
+      possibleVLines.at(sl).print();
+    }
 }
 
 TrackletVector::TrackletVector(): trackletVec()

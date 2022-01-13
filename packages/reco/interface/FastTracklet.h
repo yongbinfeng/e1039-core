@@ -269,6 +269,17 @@ public:
 
     } ;
 
+  double st2X;
+  double st2U;
+  double st2V;
+  double st2Z;
+  double st2Y;
+  double st3Y;
+  double st2Usl;
+  double st2Vsl;
+  double st2UZ;
+  double st2VZ;
+  
     std::vector<linedef> possibleXLines;
     std::vector<linedef> possibleULines;
     std::vector<linedef> possibleVLines;

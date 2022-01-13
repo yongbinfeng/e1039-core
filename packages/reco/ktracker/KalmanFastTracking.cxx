@@ -24,7 +24,7 @@ Created: 05-28-2013
 #include "KalmanFastTracking.h"
 #include "TriggerRoad.h"
 
-//#define _DEBUG_ON
+#define _DEBUG_ON
 
 namespace 
 {
@@ -500,6 +500,21 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     //Build tracklets in station 2, 3+, 3-
     _timers["st2"]->restart();
     buildTrackletsInStation(3, 1);   //3 for station-2, 1 for list position 1
+    /*if(!TRACK_DISPLACED){
+      buildTrackletsInStation(3, 1);   //3 for station-2, 1 for list position 1
+    } else{
+      for(int pxs = -99; pxs < 100; pxs = pxs+2){ //WPM
+	double pos_exp[3], window[3];
+	pos_exp[0] = pxs;
+	pos_exp[1] = p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * 0;
+	pos_exp[2] = p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * 0;
+	std::cout<<"The station 2 window I'm using is centered at "<<pxs<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * 0<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * 0<<std::endl; //WPM
+	window[0] = 1;
+	window[1] = 10;
+	window[2] = 10;
+	buildTrackletsInStation(3, 1, pos_exp, window);
+      }
+      }*/
     _timers["st2"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets in St2: " << trackletsInSt[1].size());
     
@@ -542,7 +557,11 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
 
     //Connect tracklets in station 2/3 and station 1 to form global tracks
     _timers["global"]->restart();
-    buildGlobalTracks();
+    if(!TRACK_DISPLACED){
+      buildGlobalTracks();
+    } else{
+      buildGlobalTracksDisplaced();
+    }
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
     
@@ -710,6 +729,15 @@ void KalmanFastTracking::buildBackPartialTracks()
 		tracklet_23 = (*tracklet2) + (*tracklet3);
 		tracklet_23.tx = tracklet2->tx; //This is needed to "seed" the tracklet fit that happens below.  This tx and ty information is assigned in compareTracklets below
 		tracklet_23.ty = tracklet2->ty;
+
+		tracklet_23.st2Z = tracklet2->st2Z;
+		tracklet_23.st2X = tracklet2->st2X;
+		tracklet_23.st2Y = tracklet2->st2Y;
+		tracklet_23.st3Y = tracklet2->st3Y;
+		tracklet_23.st2U = tracklet2->st2U;
+		tracklet_23.st2V = tracklet2->st2V;
+		tracklet_23.st2Usl = tracklet2->st2Usl;
+		tracklet_23.st2Vsl = tracklet2->st2Vsl;
 	      }
 	      else{
 		continue;
@@ -787,7 +815,7 @@ void KalmanFastTracking::buildGlobalTracks()
 {
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
-    {
+    { 
         Tracklet tracklet_best[2];
         for(int i = 0; i < 2; ++i) //for two station-1 chambers
         {
@@ -816,6 +844,7 @@ void KalmanFastTracking::buildGlobalTracks()
 	    if(TRACK_DISPLACED){
 	      buildTrackletsInStation(i+1, 0);
 	    }
+
             _timers["global_st1"]->stop();
 
             _timers["global_link"]->restart();
@@ -911,6 +940,223 @@ void KalmanFastTracking::buildGlobalTracks()
                 tracklet_best[i] = tracklet_best_prob;
             }
         }
+
+        //Merge the tracklets from two stations if necessary
+        Tracklet tracklet_merge;
+        if(fabs(tracklet_best[0].getMomentum() - tracklet_best[1].getMomentum())/tracklet_best[0].getMomentum() < MERGE_THRES)
+        {
+            //Merge the track and re-fit
+            tracklet_merge = tracklet_best[0].merge(tracklet_best[1]);
+            fitTracklet(tracklet_merge);
+
+#ifdef _DEBUG_ON
+            LogInfo("Merging two track candidates with momentum: " << tracklet_best[0].getMomentum() << "  " << tracklet_best[1].getMomentum());
+            LogInfo("tracklet_best_1:"); tracklet_best[0].print();
+            LogInfo("tracklet_best_2:"); tracklet_best[1].print();
+            LogInfo("tracklet_merge:"); tracklet_merge.print();
+#endif
+        }
+
+        if(tracklet_merge.isValid() > 0 && tracklet_merge < tracklet_best[0] && tracklet_merge < tracklet_best[1])
+        {
+#ifdef _DEBUG_ON
+            LogInfo("Choose merged tracklet");
+#endif
+            trackletsInSt[4].push_back(tracklet_merge);
+        }
+        else if(tracklet_best[0].isValid() > 0 && tracklet_best[0] < tracklet_best[1])
+        {
+#ifdef _DEBUG_ON
+            LogInfo("Choose tracklet with station-0");
+#endif
+            trackletsInSt[4].push_back(tracklet_best[0]);
+        }
+        else if(tracklet_best[1].isValid() > 0)
+        {
+#ifdef _DEBUG_ON
+            LogInfo("Choose tracklet with station-1");
+#endif
+            trackletsInSt[4].push_back(tracklet_best[1]);
+        }
+    }
+
+    trackletsInSt[4].sort();
+}
+
+
+void KalmanFastTracking::buildGlobalTracksDisplaced()
+{
+    double pos_exp[3], window[3];
+    for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
+    {
+      std::cout<<"I'm testing backwards extrapolation... z_plane thing is "<<z_plane[0]<<" "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[7]<<std::endl; //WPM
+      getSagittaWindowsInSt1(*tracklet23, pos_exp, window, 1); //WPM as a printing test
+      double posx = tracklet23->tx * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2X; //WPM pick up here.  do u and v extrapolations
+      std::cout<<"test of u extrapo.  st2Usl = "<<tracklet23->st2Usl<<" ( z_plane[(i)*6 + 0] - tracklet23->st2UZ ) = "<<( z_plane[3] - tracklet23->st2UZ )<<" tracklet23->st2U = "<<tracklet23->st2U<<std::endl; //WPM
+      double posu = tracklet23->st2Usl * ( z_plane[1] - tracklet23->st2Z ) + tracklet23->st2U; //WPM
+      double posv = tracklet23->st2Vsl * ( z_plane[5] - tracklet23->st2Z ) + tracklet23->st2V; //WPM
+      double posy = tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y; //WPM
+      std::cout<<"checking V extrapolation.  tracklet23->st2Vsl: "<<tracklet23->st2Vsl<<", ( z_plane[5] - tracklet23->st2Z ): "<<( z_plane[5] - tracklet23->st2Z )<<", tracklet23->st2V: "<<tracklet23->st2V<<std::endl; //WPM
+      std::cout<<"the extrapolations are x: "<<posx<<" and u: "<<posu<<" and v: "<<posv<<std::endl; //WPM
+      std::cout<<"the y-extrapolation is "<<tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y<<std::endl; //WPM
+      std::cout<<"quick printout of wire cos theta: "<<p_geomSvc->getCostheta(1)<<", "<<p_geomSvc->getCostheta(2)<<", "<<p_geomSvc->getCostheta(3)<<", "<<p_geomSvc->getCostheta(4)<<", "<<p_geomSvc->getCostheta(5)<<", "<<p_geomSvc->getCostheta(6)<<std::endl;
+      std::cout<<"quick printout of wire sin theta: "<<p_geomSvc->getSintheta(1)<<", "<<p_geomSvc->getSintheta(2)<<", "<<p_geomSvc->getSintheta(3)<<", "<<p_geomSvc->getSintheta(4)<<", "<<p_geomSvc->getSintheta(5)<<", "<<p_geomSvc->getSintheta(6)<<std::endl;
+      
+        Tracklet tracklet_best[2];
+        for(int i = 0; i < 1; ++i) //for two station-1 chambers //WPM edited so that it only does one chamber.  I think that's all we're using in our simulation...
+        {
+
+	  bool validTrackFound = false; //WPM
+	  int pxSlices[6] = {1, 3, 5, 7, 9, 11}; //WPM
+	  for(int pxs = 0; pxs < 6; pxs++){ //WPM
+	    if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
+	    
+	    int charges[2] = {-1,1}; //WPM
+	    for(int ch = 0; ch < 2; ch++){ //WPM
+	      
+	      if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
+	      std::cout<<"Getting st1 tracklets centered at "<<charges[ch]*pxSlices[pxs]<<std::endl; //WPM
+	      
+	    trackletsInSt[0].clear();
+	    if(!TRACK_DISPLACED){
+	      //Calculate the window in station 1
+	      if(KMAG_ON)
+		{
+		  getSagittaWindowsInSt1(*tracklet23, pos_exp, window, i+1);
+		}
+	      else
+		{
+		  getExtrapoWindowsInSt1(*tracklet23, pos_exp, window, i+1);
+		}
+	    }
+#ifdef _DEBUG_ON
+            LogInfo("Using this back partial: ");
+            tracklet23->print();
+            for(int j = 0; j < 3; j++) LogInfo("Extrapo: " << pos_exp[j] << "  " << window[j]);
+#endif
+
+            _timers["global_st1"]->restart();
+            if(!TRACK_DISPLACED){
+	      buildTrackletsInStation(i+1, 0, pos_exp, window);
+	    }
+	    if(TRACK_DISPLACED){
+	      (*tracklet23).setCharge(charges[ch]); //WPM
+	      tracklet23->print();
+	      pos_exp[0] = posx+charges[ch]*pxSlices[pxs];
+	      pos_exp[1] = p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy;
+	      pos_exp[2] = p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy;
+	      std::cout<<"The window I'm using is centered at "<<posx+charges[ch]*pxSlices[pxs]<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy<<std::endl; //WPM
+	      window[0] = 1;
+	      window[1] = 3;
+	      window[2] = 3;
+	      buildTrackletsInStation(i+1, 0, pos_exp, window);
+	    }
+
+	    std::cout<<"HELLO THERE: number of station 1 tracklets for index "<<i<<" is "<<trackletsInSt[0].size()<<std::endl; //WPM
+	    //std::cout<<"the last tracklet is "<<trackletsInSt[0].end()->print()<<std::endl; //WPM
+            _timers["global_st1"]->stop();
+
+            _timers["global_link"]->restart();
+	    int tracklet_counter = 0; //WPM
+            Tracklet tracklet_best_prob, tracklet_best_vtx;
+            for(std::list<Tracklet>::iterator tracklet1 = trackletsInSt[0].begin(); tracklet1 != trackletsInSt[0].end(); ++tracklet1)
+            {
+	      tracklet_counter++; //WPM
+	      std::cout<<"try tracklet number "<<tracklet_counter<<std::endl; //WPM
+#ifdef _DEBUG_ON
+                LogInfo("With this station 1 track:");
+                tracklet1->print();
+#endif
+
+                Tracklet tracklet_global = (*tracklet23) * (*tracklet1);
+                fitTracklet(tracklet_global);
+                if(!hodoMask(tracklet_global)) continue;
+
+                ///Resolve the left-right with a tight pull cut, then a loose one, then resolve by single projections
+                if(!COARSE_MODE)
+                {
+                    resolveLeftRight(tracklet_global, 75.);
+                    resolveLeftRight(tracklet_global, 150.);
+                    resolveSingleLeftRight(tracklet_global);
+                }
+		/*if(TRACK_DISPLACED){
+		  double firstChiSq = tracklet_global.calcChisq();
+		  Tracklet tracklet_global2 = (*tracklet23) * (*tracklet1);
+		  tracklet_global2.setCharge(-1*tracklet_global2.getCharge()); //By default, the value returned by getCharge is based on the x0 of the tracklet.  For a particle produced at the target, this is a valid way to extract charge.  However, for a displaced particle, the x0 does not tell you anything useful about the charge of the particle, which is why we need to check both possible charge values.  getCharge is used later on when extracting certain track quality values, so using the wrong charge leads to tracks getting rejected due to poor quality values
+		  if(!COARSE_MODE)
+		    {
+		      resolveLeftRight(tracklet_global2, 75.);
+		      resolveLeftRight(tracklet_global2, 150.);
+		      resolveSingleLeftRight(tracklet_global2);
+		    }
+		  double secondChiSq = tracklet_global2.calcChisq();
+		  if(secondChiSq < firstChiSq){
+		    tracklet_global = tracklet_global2;
+		  }
+		}*/
+		
+                ///Remove bad hits if needed
+                removeBadHits(tracklet_global);
+
+                //Most basic cuts
+                if(!acceptTracklet(tracklet_global)) continue;
+
+                //Get the tracklets that has the best prob
+                if(tracklet_global < tracklet_best_prob) tracklet_best_prob = tracklet_global;
+
+                ///Set vertex information - only applied when KF is enabled
+                ///TODO: maybe in the future add a Genfit-based equivalent here, for now leave as is
+                if(enable_KF && NOT_DISPLACED)
+                {
+                    _timers["global_kalman"]->restart();
+                    SRecTrack recTrack = processOneTracklet(tracklet_global);
+                    _timers["global_kalman"]->stop();
+                    tracklet_global.chisq_vtx = recTrack.getChisqVertex();
+
+                    if(recTrack.isValid() && tracklet_global.chisq_vtx < tracklet_best_vtx.chisq_vtx) tracklet_best_vtx = tracklet_global;
+                }
+
+#ifdef _DEBUG_ON
+                LogInfo("New tracklet: ");
+                tracklet_global.print();
+
+                LogInfo("Current best by prob:");
+                tracklet_best_prob.print();
+
+                LogInfo("Comparison I: " << (tracklet_global < tracklet_best_prob));
+                LogInfo("Quality I   : " << acceptTracklet(tracklet_global));
+
+                if(enable_KF && NOT_DISPLACED)
+                {
+                    LogInfo("Current best by vtx:");
+                    tracklet_best_vtx.print();
+
+                    LogInfo("Comparison II: " << (tracklet_global.chisq_vtx < tracklet_best_vtx.chisq_vtx));
+                    //LogInfo("Quality II   : " << recTrack.isValid());
+                }
+#endif
+            }
+            _timers["global_link"]->stop();
+
+            //The selection logic is, prefer the tracks with best p-value, as long as it's not low-pz
+            if(enable_KF && NOT_DISPLACED && tracklet_best_prob.isValid() > 0 && 1./tracklet_best_prob.invP > 18.)
+            {
+                tracklet_best[i] = tracklet_best_prob;
+		validTrackFound = true;
+            }
+            else if(enable_KF && NOT_DISPLACED && tracklet_best_vtx.isValid() > 0) //otherwise select the one with best vertex chisq, TODO: maybe add a z-vtx constraint
+            {
+                tracklet_best[i] = tracklet_best_vtx;
+		validTrackFound = true;
+            }
+            else if(tracklet_best_prob.isValid() > 0) //then fall back to the default only choice
+            {
+                tracklet_best[i] = tracklet_best_prob;
+		validTrackFound = true;
+            }
+	    }
+	  }
+	}
 
         //Merge the tracklets from two stations if necessary
         Tracklet tracklet_merge;
@@ -1386,10 +1632,11 @@ void KalmanFastTracking::buildTrackletsInStation(int stationID, int listID, doub
     }
 
     //Only retain the best 200 tracklets if exceeded
-    if(trackletsInSt[listID].size() > 200)
+    std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
+    if(trackletsInSt[listID].size() > 1000)
     {
         trackletsInSt[listID].sort();
-        trackletsInSt[listID].resize(200);
+        trackletsInSt[listID].resize(1000);
     }
 }
 
@@ -1907,6 +2154,8 @@ void KalmanFastTracking::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_
         double p_min = std::min(pos_exp_target - win_target, pos_exp_dump - win_dump);
         double p_max = std::max(pos_exp_target + win_target, pos_exp_dump + win_dump);
 
+	std::cout<<"Test sagitta window thing.  The detectorID is "<<detectorID<<" the idx is "<<idx<<" the z_st1 is "<<z_st1<<std::endl; //WPM
+	std::cout<<"More sagitta.  pos_exp is "<<0.5*(p_max + p_min)<<" and window = "<<0.5*(p_max - p_min)<<std::endl; //WPM
         pos_exp[idx] = 0.5*(p_max + p_min);
         window[idx]  = 0.5*(p_max - p_min);
     }
@@ -2276,6 +2525,17 @@ bool KalmanFastTracking::compareTracklets(Tracklet& tracklet2, Tracklet& trackle
   tracklet3.tx = (line2X.slopeX + line3X.slopeX)/2;
   tracklet3.ty = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(line3U.wireHit1PosZ - line2V.wireHit1PosZ);
 
+  tracklet2.st2Z = line2X.initialZ;
+  tracklet2.st2X = line2X.initialX;
+  tracklet2.st2Y = tracklet2Ys_D/4.;
+  tracklet2.st3Y = tracklet3Ys_D/4.;
+  tracklet2.st2U = line2U.initialU;
+  tracklet2.st2V = line2V.initialV;
+  tracklet2.st2Usl = line2U.slopeU;
+  tracklet2.st2Vsl = line2V.slopeV;
+  tracklet2.st2UZ = line2U.wireHit1PosZ;
+  tracklet2.st2VZ = line2V.wireHit1PosZ;
+  
   return true;
   
 }

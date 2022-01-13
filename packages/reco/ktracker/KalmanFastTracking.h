@@ -59,6 +59,9 @@ public:
     //Build global tracks by connecting station 23 tracklets and station 1 tracklets
     void buildGlobalTracks();
 
+  //Build global tracks by connecting station 23 tracklets and station 1 tracklets
+  void buildGlobalTracksDisplaced();
+
     //Fit tracklets
     int fitTracklet(Tracklet& tracklet);
 

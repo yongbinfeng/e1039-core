@@ -40,6 +40,8 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 
+#define _DEBUG_ON
+
 #ifdef _DEBUG_ON
 #  define LogDebug(exp) std::cout << "DEBUG: " << __FUNCTION__ <<": "<< __LINE__ << ": " << exp << std::endl
 #else
@@ -394,10 +396,10 @@ int SQReco::process_event(PHCompositeNode* topNode)
     {
       if(_fitter_type == SQReco::LEGACY){
         fitOK = fitSt3TrackletCand(*iter, _kfitter);
-	std::cout<<"it was legacy"<<std::endl;
+	//std::cout<<"it was legacy"<<std::endl;
       } else{
         fitOK = fitSt3TrackletCand(*iter, _gfitter);
-	std::cout<<"it wasn't legacy"<<std::endl;
+	//std::cout<<"it wasn't legacy"<<std::endl;
       }
     }
 
@@ -426,7 +428,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
         }
 
         if(is_eval_dst_enabled()){
-	  iter->print();
+	  //iter->print();
 	  _tracklet_vector->push_back(&(*iter));
 	}
       }
