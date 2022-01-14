@@ -226,7 +226,14 @@ public:
 
     //List of signed hits
     std::list<SignedHit> hits;
-
+  SignedHit getHit(int _i){
+    std::list<SignedHit>::iterator it = hits.begin();
+    for(int i=0; i<_i; i++){
+      ++it;
+    }
+    return *it;
+  }
+  
     //Corresponding prop. tube segments
     PropSegment seg_x;
     PropSegment seg_y;
@@ -270,19 +277,35 @@ public:
     } ;
 
   double st2X;
+  double st3X;
+  double st2Xsl;
+  double st3Xsl;
   double st2U;
+  double st3U;
+  double st3V;
   double st2V;
   double st2Z;
+  double st3Z;
   double st2Y;
   double st3Y;
   double st2Usl;
   double st2Vsl;
+  double st3Usl;
+  double st3Vsl;
   double st2UZ;
   double st2VZ;
+
+  linedef acceptedXLine2;
+  linedef acceptedULine2;
+  linedef acceptedVLine2;
+  linedef acceptedXLine3;
+  linedef acceptedULine3;
+  linedef acceptedVLine3;
   
     std::vector<linedef> possibleXLines;
     std::vector<linedef> possibleULines;
     std::vector<linedef> possibleVLines;
+  
     void getSlopesX(Hit hit1, Hit hit2);
     void getSlopesU(Hit hit1, Hit hit2);
     void getSlopesV(Hit hit1, Hit hit2);

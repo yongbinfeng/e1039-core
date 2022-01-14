@@ -52,9 +52,17 @@ public:
     ///Tracklet finding stuff
     //Build tracklets in a station
     void buildTrackletsInStation(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+    void buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+  void buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+    void buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+  void buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp = nullptr, double* window = nullptr);
 
     //Build back partial tracks using tracklets in station 2 & 3
     void buildBackPartialTracks();
+  void buildBackPartialTracksSlim();
+    void buildBackPartialTracksSlimX();
+    void buildBackPartialTracksSlimU();
+  void buildBackPartialTracksSlimV();
 
     //Build global tracks by connecting station 23 tracklets and station 1 tracklets
     void buildGlobalTracks();
@@ -73,6 +81,9 @@ public:
     bool muonID_hodoAid(Tracklet& tracklet);
 
     bool compareTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2);
 
     void buildPropSegments();
 
@@ -128,6 +139,9 @@ private:
     //Tracklets in one event, id = 0, 1, 2 for station 0/1, 2, 3+/-, id = 3 for station 2&3 combined, id = 4 for global tracks
     //Likewise for the next part
     std::list<Tracklet> trackletsInSt[5];
+    std::list<Tracklet> trackletsInStSlimX[5];
+  std::list<Tracklet> trackletsInStSlimU[5];
+  std::list<Tracklet> trackletsInStSlimV[5];
 
     //Final SRecTrack list
     std::list<SRecTrack> stracks;
