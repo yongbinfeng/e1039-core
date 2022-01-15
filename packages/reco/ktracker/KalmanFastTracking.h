@@ -55,7 +55,8 @@ public:
     void buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   void buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
     void buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
-  void buildTrackletsInStation1(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+  bool buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double* pos_exp = nullptr, double* window = nullptr);
+  void buildTrackletsInStation1X(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   void buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp = nullptr, double* window = nullptr);
 
     //Build back partial tracks using tracklets in station 2 & 3

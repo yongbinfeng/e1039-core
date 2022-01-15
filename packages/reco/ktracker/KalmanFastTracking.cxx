@@ -845,10 +845,10 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
   LogInfo("HELLO I'm in buildBackPartialTracksSlim");
 #endif
   std::cout<<"trackletsInStSlimV[3].size() = "<<trackletsInStSlimV[3].size()<<std::endl;
-  for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3].begin(); trackletV != trackletsInStSlimV[3].end(); ++trackletV){
-    std::cout<<"FIFTH TEST trackletV->acceptedVLine2.wireHit1PosZ = "<<(*trackletV).acceptedVLine2.wireHit1PosZ<<std::endl;
-    (*trackletV).acceptedVLine2.print();
-  }
+  //for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3].begin(); trackletV != trackletsInStSlimV[3].end(); ++trackletV){
+    //std::cout<<"FIFTH TEST trackletV->acceptedVLine2.wireHit1PosZ = "<<(*trackletV).acceptedVLine2.wireHit1PosZ<<std::endl;
+    //(*trackletV).acceptedVLine2.print();
+    //}
 
   std::vector<Tracklet> acceptedStation2Tracklets;
   std::vector<Tracklet> acceptedStation3Tracklets;
@@ -876,21 +876,21 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	tracklet_st2.stationID = 3;
 	
 	//resolveLeftRight(*xiter, LR1, LR2);
-	tracklet_st2.hits.push_back(SignedHit((*trackletX).getHit(0).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletX).getHit(0).hit, (*trackletX).getHit(0).sign));
 	tracklet_st2.nXHits++;
-	tracklet_st2.hits.push_back(SignedHit((*trackletX).getHit(1).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletX).getHit(1).hit, (*trackletX).getHit(1).sign));
 	tracklet_st2.nXHits++;
 	tracklet_st2.getSlopesX((*trackletX).getHit(0).hit, (*trackletX).getHit(1).hit);
 	
-	tracklet_st2.hits.push_back(SignedHit((*trackletU).getHit(0).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletU).getHit(0).hit, (*trackletU).getHit(0).sign));
 	tracklet_st2.nUHits++;
-	tracklet_st2.hits.push_back(SignedHit((*trackletU).getHit(1).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletU).getHit(1).hit, (*trackletU).getHit(1).sign));
 	tracklet_st2.nUHits++;
 	tracklet_st2.getSlopesU((*trackletU).getHit(0).hit, (*trackletU).getHit(1).hit);
 	
-	tracklet_st2.hits.push_back(SignedHit((*trackletV).getHit(0).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletV).getHit(0).hit, (*trackletV).getHit(0).sign));
 	tracklet_st2.nVHits++;
-	tracklet_st2.hits.push_back(SignedHit((*trackletV).getHit(1).hit, LR1));
+	tracklet_st2.hits.push_back(SignedHit((*trackletV).getHit(1).hit, (*trackletV).getHit(1).sign));
 	tracklet_st2.nVHits++;
 	tracklet_st2.getSlopesV((*trackletV).getHit(0).hit, (*trackletV).getHit(1).hit);
 
@@ -947,21 +947,21 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	}
 	
 	//resolveLeftRight(*xiter, LR1, LR2);
-	tracklet_st3.hits.push_back(SignedHit((*trackletX).getHit(2).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletX).getHit(2).hit, (*trackletX).getHit(2).sign));
 	tracklet_st3.nXHits++;
-	tracklet_st3.hits.push_back(SignedHit((*trackletX).getHit(3).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletX).getHit(3).hit, (*trackletX).getHit(3).sign));
 	tracklet_st3.nXHits++;
 	tracklet_st3.getSlopesX((*trackletX).getHit(2).hit, (*trackletX).getHit(3).hit);
 	
-	tracklet_st3.hits.push_back(SignedHit((*trackletU).getHit(2).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletU).getHit(2).hit, (*trackletU).getHit(2).sign));
 	tracklet_st3.nUHits++;
-	tracklet_st3.hits.push_back(SignedHit((*trackletU).getHit(3).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletU).getHit(3).hit, (*trackletU).getHit(3).sign));
 	tracklet_st3.nUHits++;
 	tracklet_st3.getSlopesU((*trackletU).getHit(2).hit, (*trackletU).getHit(3).hit);
 	
-	tracklet_st3.hits.push_back(SignedHit((*trackletV).getHit(2).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletV).getHit(2).hit, (*trackletV).getHit(2).sign));
 	tracklet_st3.nVHits++;
-	tracklet_st3.hits.push_back(SignedHit((*trackletV).getHit(3).hit, LR1));
+	tracklet_st3.hits.push_back(SignedHit((*trackletV).getHit(3).hit, (*trackletV).getHit(3).sign));
 	tracklet_st3.nVHits++;
 	tracklet_st3.getSlopesV((*trackletV).getHit(2).hit, (*trackletV).getHit(3).hit);
 
@@ -976,7 +976,9 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	  }
 	}
 
-	if(newSt2Tracklet){
+	std::cout<<"quick check here about tracklet newness.  Was tracklet 2 new? "<<newSt2Tracklet<<" and was tracklet 3 new? "<<newSt3Tracklet<<std::endl;
+	
+	if(newSt3Tracklet){
 	  if(tracklet_st3.isValid() == 0) //TODO: What IS THIS?
 	    {
 	      fitTracklet(tracklet_st3); //This is where the original DCA minimization is performed
@@ -1005,11 +1007,35 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	  acceptedStation3Tracklets.push_back(tracklet_st3);
 	}
 
-	if(!(newSt2Tracklet) && !(newSt3Tracklet)) continue;
+	//if(!(newSt2Tracklet) && !(newSt3Tracklet)) continue; //WPM changed
 	
 	Tracklet tracklet_23;
 	//Tracklet tracklet_23_reverse;
 	if(compareTracklets(tracklet_st2, tracklet_st3)){
+
+	  std::cout<<"about to COMBINE two tracklets"<<std::endl;
+	  
+	  for(std::list<SignedHit>::iterator iter = tracklet_st2.hits.begin(); iter != tracklet_st2.hits.end(); ++iter)
+	    {
+	      if(iter->sign > 0) std::cout << "L: ";
+	      if(iter->sign < 0) std::cout << "R: ";
+	      if(iter->sign == 0) std::cout << "U: ";
+	      
+	      std::cout << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << " = ";
+	    }
+	  std::cout<<std::endl;
+	  
+	  for(std::list<SignedHit>::iterator iter = tracklet_st3.hits.begin(); iter != tracklet_st3.hits.end(); ++iter)
+	    {
+	      if(iter->sign > 0) std::cout << "L: ";
+	      if(iter->sign < 0) std::cout << "R: ";
+	      if(iter->sign == 0) std::cout << "U: ";
+	      
+	      std::cout << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << " = ";
+	    }
+	  std::cout<<std::endl;
+	  
+	  
 	  tracklet_23 = (tracklet_st2) + (tracklet_st3);
 	  tracklet_23.tx = tracklet_st2.tx; //This is needed to "seed" the tracklet fit that happens below.  This tx and ty information is assigned in compareTracklets below
 	  tracklet_23.ty = tracklet_st2.ty;
@@ -1025,6 +1051,8 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 
 	  //tracklet_23_reverse = tracklet_23;
 	  //tracklet_23_reverse.setCharge(-1*tracklet_23_reverse.getCharge());
+	} else{
+	  continue; //WPM changed
 	}
 
 #ifdef _DEBUG_ON
@@ -1073,6 +1101,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
             tracklet_best_UX.print();
 
             LogInfo("Comparison: " << (tracklet_23 < tracklet_best_UX));
+	    LogInfo("Candidate chisq: " << tracklet_23.chisq);
             LogInfo("Quality: " << acceptTracklet(tracklet_23));
 #endif
 
@@ -1193,7 +1222,12 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
       }
     }
     if(acceptTracklet(tracklet_best)){
-      if(tracklet_best.isValid() > 0) trackletsInSt[3].push_back(tracklet_best);   
+      if(tracklet_best.isValid() > 0){
+	std::cout<<"pushing back 2+3 tracklets with candidate with the following chisq: "<<tracklet_best.chisq<<std::endl;
+	if(tracklet_best.chisq < 0.05){
+	  trackletsInSt[3].push_back(tracklet_best);
+	}
+      }
     }
   }
   
@@ -1685,6 +1719,9 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
+
+      Tracklet tracklet_best_prob, tracklet_best_vtx;
+      
       std::cout<<"I'm testing backwards extrapolation... z_plane thing is "<<z_plane[0]<<" "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[7]<<std::endl; //WPM
       getSagittaWindowsInSt1(*tracklet23, pos_exp, window, 1); //WPM as a printing test
       double posx = tracklet23->tx * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2X; //WPM pick up here.  do u and v extrapolations
@@ -1698,13 +1735,13 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
       std::cout<<"quick printout of wire cos theta: "<<p_geomSvc->getCostheta(1)<<", "<<p_geomSvc->getCostheta(2)<<", "<<p_geomSvc->getCostheta(3)<<", "<<p_geomSvc->getCostheta(4)<<", "<<p_geomSvc->getCostheta(5)<<", "<<p_geomSvc->getCostheta(6)<<std::endl;
       std::cout<<"quick printout of wire sin theta: "<<p_geomSvc->getSintheta(1)<<", "<<p_geomSvc->getSintheta(2)<<", "<<p_geomSvc->getSintheta(3)<<", "<<p_geomSvc->getSintheta(4)<<", "<<p_geomSvc->getSintheta(5)<<", "<<p_geomSvc->getSintheta(6)<<std::endl;
 
-      pos_exp[0] = posx;
+      /*pos_exp[0] = posx;
       pos_exp[1] = 0;
       pos_exp[2] = 0;
       window[0] = 20;
       window[1] = 100;
       window[2] = 100;	    
-      buildTrackletsInStationSlim(1, 0);
+      buildTrackletsInStationSlim(1, 0);*/
 	    
       
         Tracklet tracklet_best[2];
@@ -1722,40 +1759,43 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	      if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
 	      std::cout<<"Getting st1 tracklets centered at "<<charges[ch]*pxSlices[pxs]<<std::endl; //WPM
 	      
-	    trackletsInSt[0].clear();
-	    if(!TRACK_DISPLACED){
+	      trackletsInSt[0].clear();
+	      if(!TRACK_DISPLACED){
 	      //Calculate the window in station 1
-	      if(KMAG_ON)
-		{
-		  getSagittaWindowsInSt1(*tracklet23, pos_exp, window, i+1);
-		}
-	      else
-		{
-		  getExtrapoWindowsInSt1(*tracklet23, pos_exp, window, i+1);
-		}
-	    }
+		if(KMAG_ON)
+		  {
+		    getSagittaWindowsInSt1(*tracklet23, pos_exp, window, i+1);
+		  }
+		else
+		  {
+		    getExtrapoWindowsInSt1(*tracklet23, pos_exp, window, i+1);
+		  }
+	      }
 #ifdef _DEBUG_ON
-            LogInfo("Using this back partial: ");
-            tracklet23->print();
-            for(int j = 0; j < 3; j++) LogInfo("Extrapo: " << pos_exp[j] << "  " << window[j]);
+	      LogInfo("Using this back partial: ");
+	      tracklet23->print();
+	      for(int j = 0; j < 3; j++) LogInfo("Extrapo: " << pos_exp[j] << "  " << window[j]);
 #endif
 
-            _timers["global_st1"]->restart();
-            if(!TRACK_DISPLACED){
-	      buildTrackletsInStation(i+1, 0, pos_exp, window);
-	    }
-	    if(TRACK_DISPLACED){
 	      (*tracklet23).setCharge(charges[ch]); //WPM
-	      tracklet23->print();
-	      pos_exp[0] = posx+charges[ch]*pxSlices[pxs];
-	      pos_exp[1] = p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy;
-	      pos_exp[2] = p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy;
-	      std::cout<<"The window I'm using is centered at "<<posx+charges[ch]*pxSlices[pxs]<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy<<std::endl; //WPM
-	      window[0] = 1;
-	      window[1] = 3;
-	      window[2] = 3;
-	      buildTrackletsInStation1(i+1, 0, pos_exp, window);
-	    }
+	      double expXZSlope = ((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs]);
+	      
+	      _timers["global_st1"]->restart();
+	      if(!TRACK_DISPLACED){
+		buildTrackletsInStation(i+1, 0, pos_exp, window);
+	      }
+	      if(TRACK_DISPLACED){
+		//(*tracklet23).setCharge(charges[ch]); //WPM
+		tracklet23->print();
+		pos_exp[0] = posx+charges[ch]*pxSlices[pxs];
+		pos_exp[1] = p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy;
+		pos_exp[2] = p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy;
+		std::cout<<"The window I'm using is centered at "<<posx+charges[ch]*pxSlices[pxs]<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy<<std::endl; //WPM
+		window[0] = 1;
+		window[1] = 3;
+		window[2] = 3;
+		if(!(buildTrackletsInStation1(i+1, 0, expXZSlope, pos_exp, window))) continue;
+	      }
 
 	    std::cout<<"HELLO THERE: number of station 1 tracklets for index "<<i<<" is "<<trackletsInSt[0].size()<<std::endl; //WPM
 	    //std::cout<<"the last tracklet is "<<trackletsInSt[0].end()->print()<<std::endl; //WPM
@@ -1763,9 +1803,10 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 
             _timers["global_link"]->restart();
 	    int tracklet_counter = 0; //WPM
-            Tracklet tracklet_best_prob, tracklet_best_vtx;
+
             for(std::list<Tracklet>::iterator tracklet1 = trackletsInSt[0].begin(); tracklet1 != trackletsInSt[0].end(); ++tracklet1)
             {
+	      /* 
 	      std::cout<<"PRINT possible x slopes"<<std::endl;
 
 	      double bestSlopeDiffX = 1.0;
@@ -1894,17 +1935,22 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 		      }
 		    }
 		  }
-		}
+		}*/
 
-	      tracklet1->tx = trackletXslope;
+	      tracklet1->tx = expXZSlope;
 	      tracklet1->ty = tracklet23->ty;
 	      tracklet1->x0 = tracklet23->x0;
 	      tracklet1->y0 = tracklet23->y0;
+	      tracklet1->setCharge(charges[ch]); //WPM
 	      
 	      std::cout<<"I GOT A GOOD TRACKLETX"<<std::endl;
 	      tracklet1->print();
 	      fitTracklet((*tracklet1));
+
+	      //resolveLeftRight((*tracklet1), 75.);
+	      //resolveLeftRight((*tracklet1), 150.);
 	      
+
 	      tracklet_counter++; //WPM
 	      std::cout<<"try tracklet number "<<tracklet_counter<<std::endl; //WPM
 #ifdef _DEBUG_ON
@@ -1912,18 +1958,48 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
                 tracklet1->print();
 #endif
 
+		int unsignedHits = 0;
 		for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
 		  {
-		    hit1->sign=0;
+		    if(hit1->sign == 0) unsignedHits++;
 		  }
+		//if(unsignedHits>0){
+		//  for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
+		//    {
+		//      hit1->sign = 0;
+		//    }
+		//  tracklet1->tx = expXZSlope;
+		//  tracklet1->ty = tracklet23->ty;
+		//  tracklet1->x0 = tracklet23->x0;
+		//  tracklet1->y0 = tracklet23->y0;
+		//  tracklet1->setCharge(charges[ch]); //WPM
+		//  fitTracklet((*tracklet1));
+		//}
+		
+		//std::vector<int> signs = {0,0,0,0,0,0};
+		//for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
+		//  {
+		//    signs.at(hit1->hit.detectorID - 1) = hit1->sign;
+		//    hit1->sign=0;
+		//  }
 		
                 Tracklet tracklet_global = (*tracklet23) * (*tracklet1);
+		tracklet_global.setCharge(charges[ch]); //WPM      
+		std::cout<<"Prior to fitting my supposedly good station 7 tracklet, let's print it out:"<<std::endl;
+		tracklet_global.print();
                 fitTracklet(tracklet_global);
                 if(!hodoMask(tracklet_global)) continue;
-
+		std::cout<<"I just fit what should have been a good station 7 tracklet:"<<std::endl;
+		tracklet_global.print();
                 ///Resolve the left-right with a tight pull cut, then a loose one, then resolve by single projections
                 if(!COARSE_MODE)
                 {
+		  /*for(std::list<SignedHit>::iterator hit1 = tracklet_global.hits.begin(); hit1 != tracklet_global.hits.end(); ++hit1)
+		    {
+		      if(hit1->hit.detectorID == 3 || hit1->hit.detectorID == 4){
+			hit1->sign = signs.at(hit1->hit.detectorID - 1);
+		      }
+		    }*/
                     resolveLeftRight(tracklet_global, 75.);
                     resolveLeftRight(tracklet_global, 150.);
                     resolveSingleLeftRight(tracklet_global);
@@ -1994,20 +2070,22 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
             if(enable_KF && NOT_DISPLACED && tracklet_best_prob.isValid() > 0 && 1./tracklet_best_prob.invP > 18.)
             {
                 tracklet_best[i] = tracklet_best_prob;
-		if(tracklet_best_prob.hits.size()==6) validTrackFound = true;
+		//if(tracklet_best_prob.hits.size()==6) validTrackFound = true;
             }
             else if(enable_KF && NOT_DISPLACED && tracklet_best_vtx.isValid() > 0) //otherwise select the one with best vertex chisq, TODO: maybe add a z-vtx constraint
             {
                 tracklet_best[i] = tracklet_best_vtx;
-		if(tracklet_best_vtx.hits.size()==6) validTrackFound = true;
+		//if(tracklet_best_vtx.hits.size()==6) validTrackFound = true;
             }
             else if(tracklet_best_prob.isValid() > 0) //then fall back to the default only choice
             {
                 tracklet_best[i] = tracklet_best_prob;
-		if(tracklet_best_prob.hits.size()==6) validTrackFound = true;
+		//if(tracklet_best_prob.hits.size()==6) validTrackFound = true;
             }
 	    }
+	    if(tracklet_best_prob.chisq < 1.) break;
 	  }
+	  if(tracklet_best_prob.chisq < 1.) break;
 	}
 
         //Merge the tracklets from two stations if necessary
@@ -2516,12 +2594,14 @@ void KalmanFastTracking::buildTrackletsInStation(int stationID, int listID, doub
 
 
 
-void KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, double* pos_exp, double* window)
+bool KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station " << stationID);
 #endif
 
+    bool st1TrackletFound = false;
+    
     //actuall ID of the tracklet lists
     int sID = stationID - 1;
 
@@ -2530,147 +2610,332 @@ void KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, dou
     if(pos_exp == nullptr)
     {
         pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0]);
-        pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1]);
-        pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2]);
+        //pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1]);
+        //pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2]);
     }
     else
     {
         //Note that in pos_exp[], index 0 stands for X, index 1 stands for U, index 2 stands for V
         pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0], pos_exp[0], window[0]);
-        pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1], pos_exp[1], window[1]);
-        pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2], pos_exp[2], window[2]);
+        //pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1], pos_exp[1], window[1]);
+        //pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2], pos_exp[2], window[2]);
     }
 
 #ifdef _DEBUG_ON
     LogInfo("Hit pairs in this event: ");
     for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_X.begin(); iter != pairs_X.end(); ++iter) LogInfo("X :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
-    for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
-    for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+    //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+    //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
 #endif
 
-    if(pairs_X.empty() || pairs_U.empty() || pairs_V.empty())
+    //if(pairs_X.empty() || pairs_U.empty() || pairs_V.empty())
+    if(pairs_X.empty())
     {
 #ifdef _DEBUG_ON
         LogInfo("Not all view has hits in station " << stationID);
 #endif
-        return;
+        return st1TrackletFound;
     }
 
     //X-U combination first, then add V pairs
     for(std::list<SRawEvent::hit_pair>::iterator xiter = pairs_X.begin(); xiter != pairs_X.end(); ++xiter)
     {
-        //U projections from X plane
-        double x_pos = xiter->second >= 0 ? 0.5*(hitAll[xiter->first].pos + hitAll[xiter->second].pos) : hitAll[xiter->first].pos;
-        double u_min = x_pos*u_costheta[sID] - u_win[sID];
-        double u_max = u_min + 2.*u_win[sID];
 
+      if(!(xiter->first >= 0) || !(xiter->second >= 0)) continue;
+      
+      //make a tracklet
+      int LR1 = 0;
+      int LR2 = 0;
+      Tracklet tracklet_new;
+      tracklet_new.stationID = stationID;
+      
+      //resolveLeftRight(*xiter, LR1, LR2);
+      if(xiter->first >= 0)
+	{
+	  tracklet_new.hits.push_back(SignedHit(hitAll[xiter->first], LR1));
+	  tracklet_new.nXHits++;
+	}
+      if(xiter->second >= 0)
+	{
+	  tracklet_new.hits.push_back(SignedHit(hitAll[xiter->second], LR2));
+	  tracklet_new.nXHits++;
+	}
+      if(!OLD_TRACKING){
+	tracklet_new.getSlopesX(hitAll[xiter->first], hitAll[xiter->second]); //Here, we find the four possible X-Z lines
+      }
+
+      double bestSlopeDiffX = 1.0;
+      double slopeDiffX = 1.0;
+      int bestTrackletX = 5;
+      double trackletXslope = 1.0;
+      int nValidXSlopes = 0;
+      for(int t3 = 0; t3 < tracklet_new.possibleXLines.size(); t3++){
+	std::cout<<tracklet_new.possibleXLines.at(t3).slopeX<<std::endl;
+	std::cout<<"exp is "<<expXZSlope<<" so diff is "<<tracklet_new.possibleXLines.at(t3).slopeX - expXZSlope<<std::endl;
+	slopeDiffX = tracklet_new.possibleXLines.at(t3).slopeX - expXZSlope;
+	if(std::abs(slopeDiffX)<0.0095) nValidXSlopes++;
+	if(std::abs(slopeDiffX)<0.0095 && std::abs(slopeDiffX)<std::abs(bestSlopeDiffX)){
+	  bestSlopeDiffX = slopeDiffX;
+	  bestTrackletX = t3;
+	  trackletXslope = tracklet_new.possibleXLines.at(t3).slopeX;
+	}
+      }
+
+      if(bestTrackletX > 4) continue;
+      
+      if(pos_exp == nullptr)
+	{
+	  //pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0]);
+	  pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1]);
+	  //pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2]);
+	}
+      else
+	{
+	  //Note that in pos_exp[], index 0 stands for X, index 1 stands for U, index 2 stands for V
+	  //pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0], pos_exp[0], window[0]);
+	  pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1], pos_exp[1], window[1]);
+	  //pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2], pos_exp[2], window[2]);
+	}
+      
 #ifdef _DEBUG_ON
-        LogInfo("Trying X hits " << xiter->first << "  " << xiter->second << "  " << hitAll[xiter->first].elementID << " at " << x_pos);
-        LogInfo("U plane window:" << u_min << "  " << u_max);
+      LogInfo("Hit pairs in this event: ");
+      //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_X.begin(); iter != pairs_X.end(); ++iter) LogInfo("X :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+      for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+      //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
 #endif
-        for(std::list<SRawEvent::hit_pair>::iterator uiter = pairs_U.begin(); uiter != pairs_U.end(); ++uiter)
+      
+      //U projections from X plane
+      double x_pos = xiter->second >= 0 ? 0.5*(hitAll[xiter->first].pos + hitAll[xiter->second].pos) : hitAll[xiter->first].pos;
+      double u_min = x_pos*u_costheta[sID] - u_win[sID];
+      double u_max = u_min + 2.*u_win[sID];
+      
+#ifdef _DEBUG_ON
+      LogInfo("Trying X hits " << xiter->first << "  " << xiter->second << "  " << hitAll[xiter->first].elementID << " at " << x_pos);
+      LogInfo("U plane window:" << u_min << "  " << u_max);
+#endif
+      for(std::list<SRawEvent::hit_pair>::iterator uiter = pairs_U.begin(); uiter != pairs_U.end(); ++uiter)
         {
-            double u_pos = uiter->second >= 0 ? 0.5*(hitAll[uiter->first].pos + hitAll[uiter->second].pos) : hitAll[uiter->first].pos;
-#ifdef _DEBUG_ON
-            LogInfo("Trying U hits " << uiter->first << "  " << uiter->second << "  " << hitAll[uiter->first].elementID << " at " << u_pos);
-#endif
-            if(u_pos < u_min || u_pos > u_max) continue;
 
-            //V projections from X and U plane
-            double z_x = xiter->second >= 0 ? z_plane_x[sID] : z_plane[hitAll[xiter->first].detectorID];
-            double z_u = uiter->second >= 0 ? z_plane_u[sID] : z_plane[hitAll[uiter->first].detectorID];
-            double z_v = z_plane_v[sID];
-            double v_win1 = spacing_plane[hitAll[uiter->first].detectorID]*2.*u_costheta[sID];
-            double v_win2 = fabs((z_u + z_v - 2.*z_x)*u_costheta[sID]*TX_MAX);
-            double v_win3 = fabs((z_v - z_u)*u_sintheta[sID]*TY_MAX);
-            double v_win = v_win1 + v_win2 + v_win3 + 2.*spacing_plane[hitAll[uiter->first].detectorID];
-            double v_min = 2*x_pos*u_costheta[sID] - u_pos - v_win;
-            double v_max = v_min + 2.*v_win;
-
+	  if(!(uiter->first >= 0) || !(uiter->second >= 0)) continue;
+	  
+	  double u_pos = uiter->second >= 0 ? 0.5*(hitAll[uiter->first].pos + hitAll[uiter->second].pos) : hitAll[uiter->first].pos;
 #ifdef _DEBUG_ON
-            LogInfo("V plane window:" << v_min << "  " << v_max);
+	  LogInfo("Trying U hits " << uiter->first << "  " << uiter->second << "  " << hitAll[uiter->first].elementID << " at " << u_pos);
 #endif
-            for(std::list<SRawEvent::hit_pair>::iterator viter = pairs_V.begin(); viter != pairs_V.end(); ++viter)
+	  if(u_pos < u_min || u_pos > u_max) continue;
+
+	  
+	  Tracklet tracklet_newU;
+	  tracklet_newU = tracklet_new;
+	  //tracklet_newU.stationID = stationID;
+	  
+	  //resolveLeftRight(*uiter, LR1, LR2);
+	  if(uiter->first >= 0)
+	    {
+	      tracklet_newU.hits.push_back(SignedHit(hitAll[uiter->first], LR1));
+	      tracklet_newU.nUHits++;
+	    }
+	  if(uiter->second >= 0)
+	    {
+	      tracklet_newU.hits.push_back(SignedHit(hitAll[uiter->second], LR2));
+	      tracklet_newU.nUHits++;
+	    }
+	  if(!OLD_TRACKING){
+	    tracklet_newU.getSlopesU(hitAll[uiter->first], hitAll[uiter->second]); //find the four possible U-Z lines
+	  }
+
+	  int nValidUSlopes = 0;
+	  int bestTrackletU = 5;
+	  for(int t3 = 0; t3 < tracklet_newU.possibleULines.size(); t3++){
+	    if( std::abs(tracklet_newU.possibleULines.at(t3).slopeU) < 0.15 ){
+	      nValidUSlopes++;
+	      bestTrackletU = t3;
+	    }
+	  }
+
+	  if(nValidUSlopes == 0) continue;
+	  
+
+	  if(pos_exp == nullptr)
+	    {
+	      //pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0]);
+	      //pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1]);
+	      pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2]);
+	    }
+	  else
+	    {
+	      //Note that in pos_exp[], index 0 stands for X, index 1 stands for U, index 2 stands for V
+	      //pairs_X = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][0], pos_exp[0], window[0]);
+	      //pairs_U = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][1], pos_exp[1], window[1]);
+	      pairs_V = rawEvent->getPartialHitPairsInSuperDetector(superIDs[sID][2], pos_exp[2], window[2]);
+	    }
+	  
+#ifdef _DEBUG_ON
+	  LogInfo("Hit pairs in this event: ");
+	  //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_X.begin(); iter != pairs_X.end(); ++iter) LogInfo("X :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+	  //for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+	  for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+#endif
+	  
+	  
+	  
+	  //V projections from X and U plane
+	  double z_x = xiter->second >= 0 ? z_plane_x[sID] : z_plane[hitAll[xiter->first].detectorID];
+	  double z_u = uiter->second >= 0 ? z_plane_u[sID] : z_plane[hitAll[uiter->first].detectorID];
+	  double z_v = z_plane_v[sID];
+	  double v_win1 = spacing_plane[hitAll[uiter->first].detectorID]*2.*u_costheta[sID];
+	  double v_win2 = fabs((z_u + z_v - 2.*z_x)*u_costheta[sID]*TX_MAX);
+	  double v_win3 = fabs((z_v - z_u)*u_sintheta[sID]*TY_MAX);
+	  double v_win = v_win1 + v_win2 + v_win3 + 2.*spacing_plane[hitAll[uiter->first].detectorID];
+	  double v_min = 2*x_pos*u_costheta[sID] - u_pos - v_win;
+	  double v_max = v_min + 2.*v_win;
+	  
+#ifdef _DEBUG_ON
+	  LogInfo("V plane window:" << v_min << "  " << v_max);
+#endif
+	  for(std::list<SRawEvent::hit_pair>::iterator viter = pairs_V.begin(); viter != pairs_V.end(); ++viter)
             {
-                double v_pos = viter->second >= 0 ? 0.5*(hitAll[viter->first].pos + hitAll[viter->second].pos) : hitAll[viter->first].pos;
+
+	      if(!(viter->first >= 0) || !(viter->second >= 0)) continue;
+	      
+	      double v_pos = viter->second >= 0 ? 0.5*(hitAll[viter->first].pos + hitAll[viter->second].pos) : hitAll[viter->first].pos;
 #ifdef _DEBUG_ON
-                LogInfo("Trying V hits " << viter->first << "  " << viter->second << "  " << hitAll[viter->first].elementID << " at " << v_pos);
+	      LogInfo("Trying V hits " << viter->first << "  " << viter->second << "  " << hitAll[viter->first].elementID << " at " << v_pos);
 #endif
-                if(v_pos < v_min || v_pos > v_max) continue;
+	      if(v_pos < v_min || v_pos > v_max) continue;
 
-                //Now add the tracklet
-                int LR1 = 0;
-                int LR2 = 0;
-                Tracklet tracklet_new;
-                tracklet_new.stationID = stationID;
-
-                //resolveLeftRight(*xiter, LR1, LR2);
-                if(xiter->first >= 0)
+	      
+	      Tracklet tracklet_newV;
+	      tracklet_newV = tracklet_newU;
+	      //tracklet_newV.stationID = stationID;
+	      
+	      
+	      //resolveLeftRight(*viter, LR1, LR2);
+	      if(viter->first >= 0)
                 {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[xiter->first], LR1));
-                    tracklet_new.nXHits++;
+		  tracklet_newV.hits.push_back(SignedHit(hitAll[viter->first], LR1));
+		  tracklet_newV.nVHits++;
                 }
-                if(xiter->second >= 0)
+	      if(viter->second >= 0)
                 {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[xiter->second], LR2));
-                    tracklet_new.nXHits++;
+		  tracklet_newV.hits.push_back(SignedHit(hitAll[viter->second], LR2));
+		  tracklet_newV.nVHits++;
                 }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesX(hitAll[xiter->first], hitAll[xiter->second]); //Here, we find the four possible X-Z lines
+	      if(!OLD_TRACKING){
+		tracklet_newV.getSlopesV(hitAll[viter->first], hitAll[viter->second]); //find the four possible V-Z lines
+	      }
+	      
+	      int nValidVSlopes = 0;
+	      int bestTrackletV = 5;
+	      for(int t3 = 0; t3 < tracklet_newV.possibleVLines.size(); t3++){
+		if( std::abs(tracklet_newV.possibleVLines.at(t3).slopeV) < 0.15 ){
+		  nValidVSlopes++;
+		  bestTrackletV = t3;
 		}
-                //resolveLeftRight(*uiter, LR1, LR2);
-                if(uiter->first >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[uiter->first], LR1));
-                    tracklet_new.nUHits++;
-                }
-                if(uiter->second >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[uiter->second], LR2));
-                    tracklet_new.nUHits++;
-                }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesU(hitAll[uiter->first], hitAll[uiter->second]); //find the four possible U-Z lines
+	      }
+
+	      if(nValidVSlopes == 0) continue;
+
+	      tracklet_newV.sortHits();
+	      
+	      st1TrackletFound=true;
+	      
+	      for(std::list<SignedHit>::iterator hit1 = tracklet_newV.hits.begin(); hit1 != tracklet_newV.hits.end(); ++hit1)
+		{
+		  if(nValidUSlopes == 1){
+		    if(hit1->hit.detectorID == 4){
+		      if(bestTrackletX == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletX == 1){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletX == 2){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletX == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		    if(hit1->hit.detectorID == 3){
+		      if(bestTrackletX == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletX == 1){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletX == 2){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletX == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		  }
+		  if(nValidUSlopes == 1){
+		    if(hit1->hit.detectorID == 1){
+		      if(bestTrackletU == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletU == 1){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletU == 2){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletU == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		    if(hit1->hit.detectorID == 2){
+		      if(bestTrackletU == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletU == 1){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletU == 2){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletU == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		  }
+		  if(nValidVSlopes == 1){
+		    if(hit1->hit.detectorID == 5){
+		      if(bestTrackletV == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletV == 1){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletV == 2){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletV == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		    if(hit1->hit.detectorID == 6){
+		      if(bestTrackletV == 0){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletV == 1){
+			hit1->sign = 1;
+		      }
+		      if(bestTrackletV == 2){
+			hit1->sign = -1;
+		      }
+		      if(bestTrackletV == 3){
+			hit1->sign = -1;
+		      }
+		    }
+		  }
 		}
 
-                //resolveLeftRight(*viter, LR1, LR2);
-                if(viter->first >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[viter->first], LR1));
-                    tracklet_new.nVHits++;
-                }
-                if(viter->second >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[viter->second], LR2));
-                    tracklet_new.nVHits++;
-                }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesV(hitAll[viter->first], hitAll[viter->second]); //find the four possible V-Z lines
-		}
-
-                tracklet_new.sortHits();
-                //if(tracklet_new.isValid() == 0) //TODO: What IS THIS?
-                //{
-		//fitTracklet(tracklet_new); //This is where the original DCA minimization is performed
-                //}
-                //else
-                //{
-		//continue;
-                //}
-
-		//#ifdef _DEBUG_ON
-                //tracklet_new.print();
-		//#endif
-                //if(acceptTracklet(tracklet_new))
-                //{
-		trackletsInSt[listID].push_back(tracklet_new);
-                //}
-		//#ifdef _DEBUG_ON
-                //else
-                //{
-                //    LogInfo("Rejected!!!");
-                //}
-		//#endif
+	      trackletsInSt[listID].push_back(tracklet_newV);
+	      
             }
         }
     }
@@ -2682,13 +2947,9 @@ void KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, dou
         iter->addDummyHits();
     }
 
-    //Only retain the best 200 tracklets if exceeded
     std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
-    //if(trackletsInSt[listID].size() > 1000)
-      //{
-      //trackletsInSt[listID].sort();
-        //trackletsInSt[listID].resize(1000);
-	//}
+
+    return st1TrackletFound;
 }
 
 
@@ -2767,138 +3028,9 @@ void KalmanFastTracking::buildTrackletsInStationSlim(int stationID, int listID, 
       if(tracklet_new.hits.size() == 2){
 	trackletsInStSlimX[listID].push_back(tracklet_new);
       }
-      /*     
-        //U projections from X plane
-        double x_pos = xiter->second >= 0 ? 0.5*(hitAll[xiter->first].pos + hitAll[xiter->second].pos) : hitAll[xiter->first].pos;
-        double u_min = x_pos*u_costheta[sID] - u_win[sID];
-        double u_max = u_min + 2.*u_win[sID];
-
-#ifdef _DEBUG_ON
-        LogInfo("Trying X hits " << xiter->first << "  " << xiter->second << "  " << hitAll[xiter->first].elementID << " at " << x_pos);
-        LogInfo("U plane window:" << u_min << "  " << u_max);
-#endif
-        for(std::list<SRawEvent::hit_pair>::iterator uiter = pairs_U.begin(); uiter != pairs_U.end(); ++uiter)
-        {
-            double u_pos = uiter->second >= 0 ? 0.5*(hitAll[uiter->first].pos + hitAll[uiter->second].pos) : hitAll[uiter->first].pos;
-#ifdef _DEBUG_ON
-            LogInfo("Trying U hits " << uiter->first << "  " << uiter->second << "  " << hitAll[uiter->first].elementID << " at " << u_pos);
-#endif
-            if(u_pos < u_min || u_pos > u_max) continue;
-
-            //V projections from X and U plane
-            double z_x = xiter->second >= 0 ? z_plane_x[sID] : z_plane[hitAll[xiter->first].detectorID];
-            double z_u = uiter->second >= 0 ? z_plane_u[sID] : z_plane[hitAll[uiter->first].detectorID];
-            double z_v = z_plane_v[sID];
-            double v_win1 = spacing_plane[hitAll[uiter->first].detectorID]*2.*u_costheta[sID];
-            double v_win2 = fabs((z_u + z_v - 2.*z_x)*u_costheta[sID]*TX_MAX);
-            double v_win3 = fabs((z_v - z_u)*u_sintheta[sID]*TY_MAX);
-            double v_win = v_win1 + v_win2 + v_win3 + 2.*spacing_plane[hitAll[uiter->first].detectorID];
-            double v_min = 2*x_pos*u_costheta[sID] - u_pos - v_win;
-            double v_max = v_min + 2.*v_win;
-
-#ifdef _DEBUG_ON
-            LogInfo("V plane window:" << v_min << "  " << v_max);
-#endif
-            for(std::list<SRawEvent::hit_pair>::iterator viter = pairs_V.begin(); viter != pairs_V.end(); ++viter)
-            {
-                double v_pos = viter->second >= 0 ? 0.5*(hitAll[viter->first].pos + hitAll[viter->second].pos) : hitAll[viter->first].pos;
-#ifdef _DEBUG_ON
-                LogInfo("Trying V hits " << viter->first << "  " << viter->second << "  " << hitAll[viter->first].elementID << " at " << v_pos);
-#endif
-                if(v_pos < v_min || v_pos > v_max) continue;
-
-                //Now add the tracklet
-                int LR1 = 0;
-                int LR2 = 0;
-                Tracklet tracklet_new;
-                tracklet_new.stationID = stationID;
-
-                //resolveLeftRight(*xiter, LR1, LR2);
-                if(xiter->first >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[xiter->first], LR1));
-                    tracklet_new.nXHits++;
-                }
-                if(xiter->second >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[xiter->second], LR2));
-                    tracklet_new.nXHits++;
-                }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesX(hitAll[xiter->first], hitAll[xiter->second]); //Here, we find the four possible X-Z lines
-		}
-                //resolveLeftRight(*uiter, LR1, LR2);
-                if(uiter->first >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[uiter->first], LR1));
-                    tracklet_new.nUHits++;
-                }
-                if(uiter->second >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[uiter->second], LR2));
-                    tracklet_new.nUHits++;
-                }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesU(hitAll[uiter->first], hitAll[uiter->second]); //find the four possible U-Z lines
-		}
-
-                //resolveLeftRight(*viter, LR1, LR2);
-                if(viter->first >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[viter->first], LR1));
-                    tracklet_new.nVHits++;
-                }
-                if(viter->second >= 0)
-                {
-                    tracklet_new.hits.push_back(SignedHit(hitAll[viter->second], LR2));
-                    tracklet_new.nVHits++;
-                }
-		if(!OLD_TRACKING){
-		  tracklet_new.getSlopesV(hitAll[viter->first], hitAll[viter->second]); //find the four possible V-Z lines
-		}
-
-                tracklet_new.sortHits();
-                if(tracklet_new.isValid() == 0) //TODO: What IS THIS?
-                {
-		  fitTracklet(tracklet_new); //This is where the original DCA minimization is performed
-                }
-                else
-                {
-                    continue;
-                }
-
-#ifdef _DEBUG_ON
-                tracklet_new.print();
-#endif
-                if(acceptTracklet(tracklet_new))
-                {
-                    trackletsInSt[listID].push_back(tracklet_new);
-                }
-#ifdef _DEBUG_ON
-                else
-                {
-                    LogInfo("Rejected!!!");
-                }
-#endif
-            }
-        }*/
     }
 
     std::cout<<"Number of x pairs in station "<<listID<<" is "<<trackletsInStSlimX[listID].size()<<std::endl;
-    /*    //Reduce the tracklet list and add dummy hits
-    //reduceTrackletList(trackletsInSt[listID]);
-    for(std::list<Tracklet>::iterator iter = trackletsInSt[listID].begin(); iter != trackletsInSt[listID].end(); ++iter)
-    {
-        iter->addDummyHits();
-    }
-
-    //Only retain the best 200 tracklets if exceeded
-    std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
-    if(trackletsInSt[listID].size() > 1000)
-    {
-        trackletsInSt[listID].sort();
-        trackletsInSt[listID].resize(1000);
-    }*/
 }
 
 
@@ -4332,6 +4464,11 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
   Tracklet::linedef line3X;
   Tracklet::linedef line2X_v2;
   Tracklet::linedef line3X_v2;
+
+  int choiceOfT2 = 5;
+  int choiceOfT3 = 5;
+  int choiceOfT2_v2 = 5;
+  int choiceOfT3_v2 = 5;
   
   //It is rare, but sometimes, you will have slopes that match coincidentally.  Therefore, I keep track of best two combinations.  This seems to be sufficienct
   double slopeComp = 1.0;
@@ -4344,16 +4481,22 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
 	secondSlope = slopeComp;
 	line2X_v2 = line2X;
 	line3X_v2 = line3X;
-
+	choiceOfT2_v2 = choiceOfT2;
+	choiceOfT3_v2 = choiceOfT3;
+	
 	slopeComp = std::abs(tracklet3.possibleXLines.at(t3).slopeX - tracklet2.possibleXLines.at(t2).slopeX);
 	line2X = tracklet2.possibleXLines.at(t2);
 	line3X = tracklet3.possibleXLines.at(t3);
+	choiceOfT2 = t2;
+	choiceOfT3 = t3;
       }
       else if(std::abs(tracklet3.possibleXLines.at(t3).slopeX - tracklet2.possibleXLines.at(t2).slopeX) < secondSlope){
 	//not as close as the closest combination, but closer than the previously existing second combination
 	secondSlope = std::abs(tracklet3.possibleXLines.at(t3).slopeX - tracklet2.possibleXLines.at(t2).slopeX);
         line2X_v2 = tracklet2.possibleXLines.at(t2);
         line3X_v2 = tracklet3.possibleXLines.at(t3);
+	choiceOfT2_v2 = t2;
+	choiceOfT3_v2 = t3;
       }
     }
   }
@@ -4376,6 +4519,8 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
     } else{
       line2X = line2X_v2; //These are the possible X-Z lines that we actually want, if the closest combination wasn't valid based on the extrapolation
       line3X = line3X_v2;
+      choiceOfT2 = choiceOfT2_v2;
+      choiceOfT3 = choiceOfT3_v2;
     }
   }
 
@@ -4398,6 +4543,74 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
   std::cout<<"THERE WAS A TRACKLET MATCH!"<<std::endl;
   std::cout<<"st2 slope = "<<line2X.slopeX<<"; st2 X = "<<line2X.initialX<<std::endl;
   std::cout<<"st3 slope = "<<line3X.slopeX<<"; st3 X = "<<line3X.initialX<<std::endl;
+
+
+
+
+  
+  
+  for(std::list<SignedHit>::iterator hit1 = tracklet2.hits.begin(); hit1 != tracklet2.hits.end(); ++hit1)
+    {
+      if(hit1->hit.detectorID == 4 || hit1->hit.detectorID == 15 || hit1->hit.detectorID == 21 || hit1->hit.detectorID == 27){
+	if(choiceOfT2 == 0){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT2 == 1){
+	  hit1->sign = -1;
+	}
+	if(choiceOfT2 == 2){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT2 == 3){
+	  hit1->sign = -1;
+	}
+      } else{
+	if(choiceOfT2 == 0){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT2 == 1){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT2 == 2){
+	  hit1->sign = -1;
+	}
+	if(choiceOfT2 == 3){
+	  hit1->sign = -1;
+	}
+      }
+    }
+
+    for(std::list<SignedHit>::iterator hit1 = tracklet3.hits.begin(); hit1 != tracklet3.hits.end(); ++hit1)
+    {
+      if(hit1->hit.detectorID == 3 || hit1->hit.detectorID == 16 || hit1->hit.detectorID == 22 || hit1->hit.detectorID == 28){
+	if(choiceOfT3 == 0){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT3 == 1){
+	  hit1->sign = -1;
+	}
+	if(choiceOfT3 == 2){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT3 == 3){
+	  hit1->sign = -1;
+	}
+      } else{
+	if(choiceOfT3 == 0){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT3 == 1){
+	  hit1->sign = 1;
+	}
+	if(choiceOfT3 == 2){
+	  hit1->sign = -1;
+	}
+	if(choiceOfT3 == 3){
+	  hit1->sign = -1;
+	}
+      }
+    }
+
   
   return true;
   
@@ -4411,6 +4624,12 @@ bool KalmanFastTracking::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tr
   Tracklet::linedef line3U;
   Tracklet::linedef line2U_v2;
   Tracklet::linedef line3U_v2;
+
+  int choiceOfT2 = 5;
+  int choiceOfT3 = 5;
+  int choiceOfT2_v2 = 5;
+  int choiceOfT3_v2 = 5;
+  
   
   //It is rare, but sometimes, you will have slopes that match coincidentally.  Therefore, I keep track of best two combinations.  This seems to be sufficienct
   double slopeComp = 1.0;
@@ -4425,16 +4644,22 @@ bool KalmanFastTracking::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tr
 	secondSlope = slopeComp;
 	line2U_v2 = line2U;
 	line3U_v2 = line3U;
-
+	choiceOfT2_v2 = choiceOfT2;
+	choiceOfT3_v2 = choiceOfT3;
+	
 	slopeComp = std::abs(tracklet3.possibleULines.at(t3).slopeU - tracklet2.possibleULines.at(t2).slopeU);
 	line2U = tracklet2.possibleULines.at(t2);
 	line3U = tracklet3.possibleULines.at(t3);
+	choiceOfT2 = t2;
+	choiceOfT3 = t3;
       }
       else if(std::abs(tracklet3.possibleULines.at(t3).slopeU - tracklet2.possibleULines.at(t2).slopeU) < secondSlope){
 	//not as close as the closest combination, but closer than the previously existing second combination
 	secondSlope = std::abs(tracklet3.possibleULines.at(t3).slopeU - tracklet2.possibleULines.at(t2).slopeU);
         line2U_v2 = tracklet2.possibleULines.at(t2);
         line3U_v2 = tracklet3.possibleULines.at(t3);
+	choiceOfT2_v2 = t2;
+	choiceOfT3_v2 = t3;
       }
     }
   }
@@ -4468,6 +4693,8 @@ bool KalmanFastTracking::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tr
     } else{
       line2U = line2U_v2; //These are the possible U-Z lines that we actually want, if the closest combination wasn't valid based on the extrapolation
       line3U = line3U_v2;
+      choiceOfT2 = choiceOfT2_v2;
+      choiceOfT3 = choiceOfT3_v2;
     }
   }
 
@@ -4504,6 +4731,11 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
   Tracklet::linedef line3V;
   Tracklet::linedef line2V_v2;
   Tracklet::linedef line3V_v2;
+
+  int choiceOfT2 = 5;
+  int choiceOfT3 = 5;
+  int choiceOfT2_v2 = 5;
+  int choiceOfT3_v2 = 5;
   
   //It is rare, but sometimes, you will have slopes that match coincidentally.  Therefore, I keep track of best two combinations.  This seems to be sufficienct
   double slopeComp = 1.0;
@@ -4518,16 +4750,22 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
 	secondSlope = slopeComp;
 	line2V_v2 = line2V;
 	line3V_v2 = line3V;
+	choiceOfT2_v2 = choiceOfT2;
+	choiceOfT3_v2 = choiceOfT3;
 
 	slopeComp = std::abs(tracklet3.possibleVLines.at(t3).slopeV - tracklet2.possibleVLines.at(t2).slopeV);
 	line2V = tracklet2.possibleVLines.at(t2);
 	line3V = tracklet3.possibleVLines.at(t3);
+	choiceOfT2 = t2;
+	choiceOfT3 = t3;
       }
       else if(std::abs(tracklet3.possibleVLines.at(t3).slopeV - tracklet2.possibleVLines.at(t2).slopeV) < secondSlope){
 	//not as close as the closest combination, but closer than the previously existing second combination
 	secondSlope = std::abs(tracklet3.possibleVLines.at(t3).slopeV - tracklet2.possibleVLines.at(t2).slopeV);
         line2V_v2 = tracklet2.possibleVLines.at(t2);
         line3V_v2 = tracklet3.possibleVLines.at(t3);
+	choiceOfT2_v2 = t2;
+	choiceOfT3_v2 = t3;
       }
     }
   }
@@ -4559,6 +4797,8 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
     } else{
       line2V = line2V_v2; //These are the possible V-Z lines that we actually want, if the closest combination wasn't valid based on the extrapolation
       line3V = line3V_v2;
+      choiceOfT2 = choiceOfT2_v2;
+      choiceOfT3 = choiceOfT3_v2;
     }
   }
 
