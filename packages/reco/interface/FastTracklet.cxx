@@ -1035,6 +1035,7 @@ void Tracklet::getSlopesU(Hit hit1, Hit hit2){
   testline1.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
   testline1.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
   testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
+  //std::cout<<"quick check here.  detID is "<<twoHits.at(0).detectorID<<" and p_geomSvc->getPlanePosition(twoHits.at(0).detectorID) = "<<p_geomSvc->getPlanePosition(twoHits.at(0).detectorID)<<std::endl; //WPM
   testline1.wire1Slope = w1Slope;
   testline1.wire2Slope = w2Slope;
   testline1.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance); //position in U-plane

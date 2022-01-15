@@ -206,7 +206,8 @@ std::list<Int_t> SRawEvent::getHitsIndexInDetector(Short_t detectorID, Double_t 
 
     for(Int_t i = 0; i < fNHits[0]; i++)
     {
-        if(fAllHits[i].detectorID != detectorID) continue;
+      if(fAllHits[i].detectorID != detectorID) continue;
+      //std::cout<<"in getHitsIndexInDetector: index is "<<fAllHits[i].index<<", pos is "<<fAllHits[i].pos<<" and x_exp "<<x_exp<<"; detID is "<<fAllHits[i].detectorID<<std::endl; //WPM
         if(fabs(fAllHits[i].pos - x_exp) > win) continue;
 
         hit_list.push_back(i);
@@ -275,6 +276,8 @@ std::list<SRawEvent::hit_pair> SRawEvent::getPartialHitPairsInSuperDetector(Shor
         for(std::list<int>::iterator jter = _hitlist2.begin(); jter != _hitlist2.end(); ++jter)
         {
             index2++;
+	    //std::cout<<"in getPartialHitPairsInSuperDetector: index 1 is "<<fAllHits[*iter].index<<" and index 2 is "<<fAllHits[*jter].index<<"; detID 1 is "<<fAllHits[*iter].detectorID<<" and detID 2 is "<<fAllHits[*jter].detectorID<<std::endl; //WPM
+	    //std::cout<<"The difference between the two is "<<fabs(fAllHits[*iter].pos - fAllHits[*jter].pos)<<".  The allowed spacing is "<<spacing[detectorID]<<std::endl; //WPM
             if(fabs(fAllHits[*iter].pos - fAllHits[*jter].pos) > spacing[detectorID]) continue;
             _hitpairs.push_back(std::make_pair(*iter, *jter));
 
@@ -324,6 +327,8 @@ std::list<SRawEvent::hit_pair> SRawEvent::getPartialHitPairsInSuperDetector(Shor
         for(std::list<int>::iterator jter = _hitlist2.begin(); jter != _hitlist2.end(); ++jter)
         {
             index2++;
+	    //std::cout<<"in getPartialHitPairsInSuperDetector: index 1 is "<<fAllHits[*iter].index<<" and index 2 is "<<fAllHits[*jter].index<<"; detID 1 is "<<fAllHits[*iter].detectorID<<" and detID 2 is "<<fAllHits[*jter].detectorID<<std::endl; //WPM
+	    //std::cout<<"The difference between the two is "<<fabs(fAllHits[*iter].pos - fAllHits[*jter].pos)<<".  The allowed spacing is "<<spacing[detectorID]<<std::endl; //WPM
             if(fabs(fAllHits[*iter].pos - fAllHits[*jter].pos) > spacing[detectorID]) continue;
             _hitpairs.push_back(std::make_pair(*iter, *jter));
 

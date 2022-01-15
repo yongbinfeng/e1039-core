@@ -55,6 +55,7 @@ public:
     void buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   void buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
     void buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
+  void buildTrackletsInStation1(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   void buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp = nullptr, double* window = nullptr);
 
     //Build back partial tracks using tracklets in station 2 & 3
@@ -85,6 +86,8 @@ public:
   bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2);
   bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2);
 
+    bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
+  
     void buildPropSegments();
 
     //Resolve left-right when possible
