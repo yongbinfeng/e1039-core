@@ -40,7 +40,7 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 
-#define _DEBUG_ON
+//#define _DEBUG_ON
 
 #ifdef _DEBUG_ON
 #  define LogDebug(exp) std::cout << "DEBUG: " << __FUNCTION__ <<": "<< __LINE__ << ": " << exp << std::endl
@@ -346,8 +346,9 @@ int SQReco::process_event(PHCompositeNode* topNode)
     _recEvent->setRawEvent(_rawEvent);
     _recEvent->setRecStatus(finderstatus);
   }
-  if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers();
-
+  //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers(); //WPM
+  _fastfinder->printTimers(); //WPM
+  
   int nTracklets = 0;
   int nFittedTracks = 0;
   std::list<Tracklet>& rec_tracklets = _fastfinder->getFinalTracklets();

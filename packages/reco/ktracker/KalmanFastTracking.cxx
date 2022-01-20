@@ -24,7 +24,7 @@ Created: 05-28-2013
 #include "KalmanFastTracking.h"
 #include "TriggerRoad.h"
 
-#define _DEBUG_ON
+//#define _DEBUG_ON
 
 namespace 
 {
@@ -641,8 +641,8 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
 
 bool KalmanFastTracking::acceptEvent(SRawEvent* rawEvent)
 {
-    if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) 
-    {
+  //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) //WPM
+  //{ //WPM
         LogInfo("D0: " << rawEvent->getNHitsInD0());
         LogInfo("D1: " << rawEvent->getNHitsInD1());
         LogInfo("D2: " << rawEvent->getNHitsInD2());
@@ -655,7 +655,7 @@ bool KalmanFastTracking::acceptEvent(SRawEvent* rawEvent)
         LogInfo("Prop:" << rawEvent->getNPropHitsAll());
         LogInfo("NRoadsPos: " << rawEvent->getNRoadsPos());
         LogInfo("NRoadsNeg: " << rawEvent->getNRoadsNeg());
-    }
+	//} //WPM
 
     if(rawEvent->getNHitsInD0() > MaxHitsDC0) return false;
     if(rawEvent->getNHitsInD1() > MaxHitsDC1) return false; 
@@ -844,7 +844,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 #ifdef _DEBUG_ON
   LogInfo("HELLO I'm in buildBackPartialTracksSlim");
 #endif
-  std::cout<<"trackletsInStSlimV[3].size() = "<<trackletsInStSlimV[3].size()<<std::endl;
+  //std::cout<<"trackletsInStSlimV[3].size() = "<<trackletsInStSlimV[3].size()<<std::endl;
   //for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3].begin(); trackletV != trackletsInStSlimV[3].end(); ++trackletV){
     //std::cout<<"FIFTH TEST trackletV->acceptedVLine2.wireHit1PosZ = "<<(*trackletV).acceptedVLine2.wireHit1PosZ<<std::endl;
     //(*trackletV).acceptedVLine2.print();
@@ -865,9 +865,9 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	double posy3V = ((*trackletV).st3V - p_geomSvc->getCostheta((*trackletX).getHit(2).hit.detectorID-2)*((*trackletX).st3X + (*trackletX).st3Xsl * ((*trackletV).st3Z - (*trackletX).st3Z) ))/p_geomSvc->getSintheta((*trackletX).getHit(2).hit.detectorID-2);
 
 	if( std::abs(posy2U) > 100 || std::abs(posy2V) > 100 || std::abs(posy3U) > 100 || std::abs(posy3V) > 100 ) continue;
-	std::cout<<"posy2U="<<posy2U<<"; posy2V="<<posy2V<<"; posy3U="<<posy3U<<"; posy3V="<<posy3V<<std::endl;
+	//std::cout<<"posy2U="<<posy2U<<"; posy2V="<<posy2V<<"; posy3U="<<posy3U<<"; posy3V="<<posy3V<<std::endl;
 
-	std::cout<<"trying station 2"<<std::endl;
+	//std::cout<<"trying station 2"<<std::endl;
 	bool newSt2Tracklet = true;
 	
 	int LR1 = 0;
@@ -934,7 +934,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	  acceptedStation2Tracklets.push_back(tracklet_st2);
 	}
 
-	std::cout<<"trying station 3"<<std::endl;
+	//std::cout<<"trying station 3"<<std::endl;
 	bool newSt3Tracklet = true;
 	
 	Tracklet tracklet_st3;
@@ -976,7 +976,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	  }
 	}
 
-	std::cout<<"quick check here about tracklet newness.  Was tracklet 2 new? "<<newSt2Tracklet<<" and was tracklet 3 new? "<<newSt3Tracklet<<std::endl;
+	//std::cout<<"quick check here about tracklet newness.  Was tracklet 2 new? "<<newSt2Tracklet<<" and was tracklet 3 new? "<<newSt3Tracklet<<std::endl;
 	
 	if(newSt3Tracklet){
 	  if(tracklet_st3.isValid() == 0) //TODO: What IS THIS?
@@ -1013,7 +1013,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	//Tracklet tracklet_23_reverse;
 	if(compareTracklets(tracklet_st2, tracklet_st3)){
 
-	  std::cout<<"about to COMBINE two tracklets"<<std::endl;
+	  /*std::cout<<"about to COMBINE two tracklets"<<std::endl;
 	  
 	  for(std::list<SignedHit>::iterator iter = tracklet_st2.hits.begin(); iter != tracklet_st2.hits.end(); ++iter)
 	    {
@@ -1034,7 +1034,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
 	      std::cout << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << " = ";
 	    }
 	  std::cout<<std::endl;
-	  
+	  */
 	  
 	  tracklet_23 = (tracklet_st2) + (tracklet_st3);
 	  tracklet_23.tx = tracklet_st2.tx; //This is needed to "seed" the tracklet fit that happens below.  This tx and ty information is assigned in compareTracklets below
@@ -1223,7 +1223,7 @@ void KalmanFastTracking::buildBackPartialTracksSlim()
     }
     if(acceptTracklet(tracklet_best)){
       if(tracklet_best.isValid() > 0){
-	std::cout<<"pushing back 2+3 tracklets with candidate with the following chisq: "<<tracklet_best.chisq<<std::endl;
+	//std::cout<<"pushing back 2+3 tracklets with candidate with the following chisq: "<<tracklet_best.chisq<<std::endl;
 	if(tracklet_best.chisq < 0.05){
 	  trackletsInSt[3].push_back(tracklet_best);
 	}
@@ -1319,8 +1319,8 @@ void KalmanFastTracking::buildBackPartialTracksSlimX()
 		tracklet_23.st3Xsl = tracklet3->st2Xsl;
 		tracklet_23.acceptedXLine2 = tracklet2->acceptedXLine2;
 		tracklet_23.acceptedXLine3 = tracklet3->acceptedXLine3;
-		std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
-		std::cout<<"tracklet 2 st2X is "<<tracklet2->st2X<<" and tracklet 3 st2X is "<<tracklet3->st2X<<std::endl;
+		//std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
+		//std::cout<<"tracklet 2 st2X is "<<tracklet2->st2X<<" and tracklet 3 st2X is "<<tracklet3->st2X<<std::endl;
 
 #ifdef _DEBUG_ON
             LogInfo("We had a match using following two tracklets:");
@@ -1349,7 +1349,7 @@ void KalmanFastTracking::buildBackPartialTracksSlimX()
 	}
     }
 
-    std::cout<<"Number of x pairs for 2+3 tracklets is "<<trackletsInStSlimX[3].size()<<std::endl;
+    //std::cout<<"Number of x pairs for 2+3 tracklets is "<<trackletsInStSlimX[3].size()<<std::endl;
     
 	    /*            fitTracklet(tracklet_23); //This is the fit that needs the seeded tx and ty information. Without the seed information, the fit occasionally finds bad slope and X0 or Y0 values, much in the same way that it does for single-station tracklets.  Note from Patrick: this fit could probably be throw out, as we already know the tx and ty information from compareTracklets.  I would just need to extrapolate back to z = 0 and calculate the chisq by hand
             if(tracklet_23.chisq > 9000.)
@@ -1440,8 +1440,8 @@ void KalmanFastTracking::buildBackPartialTracksSlimU()
 		tracklet_23.st3Usl = tracklet3->st2Usl;
 		tracklet_23.acceptedULine2 = tracklet2->acceptedULine2;
 		tracklet_23.acceptedULine3 = tracklet3->acceptedULine3;
-		std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
-		std::cout<<"tracklet 2 st2U is "<<tracklet2->st2U<<" and tracklet 3 st2U is "<<tracklet3->st2U<<std::endl;
+		//std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
+		//std::cout<<"tracklet 2 st2U is "<<tracklet2->st2U<<" and tracklet 3 st2U is "<<tracklet3->st2U<<std::endl;
 
 #ifdef _DEBUG_ON
             LogInfo("We had a match using following two tracklets:");
@@ -1470,7 +1470,7 @@ void KalmanFastTracking::buildBackPartialTracksSlimU()
 	}
     }
 
-    std::cout<<"Number of U pairs for 2+3 tracklets is "<<trackletsInStSlimU[3].size()<<std::endl;
+    //std::cout<<"Number of U pairs for 2+3 tracklets is "<<trackletsInStSlimU[3].size()<<std::endl;
 
 }
 
@@ -1502,13 +1502,13 @@ void KalmanFastTracking::buildBackPartialTracksSlimV()
 		tracklet_23.st3Z = tracklet3->st2Z;
 		tracklet_23.st2Vsl = tracklet2->st2Vsl;
 		tracklet_23.st3Vsl = tracklet3->st2Vsl;
-		std::cout<<"SECOND TEST OF LINE2 "<<tracklet2->acceptedVLine2.wireHit1PosZ<<std::endl;
+		//std::cout<<"SECOND TEST OF LINE2 "<<tracklet2->acceptedVLine2.wireHit1PosZ<<std::endl;
 		tracklet_23.acceptedVLine2 = tracklet2->acceptedVLine2;
-		std::cout<<"THIRD TEST OF LINE2 "<<tracklet_23.acceptedVLine2.wireHit1PosZ<<std::endl;
-		tracklet_23.acceptedVLine2.print();
+		//std::cout<<"THIRD TEST OF LINE2 "<<tracklet_23.acceptedVLine2.wireHit1PosZ<<std::endl;
+		//tracklet_23.acceptedVLine2.print();
 		tracklet_23.acceptedVLine3 = tracklet3->acceptedVLine3;
-		std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
-		std::cout<<"tracklet 2 st2V is "<<tracklet2->st2V<<" and tracklet 3 st2V is "<<tracklet3->st2V<<std::endl;
+		//std::cout<<"tracklet 2 tx is "<<tracklet2->tx<<" and tracklet 3 tx is "<<tracklet2->tx<<std::endl;
+		//std::cout<<"tracklet 2 st2V is "<<tracklet2->st2V<<" and tracklet 3 st2V is "<<tracklet3->st2V<<std::endl;
 
 #ifdef _DEBUG_ON
             LogInfo("We had a match using following two tracklets:");
@@ -1537,7 +1537,7 @@ void KalmanFastTracking::buildBackPartialTracksSlimV()
 	}
     }
 
-    std::cout<<"Number of V pairs for 2+3 tracklets is "<<trackletsInStSlimV[3].size()<<std::endl;
+    //std::cout<<"Number of V pairs for 2+3 tracklets is "<<trackletsInStSlimV[3].size()<<std::endl;
 
 }
 
@@ -1722,18 +1722,18 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 
       Tracklet tracklet_best_prob, tracklet_best_vtx;
       
-      std::cout<<"I'm testing backwards extrapolation... z_plane thing is "<<z_plane[0]<<" "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[7]<<std::endl; //WPM
+      //std::cout<<"I'm testing backwards extrapolation... z_plane thing is "<<z_plane[0]<<" "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[7]<<std::endl; //WPM
       getSagittaWindowsInSt1(*tracklet23, pos_exp, window, 1); //WPM as a printing test
       double posx = tracklet23->tx * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2X; //WPM pick up here.  do u and v extrapolations
-      std::cout<<"test of u extrapo.  st2Usl = "<<tracklet23->st2Usl<<" ( z_plane[(i)*6 + 0] - tracklet23->st2UZ ) = "<<( z_plane[3] - tracklet23->st2UZ )<<" tracklet23->st2U = "<<tracklet23->st2U<<std::endl; //WPM
+      //std::cout<<"test of u extrapo.  st2Usl = "<<tracklet23->st2Usl<<" ( z_plane[(i)*6 + 0] - tracklet23->st2UZ ) = "<<( z_plane[3] - tracklet23->st2UZ )<<" tracklet23->st2U = "<<tracklet23->st2U<<std::endl; //WPM
       double posu = tracklet23->st2Usl * ( z_plane[1] - tracklet23->st2Z ) + tracklet23->st2U; //WPM
       double posv = tracklet23->st2Vsl * ( z_plane[5] - tracklet23->st2Z ) + tracklet23->st2V; //WPM
       double posy = tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y; //WPM
-      std::cout<<"checking V extrapolation.  tracklet23->st2Vsl: "<<tracklet23->st2Vsl<<", ( z_plane[5] - tracklet23->st2Z ): "<<( z_plane[5] - tracklet23->st2Z )<<", tracklet23->st2V: "<<tracklet23->st2V<<std::endl; //WPM
-      std::cout<<"the extrapolations are x: "<<posx<<" and u: "<<posu<<" and v: "<<posv<<std::endl; //WPM
-      std::cout<<"the y-extrapolation is "<<tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y<<std::endl; //WPM
-      std::cout<<"quick printout of wire cos theta: "<<p_geomSvc->getCostheta(1)<<", "<<p_geomSvc->getCostheta(2)<<", "<<p_geomSvc->getCostheta(3)<<", "<<p_geomSvc->getCostheta(4)<<", "<<p_geomSvc->getCostheta(5)<<", "<<p_geomSvc->getCostheta(6)<<std::endl;
-      std::cout<<"quick printout of wire sin theta: "<<p_geomSvc->getSintheta(1)<<", "<<p_geomSvc->getSintheta(2)<<", "<<p_geomSvc->getSintheta(3)<<", "<<p_geomSvc->getSintheta(4)<<", "<<p_geomSvc->getSintheta(5)<<", "<<p_geomSvc->getSintheta(6)<<std::endl;
+      //std::cout<<"checking V extrapolation.  tracklet23->st2Vsl: "<<tracklet23->st2Vsl<<", ( z_plane[5] - tracklet23->st2Z ): "<<( z_plane[5] - tracklet23->st2Z )<<", tracklet23->st2V: "<<tracklet23->st2V<<std::endl; //WPM
+      //std::cout<<"the extrapolations are x: "<<posx<<" and u: "<<posu<<" and v: "<<posv<<std::endl; //WPM
+      //std::cout<<"the y-extrapolation is "<<tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y<<std::endl; //WPM
+      //std::cout<<"quick printout of wire cos theta: "<<p_geomSvc->getCostheta(1)<<", "<<p_geomSvc->getCostheta(2)<<", "<<p_geomSvc->getCostheta(3)<<", "<<p_geomSvc->getCostheta(4)<<", "<<p_geomSvc->getCostheta(5)<<", "<<p_geomSvc->getCostheta(6)<<std::endl;
+      //std::cout<<"quick printout of wire sin theta: "<<p_geomSvc->getSintheta(1)<<", "<<p_geomSvc->getSintheta(2)<<", "<<p_geomSvc->getSintheta(3)<<", "<<p_geomSvc->getSintheta(4)<<", "<<p_geomSvc->getSintheta(5)<<", "<<p_geomSvc->getSintheta(6)<<std::endl;
 
       /*pos_exp[0] = posx;
       pos_exp[1] = 0;
@@ -1757,7 +1757,7 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	    for(int ch = 0; ch < 2; ch++){ //WPM
 	      
 	      if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
-	      std::cout<<"Getting st1 tracklets centered at "<<charges[ch]*pxSlices[pxs]<<std::endl; //WPM
+	      //std::cout<<"Getting st1 tracklets centered at "<<charges[ch]*pxSlices[pxs]<<std::endl; //WPM
 	      
 	      trackletsInSt[0].clear();
 	      if(!TRACK_DISPLACED){
@@ -1786,18 +1786,18 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	      }
 	      if(TRACK_DISPLACED){
 		//(*tracklet23).setCharge(charges[ch]); //WPM
-		tracklet23->print();
+		//tracklet23->print();
 		pos_exp[0] = posx+charges[ch]*pxSlices[pxs];
 		pos_exp[1] = p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy;
 		pos_exp[2] = p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy;
-		std::cout<<"The window I'm using is centered at "<<posx+charges[ch]*pxSlices[pxs]<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy<<std::endl; //WPM
+		//std::cout<<"The window I'm using is centered at "<<posx+charges[ch]*pxSlices[pxs]<<", "<<p_geomSvc->getCostheta(1) * pos_exp[0] + p_geomSvc->getSintheta(1) * posy<<", "<<p_geomSvc->getCostheta(5) * pos_exp[0] + p_geomSvc->getSintheta(5) * posy<<std::endl; //WPM
 		window[0] = 1;
 		window[1] = 3;
 		window[2] = 3;
 		if(!(buildTrackletsInStation1(i+1, 0, expXZSlope, pos_exp, window))) continue;
 	      }
 
-	    std::cout<<"HELLO THERE: number of station 1 tracklets for index "<<i<<" is "<<trackletsInSt[0].size()<<std::endl; //WPM
+	    //std::cout<<"HELLO THERE: number of station 1 tracklets for index "<<i<<" is "<<trackletsInSt[0].size()<<std::endl; //WPM
 	    //std::cout<<"the last tracklet is "<<trackletsInSt[0].end()->print()<<std::endl; //WPM
             _timers["global_st1"]->stop();
 
@@ -1943,8 +1943,8 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	      tracklet1->y0 = tracklet23->y0;
 	      tracklet1->setCharge(charges[ch]); //WPM
 	      
-	      std::cout<<"I GOT A GOOD TRACKLETX"<<std::endl;
-	      tracklet1->print();
+	      //std::cout<<"I GOT A GOOD TRACKLETX"<<std::endl;
+	      //tracklet1->print();
 	      fitTracklet((*tracklet1));
 
 	      //resolveLeftRight((*tracklet1), 75.);
@@ -1952,7 +1952,7 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	      
 
 	      tracklet_counter++; //WPM
-	      std::cout<<"try tracklet number "<<tracklet_counter<<std::endl; //WPM
+	      //std::cout<<"try tracklet number "<<tracklet_counter<<std::endl; //WPM
 #ifdef _DEBUG_ON
                 LogInfo("With this station 1 track:");
                 tracklet1->print();
@@ -1985,12 +1985,12 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 		
                 Tracklet tracklet_global = (*tracklet23) * (*tracklet1);
 		tracklet_global.setCharge(charges[ch]); //WPM      
-		std::cout<<"Prior to fitting my supposedly good station 7 tracklet, let's print it out:"<<std::endl;
-		tracklet_global.print();
+		//std::cout<<"Prior to fitting my supposedly good station 7 tracklet, let's print it out:"<<std::endl;
+		//tracklet_global.print();
                 fitTracklet(tracklet_global);
                 if(!hodoMask(tracklet_global)) continue;
-		std::cout<<"I just fit what should have been a good station 7 tracklet:"<<std::endl;
-		tracklet_global.print();
+		//std::cout<<"I just fit what should have been a good station 7 tracklet:"<<std::endl;
+		//tracklet_global.print();
                 ///Resolve the left-right with a tight pull cut, then a loose one, then resolve by single projections
                 if(!COARSE_MODE)
                 {
@@ -2144,8 +2144,8 @@ void KalmanFastTracking::buildGlobalTracksDisplaced()
 	    //tracklet_best[1].y0 = 19.815;
 	    //tracklet_best[1].invP = 0.06275;
 	    //std::cout<<"I forced the tracklet to behave.  Now chisq = "<<tracklet_best[1].calcChisq()<<std::endl;
-	    tracklet_best[1].print();
-            //trackletsInSt[4].push_back(tracklet_best[1]);
+	    //tracklet_best[1].print();
+            trackletsInSt[4].push_back(tracklet_best[1]);
         }
     }
 
@@ -2584,7 +2584,7 @@ void KalmanFastTracking::buildTrackletsInStation(int stationID, int listID, doub
     }
 
     //Only retain the best 200 tracklets if exceeded
-    std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
+    //std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
     if(trackletsInSt[listID].size() > 1000)
     {
         trackletsInSt[listID].sort();
@@ -2670,8 +2670,8 @@ bool KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, dou
       double trackletXslope = 1.0;
       int nValidXSlopes = 0;
       for(int t3 = 0; t3 < tracklet_new.possibleXLines.size(); t3++){
-	std::cout<<tracklet_new.possibleXLines.at(t3).slopeX<<std::endl;
-	std::cout<<"exp is "<<expXZSlope<<" so diff is "<<tracklet_new.possibleXLines.at(t3).slopeX - expXZSlope<<std::endl;
+	//std::cout<<tracklet_new.possibleXLines.at(t3).slopeX<<std::endl;
+	//std::cout<<"exp is "<<expXZSlope<<" so diff is "<<tracklet_new.possibleXLines.at(t3).slopeX - expXZSlope<<std::endl;
 	slopeDiffX = tracklet_new.possibleXLines.at(t3).slopeX - expXZSlope;
 	if(std::abs(slopeDiffX)<0.0095) nValidXSlopes++;
 	if(std::abs(slopeDiffX)<0.0095 && std::abs(slopeDiffX)<std::abs(bestSlopeDiffX)){
@@ -2947,7 +2947,7 @@ bool KalmanFastTracking::buildTrackletsInStation1(int stationID, int listID, dou
         iter->addDummyHits();
     }
 
-    std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
+    //std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
 
     return st1TrackletFound;
 }
@@ -3020,9 +3020,9 @@ void KalmanFastTracking::buildTrackletsInStationSlim(int stationID, int listID, 
       
       tracklet_new.sortHits();
 #ifdef _DEBUG_ON
-      std::cout<<"About to print new tracklet"<<std::endl;
+      //std::cout<<"About to print new tracklet"<<std::endl;
       tracklet_new.print();
-      std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
+      //std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
 #endif
       
       if(tracklet_new.hits.size() == 2){
@@ -3030,7 +3030,7 @@ void KalmanFastTracking::buildTrackletsInStationSlim(int stationID, int listID, 
       }
     }
 
-    std::cout<<"Number of x pairs in station "<<listID<<" is "<<trackletsInStSlimX[listID].size()<<std::endl;
+    //std::cout<<"Number of x pairs in station "<<listID<<" is "<<trackletsInStSlimX[listID].size()<<std::endl;
 }
 
 
@@ -3101,9 +3101,9 @@ void KalmanFastTracking::buildTrackletsInStationSlimU(int stationID, int listID,
       
       tracklet_new.sortHits();
 #ifdef _DEBUG_ON
-      std::cout<<"About to print new U tracklet"<<std::endl;
+      //std::cout<<"About to print new U tracklet"<<std::endl;
       tracklet_new.print();
-      std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
+      //std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
 #endif
       
       if(tracklet_new.hits.size() == 2){
@@ -3111,7 +3111,7 @@ void KalmanFastTracking::buildTrackletsInStationSlimU(int stationID, int listID,
       }
     }
 
-    std::cout<<"Number of U pairs in station "<<listID<<" is "<<trackletsInStSlimU[listID].size()<<std::endl;
+    //std::cout<<"Number of U pairs in station "<<listID<<" is "<<trackletsInStSlimU[listID].size()<<std::endl;
 
 }
 
@@ -3184,9 +3184,9 @@ void KalmanFastTracking::buildTrackletsInStationSlimV(int stationID, int listID,
       
       tracklet_new.sortHits();
 #ifdef _DEBUG_ON
-      std::cout<<"About to print new V tracklet"<<std::endl;
+      //std::cout<<"About to print new V tracklet"<<std::endl;
       tracklet_new.print();
-      std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
+      //std::cout<<"How many hits does it have?! "<<tracklet_new.hits.size()<<std::endl;
 #endif
       
       if(tracklet_new.hits.size() == 2){
@@ -3194,7 +3194,7 @@ void KalmanFastTracking::buildTrackletsInStationSlimV(int stationID, int listID,
       }
     }
 
-    std::cout<<"Number of V pairs in station "<<listID<<" is "<<trackletsInStSlimV[listID].size()<<std::endl;
+    //std::cout<<"Number of V pairs in station "<<listID<<" is "<<trackletsInStSlimV[listID].size()<<std::endl;
 
 }
 
@@ -3209,8 +3209,8 @@ void KalmanFastTracking::buildTrackletsInStationWithUV(int stationID, int listID
     LogInfo("Building tracklets with UV in station " << stationID);
 #endif
 
-    std::cout<<"tracklet23 first hit detID = "<<tracklet23.getHit(0).hit.detectorID<<std::endl;
-    std::cout<<"tracklet23 third hit detID = "<<tracklet23.getHit(2).hit.detectorID<<std::endl;
+    //std::cout<<"tracklet23 first hit detID = "<<tracklet23.getHit(0).hit.detectorID<<std::endl;
+    //std::cout<<"tracklet23 third hit detID = "<<tracklet23.getHit(2).hit.detectorID<<std::endl;
 
     //actuall ID of the tracklet lists
     int sID = stationID - 1;
@@ -3384,7 +3384,7 @@ void KalmanFastTracking::buildTrackletsInStationWithUV(int stationID, int listID
 		    }*/
 
 #ifdef _DEBUG_ON
-		std::cout<<"OK HERE'S A STATION 2 TRACKLET:"<<std::endl;
+		//std::cout<<"OK HERE'S A STATION 2 TRACKLET:"<<std::endl;
                 tracklet_new2.print();
 #endif
 
@@ -3475,14 +3475,14 @@ void KalmanFastTracking::buildTrackletsInStationWithUV(int stationID, int listID
 		//}
 
 #ifdef _DEBUG_ON
-		std::cout<<"OK HERE'S A STATION 3 TRACKLET:"<<std::endl;
+		//std::cout<<"OK HERE'S A STATION 3 TRACKLET:"<<std::endl;
                 tracklet_new3.print();
 #endif
 
 		
 		Tracklet tracklet_new_23;
 	      if(compareTracklets(tracklet_new2, tracklet_new3)){
-		std::cout<<"THE COMBINED TRACKLET PASSED"<<std::endl;
+		//std::cout<<"THE COMBINED TRACKLET PASSED"<<std::endl;
 		tracklet_new_23 = (tracklet_new2) + (tracklet_new3);
 		tracklet_new_23.tx = tracklet_new2.tx; //This is needed to "seed" the tracklet fit that happens below.  This tx and ty information is assigned in compareTracklets below
 		tracklet_new_23.ty = tracklet_new2.ty;
@@ -3540,7 +3540,7 @@ void KalmanFastTracking::buildTrackletsInStationWithUV(int stationID, int listID
     }
 
     //Only retain the best 200 tracklets if exceeded
-    std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
+    //std::cout<<"NUMBER of tracklets before resize = "<<trackletsInSt[listID].size()<<std::endl; //WPM
     if(trackletsInSt[listID].size() > 1000)
     {
         trackletsInSt[listID].sort();
@@ -3863,7 +3863,7 @@ void KalmanFastTracking::buildPropSegments()
         std::list<SRawEvent::hit_pair> pairs_backward = rawEvent->getPartialHitPairsInSuperDetector(superIDs[i+5][1]);
 
 #ifdef _DEBUG_ON
-        std::cout << "superID: " << superIDs[i+5][0] << ", " << superIDs[i+5][1] << std::endl;
+        //std::cout << "superID: " << superIDs[i+5][0] << ", " << superIDs[i+5][1] << std::endl;
         for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_forward.begin(); iter != pairs_forward.end(); ++iter)
         	LogInfo("Forward: " << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << "  " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
         for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_backward.begin(); iter != pairs_backward.end(); ++iter)
@@ -3923,7 +3923,7 @@ int KalmanFastTracking::fitTracklet(Tracklet& tracklet)
     if(tracklet.stationID < nStations-1) idx = 0;
 #endif
 
-    std::cout<<"in fitTracklet :(.  invP = "<<tracklet.invP<<std::endl;
+    //std::cout<<"in fitTracklet :(.  invP = "<<tracklet.invP<<std::endl;
     //tracklet.invP = 0.067;
 
     minimizer[idx]->SetLimitedVariable(0, "tx", tracklet.tx, 0.001, -TX_MAX, TX_MAX);
@@ -3932,7 +3932,7 @@ int KalmanFastTracking::fitTracklet(Tracklet& tracklet)
     minimizer[idx]->SetLimitedVariable(3, "y0", tracklet.y0, 0.1, -Y0_MAX, Y0_MAX);
     if(KMAG_ON)
     {
-      std::cout<<"hello now invp = "<<tracklet.invP<<" INVP_MIN = "<<INVP_MIN<<" and INVP_MAX = "<<INVP_MAX<<std::endl;
+      //std::cout<<"hello now invp = "<<tracklet.invP<<" INVP_MIN = "<<INVP_MIN<<" and INVP_MAX = "<<INVP_MAX<<std::endl;
         minimizer[idx]->SetLimitedVariable(4, "invP", tracklet.invP, 0.001*tracklet.invP, INVP_MIN, INVP_MAX);
     }
     minimizer[idx]->Minimize();
@@ -3947,7 +3947,7 @@ int KalmanFastTracking::fitTracklet(Tracklet& tracklet)
     tracklet.err_x0 = minimizer[idx]->Errors()[2];
     tracklet.err_y0 = minimizer[idx]->Errors()[3];
 
-    std::cout<<"in fitTracklet :(.  KMAG_ON = "<<KMAG_ON<<" and stationID = "<<tracklet.stationID<<" and nStations = "<<nStations<<std::endl;
+    //std::cout<<"in fitTracklet :(.  KMAG_ON = "<<KMAG_ON<<" and stationID = "<<tracklet.stationID<<" and nStations = "<<nStations<<std::endl;
     
     if(KMAG_ON && tracklet.stationID == nStations)
     {
@@ -4070,8 +4070,8 @@ void KalmanFastTracking::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_
         double p_min = std::min(pos_exp_target - win_target, pos_exp_dump - win_dump);
         double p_max = std::max(pos_exp_target + win_target, pos_exp_dump + win_dump);
 
-	std::cout<<"Test sagitta window thing.  The detectorID is "<<detectorID<<" the idx is "<<idx<<" the z_st1 is "<<z_st1<<std::endl; //WPM
-	std::cout<<"More sagitta.  pos_exp is "<<0.5*(p_max + p_min)<<" and window = "<<0.5*(p_max - p_min)<<std::endl; //WPM
+	//std::cout<<"Test sagitta window thing.  The detectorID is "<<detectorID<<" the idx is "<<idx<<" the z_st1 is "<<z_st1<<std::endl; //WPM
+	//std::cout<<"More sagitta.  pos_exp is "<<0.5*(p_max + p_min)<<" and window = "<<0.5*(p_max - p_min)<<std::endl; //WPM
         pos_exp[idx] = 0.5*(p_max + p_min);
         window[idx]  = 0.5*(p_max - p_min);
     }
@@ -4504,16 +4504,16 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
   if(slopeComp > 0.005) return false; //This has not been optimized at all.  I just chose a random value (previous slope comparison allowed for a difference of 0.1)
   double extrapolation = line2X.slopeX*(line3X.initialZ - line2X.initialZ) + line2X.initialX;
   double extrapolation_toSt1 = line2X.slopeX*(z_plane[3] - line2X.initialZ) + line2X.initialX;
-  std::cout<<"extrapolation is "<<extrapolation<<"; based on slope "<<line2X.slopeX<<", diff "<<line3X.initialZ - line2X.initialZ<<", and initialX "<<line2X.initialX<<std::endl;
-  std::cout<<"to be compared with st3 position "<<line3X.initialX<<".  diff is "<<std::abs(extrapolation - line3X.initialX)<<std::endl;
-  std::cout<<"extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
+  //std::cout<<"extrapolation is "<<extrapolation<<"; based on slope "<<line2X.slopeX<<", diff "<<line3X.initialZ - line2X.initialZ<<", and initialX "<<line2X.initialX<<std::endl;
+  //std::cout<<"to be compared with st3 position "<<line3X.initialX<<".  diff is "<<std::abs(extrapolation - line3X.initialX)<<std::endl;
+  //std::cout<<"extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
   
   if(std::abs(extrapolation - line3X.initialX) > 5. || std::abs(extrapolation_toSt1) > 100. ){ //allow for a 5 cm difference of the tracklet in station 3 from the station 2 extrapolation.  This also should be optimized
     if(secondSlope > 0.005) return false; //If both the closest and second closest slopes don't match, then this is not a good combination
     double extrapolation_v2 = line2X_v2.slopeX*(line3X_v2.initialZ - line2X_v2.initialZ) + line2X_v2.initialX; //Perform the extrapolation in the rare case that the closest slope combination did not yield a valid extrapolation.  Rare, but necessary
     double extrapolation_toSt1_v2 = line2X_v2.slopeX*(z_plane[3] - line2X_v2.initialZ) + line2X_v2.initialX;
-      std::cout<<"V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2X_v2.slopeX<<", diff "<<line3X_v2.initialZ - line2X_v2.initialZ<<", and initialX "<<line2X_v2.initialX<<std::endl;
-      std::cout<<"V2 to be compared with st3 position "<<line3X_v2.initialX<<".  diff is "<<std::abs(extrapolation_v2 - line3X_v2.initialX)<<std::endl;
+      //std::cout<<"V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2X_v2.slopeX<<", diff "<<line3X_v2.initialZ - line2X_v2.initialZ<<", and initialX "<<line2X_v2.initialX<<std::endl;
+      //std::cout<<"V2 to be compared with st3 position "<<line3X_v2.initialX<<".  diff is "<<std::abs(extrapolation_v2 - line3X_v2.initialX)<<std::endl;
     if(std::abs(extrapolation_v2 - line3X_v2.initialX) > 5. || std::abs(extrapolation_toSt1_v2) > 100. ){ //Same window size!  Could be optimized
       return false;
     } else{
@@ -4540,9 +4540,9 @@ bool KalmanFastTracking::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tra
   tracklet2.st2Xsl = line2X.slopeX;
   tracklet3.st2Xsl = line3X.slopeX;
 
-  std::cout<<"THERE WAS A TRACKLET MATCH!"<<std::endl;
-  std::cout<<"st2 slope = "<<line2X.slopeX<<"; st2 X = "<<line2X.initialX<<std::endl;
-  std::cout<<"st3 slope = "<<line3X.slopeX<<"; st3 X = "<<line3X.initialX<<std::endl;
+  //std::cout<<"THERE WAS A TRACKLET MATCH!"<<std::endl;
+  //std::cout<<"st2 slope = "<<line2X.slopeX<<"; st2 X = "<<line2X.initialX<<std::endl;
+  //std::cout<<"st3 slope = "<<line3X.slopeX<<"; st3 X = "<<line3X.initialX<<std::endl;
 
 
 
@@ -4664,24 +4664,24 @@ bool KalmanFastTracking::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tr
     }
   }
 
-  std::cout<<"not a match yet"<<std::endl;
-  std::cout<<"U st2 slope = "<<line2U.slopeU<<"; st2 U = "<<line2U.initialU<<std::endl;
-  std::cout<<"U st3 slope = "<<line3U.slopeU<<"; st3 U = "<<line3U.initialU<<std::endl;
+  //std::cout<<"not a match yet"<<std::endl;
+  //std::cout<<"U st2 slope = "<<line2U.slopeU<<"; st2 U = "<<line2U.initialU<<std::endl;
+  //std::cout<<"U st3 slope = "<<line3U.slopeU<<"; st3 U = "<<line3U.initialU<<std::endl;
 
   double extrapolation = line2U.slopeU*(line3U.initialZ - line2U.initialZ) + line2U.initialU;
   double extrapolation_toSt1 = line2U.slopeU*(z_plane[3] - line2U.initialZ) + line2U.initialU;
 
-  std::cout<<"just for fun, what is z_plane? "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[13]<<" "<<z_plane[14]<<" "<<z_plane[15]<<" "<<z_plane[16]<<" "<<z_plane[17]<<" "<<z_plane[18]<<" "<<z_plane[19]<<" "<<z_plane[20]<<" "<<z_plane[21]<<" "<<z_plane[22]<<" "<<z_plane[23]<<" "<<z_plane[24]<<" "<<z_plane[25]<<" "<<z_plane[26]<<" "<<z_plane[27]<<" "<<z_plane[28]<<" "<<z_plane[29]<<" "<<z_plane[30]<<" "<<std::endl;
+  //std::cout<<"just for fun, what is z_plane? "<<z_plane[1]<<" "<<z_plane[2]<<" "<<z_plane[3]<<" "<<z_plane[4]<<" "<<z_plane[5]<<" "<<z_plane[6]<<" "<<z_plane[13]<<" "<<z_plane[14]<<" "<<z_plane[15]<<" "<<z_plane[16]<<" "<<z_plane[17]<<" "<<z_plane[18]<<" "<<z_plane[19]<<" "<<z_plane[20]<<" "<<z_plane[21]<<" "<<z_plane[22]<<" "<<z_plane[23]<<" "<<z_plane[24]<<" "<<z_plane[25]<<" "<<z_plane[26]<<" "<<z_plane[27]<<" "<<z_plane[28]<<" "<<z_plane[29]<<" "<<z_plane[30]<<" "<<std::endl;
   
-  std::cout<<"U extrapolation is "<<extrapolation<<"; based on slope "<<line2U.slopeU<<", diff "<<line3U.initialZ - line2U.initialZ<<", and initialU "<<line2U.initialU<<std::endl;
-  std::cout<<"U to be compared with st3 position "<<line3U.initialU<<".  diff is "<<(extrapolation - line3U.initialU)<<std::endl;
-  std::cout<<"U extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
-  std::cout<<"U slope diff are "<<slopeComp<<" and "<<secondSlope<<std::endl;
+  //std::cout<<"U extrapolation is "<<extrapolation<<"; based on slope "<<line2U.slopeU<<", diff "<<line3U.initialZ - line2U.initialZ<<", and initialU "<<line2U.initialU<<std::endl;
+  //std::cout<<"U to be compared with st3 position "<<line3U.initialU<<".  diff is "<<(extrapolation - line3U.initialU)<<std::endl;
+  //std::cout<<"U extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
+  //std::cout<<"U slope diff are "<<slopeComp<<" and "<<secondSlope<<std::endl;
   
   double extrapolation_v2 = line2U_v2.slopeU*(line3U_v2.initialZ - line2U_v2.initialZ) + line2U_v2.initialU; //Perform the extrapolation in the rare case that the closest slope combination did not yield a valid extrapolation.  Rare, but necessary
   double extrapolation_toSt1_v2 = line2U_v2.slopeU*(z_plane[3] - line2U_v2.initialZ) + line2U_v2.initialU;
-  std::cout<<"U V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2U_v2.slopeU<<", diff "<<line3U_v2.initialZ - line2U_v2.initialZ<<", and initialU "<<line2U_v2.initialU<<std::endl;
-  std::cout<<"U V2 to be compared with st3 position "<<line3U_v2.initialU<<".  diff is "<<(extrapolation_v2 - line3U_v2.initialU)<<std::endl;
+  //std::cout<<"U V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2U_v2.slopeU<<", diff "<<line3U_v2.initialZ - line2U_v2.initialZ<<", and initialU "<<line2U_v2.initialU<<std::endl;
+  //std::cout<<"U V2 to be compared with st3 position "<<line3U_v2.initialU<<".  diff is "<<(extrapolation_v2 - line3U_v2.initialU)<<std::endl;
   
   if(slopeComp > 0.03) return false; //This has not been optimized at all.  I just chose a random value (previous slope comparison allowed for a difference of 0.1)
   
@@ -4715,9 +4715,9 @@ bool KalmanFastTracking::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tr
   tracklet2.st2Usl = line2U.slopeU;
   tracklet3.st2Usl = line3U.slopeU;
 
-  std::cout<<"THERE WAS A U TRACKLET MATCH!"<<std::endl;
-  std::cout<<"U st2 slope = "<<line2U.slopeX<<"; st2 U = "<<line2U.initialU<<std::endl;
-  std::cout<<"U st3 slope = "<<line3U.slopeX<<"; st3 U = "<<line3U.initialU<<std::endl;
+  //std::cout<<"THERE WAS A U TRACKLET MATCH!"<<std::endl;
+  //std::cout<<"U st2 slope = "<<line2U.slopeX<<"; st2 U = "<<line2U.initialU<<std::endl;
+  //std::cout<<"U st3 slope = "<<line3U.slopeX<<"; st3 U = "<<line3U.initialU<<std::endl;
   
   return true;
   
@@ -4770,22 +4770,22 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
     }
   }
   
-  std::cout<<"not a match yet"<<std::endl;
-  std::cout<<"V st2 slope = "<<line2V.slopeV<<"; st2 V = "<<line2V.initialV<<std::endl;
-  std::cout<<"V st3 slope = "<<line3V.slopeV<<"; st3 V = "<<line3V.initialV<<std::endl;
+  //std::cout<<"not a match yet"<<std::endl;
+  //std::cout<<"V st2 slope = "<<line2V.slopeV<<"; st2 V = "<<line2V.initialV<<std::endl;
+  //std::cout<<"V st3 slope = "<<line3V.slopeV<<"; st3 V = "<<line3V.initialV<<std::endl;
 
   double extrapolation = line2V.slopeV*(line3V.initialZ - line2V.initialZ) + line2V.initialV;
   double extrapolation_toSt1 = line2V.slopeV*(z_plane[3] - line2V.initialZ) + line2V.initialV;
 
-  std::cout<<"V extrapolation is "<<extrapolation<<"; based on slope "<<line2V.slopeV<<", diff "<<line3V.initialZ - line2V.initialZ<<", and initialV "<<line2V.initialV<<std::endl;
-  std::cout<<"V to be compared with st3 position "<<line3V.initialV<<".  diff is "<<(extrapolation - line3V.initialV)<<std::endl;
-  std::cout<<"V extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
-  std::cout<<"V slope diff are "<<slopeComp<<" and "<<secondSlope<<std::endl;
+  //std::cout<<"V extrapolation is "<<extrapolation<<"; based on slope "<<line2V.slopeV<<", diff "<<line3V.initialZ - line2V.initialZ<<", and initialV "<<line2V.initialV<<std::endl;
+  //std::cout<<"V to be compared with st3 position "<<line3V.initialV<<".  diff is "<<(extrapolation - line3V.initialV)<<std::endl;
+  //std::cout<<"V extrapolation to station 1 is "<<extrapolation_toSt1<<std::endl;
+  //std::cout<<"V slope diff are "<<slopeComp<<" and "<<secondSlope<<std::endl;
   
   double extrapolation_v2 = line2V_v2.slopeV*(line3V_v2.initialZ - line2V_v2.initialZ) + line2V_v2.initialV; //Perform the extrapolation in the rare case that the closest slope combination did not yield a valid extrapolation.  Rare, but necessary
   double extrapolation_toSt1_v2 = line2V_v2.slopeV*(z_plane[3] - line2V_v2.initialZ) + line2V_v2.initialV;
-  std::cout<<"V V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2V_v2.slopeV<<", diff "<<line3V_v2.initialZ - line2V_v2.initialZ<<", and initialV "<<line2V_v2.initialV<<std::endl;
-  std::cout<<"V V2 to be compared with st3 position "<<line3V_v2.initialV<<".  diff is "<<(extrapolation_v2 - line3V_v2.initialV)<<std::endl;
+  //std::cout<<"V V2 extrapolation is "<<extrapolation_v2<<"; based on slope "<<line2V_v2.slopeV<<", diff "<<line3V_v2.initialZ - line2V_v2.initialZ<<", and initialV "<<line2V_v2.initialV<<std::endl;
+  //std::cout<<"V V2 to be compared with st3 position "<<line3V_v2.initialV<<".  diff is "<<(extrapolation_v2 - line3V_v2.initialV)<<std::endl;
   
   if(slopeComp > 0.03) return false; //This has not been optimized at all.  I just chose a random value (previous slope comparison allowed for a difference of 0.1)
   
@@ -4803,7 +4803,7 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
   }
 
   tracklet2.acceptedVLine2 = line2V;
-  std::cout<<"TEST OF LINE2 "<<tracklet2.acceptedVLine2.wireHit1PosZ<<std::endl;
+  //std::cout<<"TEST OF LINE2 "<<tracklet2.acceptedVLine2.wireHit1PosZ<<std::endl;
   tracklet3.acceptedVLine3 = line3V;
   
   //Give the station 2 and station 3 tracklets the same tx and ty value.  I could get an X0 and Y0 extrapolation, but that doesn't seem to be strictly necessary.  The X0 and Y0 values are found in the fittracklet function for the combined station 2 + station 3 tracklet
@@ -4820,9 +4820,9 @@ bool KalmanFastTracking::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tr
   tracklet2.st2Vsl = line2V.slopeV;
   tracklet3.st2Vsl = line3V.slopeV;
 
-  std::cout<<"THERE WAS A V TRACKLET MATCH!"<<std::endl;
-  std::cout<<"V st2 slope = "<<line2V.slopeX<<"; st2 V = "<<line2V.initialV<<std::endl;
-  std::cout<<"V st3 slope = "<<line3V.slopeX<<"; st3 V = "<<line3V.initialV<<std::endl;
+  //std::cout<<"THERE WAS A V TRACKLET MATCH!"<<std::endl;
+  //std::cout<<"V st2 slope = "<<line2V.slopeX<<"; st2 V = "<<line2V.initialV<<std::endl;
+  //std::cout<<"V st3 slope = "<<line3V.slopeX<<"; st3 V = "<<line3V.initialV<<std::endl;
   
   return true;
   
@@ -4833,7 +4833,7 @@ bool KalmanFastTracking::checkTwoTracklets(Tracklet& tracklet2, Tracklet& trackl
 {
 
   bool sameTracklet = true;
-  
+  /*
   std::cout<<"about to compare two tracklets"<<std::endl;
   
   for(std::list<SignedHit>::iterator iter = tracklet2.hits.begin(); iter != tracklet2.hits.end(); ++iter)
@@ -4855,7 +4855,7 @@ bool KalmanFastTracking::checkTwoTracklets(Tracklet& tracklet2, Tracklet& trackl
       std::cout << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << " = ";
     }
   std::cout<<std::endl;
-
+  */
   if(tracklet2.hits.size() != tracklet3.hits.size()){
     sameTracklet = false;
     return sameTracklet;
@@ -4877,13 +4877,13 @@ bool KalmanFastTracking::checkTwoTracklets(Tracklet& tracklet2, Tracklet& trackl
     }
     if(!sameTracklet) break;
   }
-  */
+  
   if(sameTracklet){
     std::cout<<"these are the same tracklet"<<std::endl;
   } else{
     std::cout<<"these were different tracklets"<<std::endl;
   }
-  
+  */
   return sameTracklet;
   
 }

@@ -815,7 +815,7 @@ Tracklet Tracklet::operator+(const Tracklet& elem) const
     tracklet.x0 = (x0/err_x0/err_x0 + elem.x0/elem.err_x0/elem.err_x0)*tracklet.err_x0*tracklet.err_x0;
     tracklet.y0 = (y0/err_y0/err_y0 + elem.y0/elem.err_y0/elem.err_y0)*tracklet.err_y0*tracklet.err_y0;
 
-    std::cout<<"ADDING tracklets.  What is the momentum: "<<tracklet.getMomentum()<<std::endl; //WPM
+    //std::cout<<"ADDING tracklets.  What is the momentum: "<<tracklet.getMomentum()<<std::endl; //WPM
     
     tracklet.invP = 1./tracklet.getMomentum();
     tracklet.err_invP = 0.25*tracklet.invP;
