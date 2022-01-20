@@ -62,9 +62,9 @@ public:
     //Build back partial tracks using tracklets in station 2 & 3
     void buildBackPartialTracks();
   void buildBackPartialTracksSlim();
-    void buildBackPartialTracksSlimX();
-    void buildBackPartialTracksSlimU();
-  void buildBackPartialTracksSlimV();
+    void buildBackPartialTracksSlimX(int pass);
+    void buildBackPartialTracksSlimU(int pass);
+  void buildBackPartialTracksSlimV(int pass);
 
     //Build global tracks by connecting station 23 tracklets and station 1 tracklets
     void buildGlobalTracks();
@@ -83,11 +83,12 @@ public:
     bool muonID_hodoAid(Tracklet& tracklet);
 
     bool compareTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
 
-    bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool checkSingleTracklet(Tracklet& tracklet1);
   
     void buildPropSegments();
 
