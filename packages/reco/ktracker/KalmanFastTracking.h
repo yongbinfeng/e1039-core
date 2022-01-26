@@ -21,6 +21,8 @@ Created: 05-24-2013
 #include <Math/Minimizer.h>
 #include <Math/Functor.h>
 
+#include "TMathBase.h"
+
 #include "SRawEvent.h"
 #include "KalmanTrack.h"
 #include "KalmanFitter.h"
@@ -62,6 +64,7 @@ public:
     //Build back partial tracks using tracklets in station 2 & 3
     void buildBackPartialTracks();
   void buildBackPartialTracksSlim();
+  void buildBackPartialTracksSlim_v2();
     void buildBackPartialTracksSlimX(int pass);
     void buildBackPartialTracksSlimU(int pass);
   void buildBackPartialTracksSlimV(int pass);
@@ -86,6 +89,13 @@ public:
   bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
   bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
   bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+
+    bool compareTrackletsSerious(Tracklet& tracklet1, Tracklet& tracklet2);
+  
+      bool compareTracklets_v2(Tracklet& tracklet1, Tracklet& tracklet2);
+  bool compareTrackletsSlim_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimU_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimV_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
 
   bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
   bool checkSingleTracklet(Tracklet& tracklet1);

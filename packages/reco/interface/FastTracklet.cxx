@@ -504,7 +504,7 @@ Tracklet::Tracklet() : stationID(-1), nXHits(0), nUHits(0), nVHits(0), chisq(999
 }
 
 int Tracklet::isValid() const
-{
+{  
     if(stationID < 1 || stationID > nStations) return 0;
     if(fabs(tx) > TX_MAX || fabs(x0) > X0_MAX) return 0;
     if(fabs(ty) > TY_MAX || fabs(y0) > Y0_MAX) return 0;
@@ -548,7 +548,6 @@ int Tracklet::isValid() const
             if(nRealHits[i][0] < 1 || nRealHits[i][1] < 1 || nRealHits[i][2] < 1) return 0;
             if(nRealHits[i][0] + nRealHits[i][1] + nRealHits[i][2] < 4) return 0;
         }
-
         //for global tracks only -- TODO: may need to set a new station-1 cut
         if(stationID == nStations)
         {
@@ -1030,6 +1029,8 @@ void Tracklet::getSlopesU(Hit hit1, Hit hit2){
   double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
   double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
 
+  //std::cout<<"in GETSLOPESU.  w1 ID is: "<<twoHits.at(0).detectorID<<", which has slope "<<w1Slope<<".  w2 ID is: "<<twoHits.at(1).detectorID<<", which has slope "<<w2Slope<<std::endl; //WPM_Jan24
+  
   //Brute force calculation of U-Z lines, various information about wire positioning in X-Y space, and finding hit position in (X, Y, Z)
   linedef testline1;
   testline1.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
@@ -1120,6 +1121,8 @@ void Tracklet::getSlopesV(Hit hit1, Hit hit2){
   double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
   double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
 
+  //std::cout<<"in GETSLOPESV.  w1 ID is: "<<twoHits.at(0).detectorID<<", which has slope "<<w1Slope<<".  w2 ID is: "<<twoHits.at(1).detectorID<<", which has slope "<<w2Slope<<std::endl; //WPM_Jan24
+  
   linedef testline1;
   testline1.slopeV = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
   testline1.initialV = twoHits.at(0).pos + twoHits.at(0).driftDistance;
