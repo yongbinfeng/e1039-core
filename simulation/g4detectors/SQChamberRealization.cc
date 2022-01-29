@@ -79,14 +79,17 @@ int SQChamberRealization::process_event(PHCompositeNode* topNode)
     string det_name = GeomSvc::instance()->getDetectorName(det_id);
 
     bool is_eff = true;
+    std::cout<<"test det_name: "<<det_name.substr(0, 3)<<std::endl; //WPM
     if      (det_name.substr(0, 2) == "D0" ) is_eff = (gRandom->Rndm() < m_eff_d0 );
     else if (det_name.substr(0, 2) == "D1" ) is_eff = (gRandom->Rndm() < m_eff_d1 );
     else if (det_name.substr(0, 2) == "D2" ) is_eff = (gRandom->Rndm() < m_eff_d2 );
     else if (det_name.substr(0, 3) == "D3p") is_eff = (gRandom->Rndm() < m_eff_d3p);
+    else if (det_name.substr(0, 3) == "D3m") is_eff = (gRandom->Rndm() < m_eff_d3m);
     else if (det_name.substr(0, 3) == "P1X") is_eff = (gRandom->Rndm() < m_eff_p1x);
     else if (det_name.substr(0, 3) == "P1Y") is_eff = (gRandom->Rndm() < m_eff_p1y);
     else if (det_name.substr(0, 3) == "P2X") is_eff = (gRandom->Rndm() < m_eff_p2x);
     else if (det_name.substr(0, 3) == "P2Y") is_eff = (gRandom->Rndm() < m_eff_p2y);
+    std::cout<<"what is is_eff? "<<is_eff<<std::endl; //WPM
     hit->set_in_time(is_eff); // Temporary solution!!
 
     TGraphErrors* gr_x2t;

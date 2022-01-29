@@ -68,7 +68,9 @@ bool UtilSRawEvent::SetHit(SRawEvent* sraw, const SQHitVector* hit_vec, std::map
     h.tdcTime       = sq_hit->get_tdc_time();
     h.driftDistance = fabs(sq_hit->get_drift_distance()); //MC L-R info removed here
     h.pos           = sq_hit->get_pos();
+    std::cout<<"in sethit.  index = "<<sq_hit->get_hit_id()<<", detID = "<<sq_hit->get_detector_id()<<", elementID = "<<sq_hit->get_element_id()<<", tdcTime = "<<sq_hit->get_tdc_time()<<", driftDistance = "<<fabs(sq_hit->get_drift_distance())<<", pos = "<<sq_hit->get_pos()<<", is_in_time = "<<sq_hit->is_in_time()<<std::endl; //WPM
     if(sq_hit->is_in_time()) h.setInTime();
+    std::cout<<"and second in time check = "<<sq_hit->is_in_time()<<" and "<<h.isInTime()<<std::endl; //WPM
     sraw->insertHit(h);
   }
   sraw->reIndex(true);

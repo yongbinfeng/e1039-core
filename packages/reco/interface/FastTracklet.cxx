@@ -995,11 +995,11 @@ void Tracklet::getSlopesX(Hit hit1, Hit hit2){
   testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   linedef testline2;
   testline2.slopeX = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
-  testline2.initialX = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialX = twoHits.at(0).pos - twoHits.at(0).driftDistance;
   testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   linedef testline3;
   testline3.slopeX = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
-  testline3.initialX = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialX = twoHits.at(0).pos + twoHits.at(0).driftDistance;
   testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   linedef testline4;
   testline4.slopeX = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
@@ -1052,7 +1052,7 @@ void Tracklet::getSlopesU(Hit hit1, Hit hit2){
   testline1.wireIntercept2 = testline1.wireHit2PosY - testline1.wire2Slope * testline1.wireHit2PosX; //Extract the Y-intercept of the line that defines where the second U-plane hit occured
   linedef testline2;
   testline2.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
-  testline2.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialU = twoHits.at(0).pos - twoHits.at(0).driftDistance;
   testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   testline2.wire1Slope = w1Slope;
   testline2.wire2Slope = w2Slope;
@@ -1068,7 +1068,7 @@ void Tracklet::getSlopesU(Hit hit1, Hit hit2){
   testline2.wireIntercept2 = testline2.wireHit2PosY - testline2.wire2Slope * testline2.wireHit2PosX;
   linedef testline3;
   testline3.slopeU = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
-  testline3.initialU = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
   testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   testline3.wire1Slope = w1Slope;
   testline3.wire2Slope = w2Slope;
@@ -1141,7 +1141,7 @@ void Tracklet::getSlopesV(Hit hit1, Hit hit2){
   testline1.wireIntercept2 = testline1.wireHit2PosY - testline1.wire2Slope * testline1.wireHit2PosX;
   linedef testline2;
   testline2.slopeV = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos - twoHits.at(0).driftDistance) )/zDist;
-  testline2.initialV = twoHits.at(0).pos + twoHits.at(0).driftDistance;
+  testline2.initialV = twoHits.at(0).pos - twoHits.at(0).driftDistance;
   testline2.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   testline2.wire1Slope = w1Slope;
   testline2.wire2Slope = w2Slope;
@@ -1157,7 +1157,7 @@ void Tracklet::getSlopesV(Hit hit1, Hit hit2){
   testline2.wireIntercept2 = testline2.wireHit2PosY - testline2.wire2Slope * testline2.wireHit2PosX;
   linedef testline3;
   testline3.slopeV = ( (twoHits.at(1).pos - twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
-  testline3.initialV = twoHits.at(0).pos - twoHits.at(0).driftDistance;
+  testline3.initialV = twoHits.at(0).pos + twoHits.at(0).driftDistance;
   testline3.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
   testline3.wire1Slope = w1Slope;
   testline3.wire2Slope = w2Slope;
