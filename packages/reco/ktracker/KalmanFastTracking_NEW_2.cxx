@@ -1655,8 +1655,10 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3()
   //std::vector<Tracklet> acceptedStation2Tracklets;
   //std::vector<Tracklet> acceptedStation3Tracklets;
 
+  if( (trackletsInStSlimX[3].size() + trackletsInStSlimU[3].size() + trackletsInStSlimV[3].size()) > 1000 ) return;
+  
   double chiSqCut = 300;
-  if( trackletsInStSlimX[3].size() > 150 || trackletsInStSlimU[3].size() > 150 || trackletsInStSlimV[3].size() > 150 ) chiSqCut = 20;
+  if( trackletsInStSlimX[3].size() > 150 || trackletsInStSlimU[3].size() > 150 || trackletsInStSlimV[3].size() > 150 ) chiSqCut = 100;
   
   for(std::list<Tracklet>::iterator trackletX = trackletsInStSlimX[3].begin(); trackletX != trackletsInStSlimX[3].end(); ++trackletX){
     Tracklet tracklet_best;
@@ -1664,6 +1666,7 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3()
       Tracklet tracklet_best_UX;
       for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3].begin(); trackletV != trackletsInStSlimV[3].end(); ++trackletV){
 
+	
 #ifdef _DEBUG_PATRICK
 	LogInfo("New combo");
 	std::cout<<"trackletX->st2X = "<<trackletX->st2X<<"; trackletU->st2U = "<<trackletU->st2U<<"; trackletV->st2V = "<<trackletV->st2V<<";;; trackletX->st3X = "<<trackletX->st3X<<"; trackletU->st3U = "<<trackletU->st3U<<"; trackletV->st3V = "<<trackletV->st3V<<std::endl;
@@ -2145,6 +2148,14 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimX(int pass)
         Tracklet tracklet_best;
         for(std::list<Tracklet>::iterator tracklet2 = trackletsInStSlimX[1].begin(); tracklet2 != trackletsInStSlimX[1].end(); ++tracklet2)
         {
+#ifdef _DEBUG_PATRICK
+	  if(trackletsInStSlimX[1].size() < 10 && trackletsInStSlimX[1].size() < 10){
+	    tracklet2->print();
+	    tracklet3->print();
+	  }
+#endif
+
+	  
 	  //tracklet2->print();
 	  /*if(!COARSE_MODE)
             {
@@ -2307,6 +2318,13 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimU(int pass)
         Tracklet tracklet_best;
         for(std::list<Tracklet>::iterator tracklet2 = trackletsInStSlimU[1].begin(); tracklet2 != trackletsInStSlimU[1].end(); ++tracklet2)
         {
+#ifdef _DEBUG_PATRICK
+	  if(trackletsInStSlimU[1].size() < 10 && trackletsInStSlimU[1].size() < 10){
+	    tracklet2->print();
+	    tracklet3->print();
+	  }
+#endif
+	  
 	    Tracklet tracklet_23;
 	    if(OLD_TRACKING){
 	      tracklet_23 = (*tracklet2) + (*tracklet3);
@@ -2371,6 +2389,13 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimV(int pass)
         Tracklet tracklet_best;
         for(std::list<Tracklet>::iterator tracklet2 = trackletsInStSlimV[1].begin(); tracklet2 != trackletsInStSlimV[1].end(); ++tracklet2)
         {
+#ifdef _DEBUG_PATRICK
+	  if(trackletsInStSlimV[1].size() < 10 && trackletsInStSlimV[1].size() < 10){
+	    tracklet2->print();
+	    tracklet3->print();
+	  }
+#endif
+	  
 	    Tracklet tracklet_23;
 	    if(OLD_TRACKING){
 	      tracklet_23 = (*tracklet2) + (*tracklet3);
@@ -6385,7 +6410,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlim_3hits(Tracklet& tracklet2, T
     } else{
       
       double newSlopeX = (tracklet3.getHit(0).hit.pos - tracklet2.possibleXLines.at(bestT2).initialX)/(z_plane[tracklet3.getHit(0).hit.detectorID] - tracklet2.possibleXLines.at(bestT2).initialZ);
-      tracklet2.possibleXLines.at(bestT2).slopeX = newSlopeX;
+      //tracklet2.possibleXLines.at(bestT2).slopeX = newSlopeX;
       
       tracklet2.acceptedXLine2 = tracklet2.possibleXLines.at(bestT2);
       tracklet3.acceptedXLine3 = tracklet2.possibleXLines.at(bestT2);
@@ -6455,7 +6480,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlim_3hits(Tracklet& tracklet2, T
     } else{
       
       double newSlopeX = (tracklet2.getHit(0).hit.pos - tracklet3.possibleXLines.at(bestT3).initialX)/(z_plane[tracklet2.getHit(0).hit.detectorID] - tracklet3.possibleXLines.at(bestT3).initialZ);
-      tracklet3.possibleXLines.at(bestT3).slopeX = newSlopeX;
+      //tracklet3.possibleXLines.at(bestT3).slopeX = newSlopeX;
       
       tracklet2.acceptedXLine2 = tracklet3.possibleXLines.at(bestT3);
       tracklet3.acceptedXLine3 = tracklet3.possibleXLines.at(bestT3);
@@ -6721,7 +6746,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlimU_3hits(Tracklet& tracklet2, 
     } else{
       
       double newSlopeU = (tracklet3.getHit(0).hit.pos - tracklet2.possibleULines.at(bestT2).initialU)/(z_plane[tracklet3.getHit(0).hit.detectorID] - tracklet2.possibleULines.at(bestT2).initialZ);
-      tracklet2.possibleULines.at(bestT2).slopeU = newSlopeU;
+      //tracklet2.possibleULines.at(bestT2).slopeU = newSlopeU;
       
       tracklet2.acceptedULine2 = tracklet2.possibleULines.at(bestT2);
       tracklet3.acceptedULine3 = tracklet2.possibleULines.at(bestT2);
@@ -6789,7 +6814,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlimU_3hits(Tracklet& tracklet2, 
     } else{
       
       double newSlopeU = (tracklet2.getHit(0).hit.pos - tracklet3.possibleULines.at(bestT3).initialU)/(z_plane[tracklet2.getHit(0).hit.detectorID] - tracklet3.possibleULines.at(bestT3).initialZ);
-      tracklet3.possibleULines.at(bestT3).slopeU = newSlopeU;
+      //tracklet3.possibleULines.at(bestT3).slopeU = newSlopeU;
       
       tracklet2.acceptedULine2 = tracklet3.possibleULines.at(bestT3);
       tracklet3.acceptedULine3 = tracklet3.possibleULines.at(bestT3);
@@ -7053,7 +7078,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlimV_3hits(Tracklet& tracklet2, 
     } else{
       
       double newSlopeV = (tracklet3.getHit(0).hit.pos - tracklet2.possibleVLines.at(bestT2).initialV)/(z_plane[tracklet3.getHit(0).hit.detectorID] - tracklet2.possibleVLines.at(bestT2).initialZ);
-      tracklet2.possibleVLines.at(bestT2).slopeV = newSlopeV;
+      //tracklet2.possibleVLines.at(bestT2).slopeV = newSlopeV;
       
       tracklet2.acceptedVLine2 = tracklet2.possibleVLines.at(bestT2);
       tracklet3.acceptedVLine3 = tracklet2.possibleVLines.at(bestT2);
@@ -7121,7 +7146,7 @@ bool KalmanFastTracking_NEW_2::compareTrackletsSlimV_3hits(Tracklet& tracklet2, 
     } else{
       
       double newSlopeV = (tracklet2.getHit(0).hit.pos - tracklet3.possibleVLines.at(bestT3).initialV)/(z_plane[tracklet2.getHit(0).hit.detectorID] - tracklet3.possibleVLines.at(bestT3).initialZ);
-      tracklet3.possibleVLines.at(bestT3).slopeV = newSlopeV;
+      //tracklet3.possibleVLines.at(bestT3).slopeV = newSlopeV;
       
       tracklet2.acceptedVLine2 = tracklet3.possibleVLines.at(bestT3);
       tracklet3.acceptedVLine3 = tracklet3.possibleVLines.at(bestT3);
