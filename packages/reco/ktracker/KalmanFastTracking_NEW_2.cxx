@@ -1,7 +1,7 @@
 /*
-KalmanFastTracking_NEW.cxx
+KalmanFastTracking_NEW_2.cxx
 
-Implementation of class Tracklet, KalmanFastTracking_NEW
+Implementation of class Tracklet, KalmanFastTracking_NEW_2
 
 Author: Kun Liu, liuk@fnal.gov
 Created: 05-28-2013
@@ -21,12 +21,12 @@ Created: 05-28-2013
 #include <TBox.h>
 #include <TMatrixD.h>
 
-#include "KalmanFastTracking_NEW.h"
+#include "KalmanFastTracking_NEW_2.h"
 #include "TriggerRoad.h"
 
-#define _DEBUG_ON
-#define _DEBUG_PATRICK
-#define _DEBUG_PATRICK_EXTRA
+//#define _DEBUG_ON
+//#define _DEBUG_PATRICK
+//#define _DEBUG_PATRICK_EXTRA
 
 namespace 
 {
@@ -141,13 +141,13 @@ namespace
     }
 }
 
-KalmanFastTracking_NEW::KalmanFastTracking_NEW(const PHField* field, const TGeoManager* geom, bool flag): verbosity(0), enable_KF(flag), outputListIdx(4)
+KalmanFastTracking_NEW_2::KalmanFastTracking_NEW_2(const PHField* field, const TGeoManager* geom, bool flag): verbosity(0), enable_KF(flag), outputListIdx(4)
 {
     using namespace std;
     initGlobalVariables();
 
 #ifdef _DEBUG_ON
-    cout << "Initialization of KalmanFastTracking_NEW ..." << endl;
+    cout << "Initialization of KalmanFastTracking_NEW_2 ..." << endl;
     cout << "========================================" << endl;
 #endif
 
@@ -430,20 +430,20 @@ KalmanFastTracking_NEW::KalmanFastTracking_NEW(const PHField* field, const TGeoM
     s_detectorID[2] = p_geomSvc->getDetectorID("D2Vp");
 }
 
-KalmanFastTracking_NEW::~KalmanFastTracking_NEW()
+KalmanFastTracking_NEW_2::~KalmanFastTracking_NEW_2()
 {
     if(enable_KF) delete kmfitter;
     delete minimizer[0];
     delete minimizer[1];
 }
 
-void KalmanFastTracking_NEW::setRawEventDebug(SRawEvent* event_input)
+void KalmanFastTracking_NEW_2::setRawEventDebug(SRawEvent* event_input)
 {
     rawEvent = event_input;
     hitAll = event_input->getAllHits();
 }
 
-int KalmanFastTracking_NEW::setRawEvent(SRawEvent* event_input)
+int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
 {
 	//reset timer
     for(auto iter=_timers.begin(); iter != _timers.end(); ++iter) 
@@ -601,7 +601,8 @@ int KalmanFastTracking_NEW::setRawEvent(SRawEvent* event_input)
 	return TFEXIT_FAIL_BACKPARTIAL;
       }
     }
-    buildBackPartialTracksSlim_v2();
+    //buildBackPartialTracksSlim_v2();
+    buildBackPartialTracksSlim_v3();
     std::cout<<"Station 2+3 all combos = "<<trackletsInSt[3].size()<<std::endl;
     //for(std::list<Tracklet>::iterator tracklet23 = trackletsInStSlimX[3].begin(); tracklet23 != trackletsInStSlimX[3].end(); ++tracklet23){
     //  buildTrackletsInStationWithUV(6, 3, *tracklet23);
@@ -620,11 +621,11 @@ int KalmanFastTracking_NEW::setRawEvent(SRawEvent* event_input)
 
     //Connect tracklets in station 2/3 and station 1 to form global tracks
     _timers["global"]->restart();
-    /*if(!TRACK_DISPLACED){
+    if(!TRACK_DISPLACED){
       buildGlobalTracks();
     } else{
       buildGlobalTracksDisplaced();
-    }*/
+    }
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
     
@@ -675,7 +676,7 @@ int KalmanFastTracking_NEW::setRawEvent(SRawEvent* event_input)
     return TFEXIT_SUCCESS;
 }
 
-bool KalmanFastTracking_NEW::acceptEvent(SRawEvent* rawEvent)
+bool KalmanFastTracking_NEW_2::acceptEvent(SRawEvent* rawEvent)
 {
   //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) //WPM
   //{ //WPM
@@ -713,7 +714,7 @@ bool KalmanFastTracking_NEW::acceptEvent(SRawEvent* rawEvent)
     return true;
 }
 
-void KalmanFastTracking_NEW::buildBackPartialTracks()
+void KalmanFastTracking_NEW_2::buildBackPartialTracks()
 {
     //Temporary container for a simple chisq fit
     int nHitsX2, nHitsX3;
@@ -875,7 +876,7 @@ void KalmanFastTracking_NEW::buildBackPartialTracks()
 }
 
 
-void KalmanFastTracking_NEW::buildBackPartialTracksSlim()
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim()
 {
 #ifdef _DEBUG_ON
   LogInfo("HELLO I'm in buildBackPartialTracksSlim");
@@ -1300,7 +1301,7 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlim()
 
 
 
-void KalmanFastTracking_NEW::buildBackPartialTracksSlim_v2()
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v2()
 {
 #ifdef _DEBUG_ON
   LogInfo("HELLO I'm in buildBackPartialTracksSlim");
@@ -1581,10 +1582,10 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlim_v2()
 #endif
 #ifdef _DEBUG_PATRICK
 	LogInfo("end of V loop");
-	LogInfo("going to print tracklet_best_UX");
-	tracklet_best_UX.print();
-	LogInfo("going to print tracklet_TEST_23");
-	tracklet_TEST_23.print();
+	std::cout<<&trackletV<<std::endl;
+	std::cout<<&(*trackletV)<<std::endl;
+	//std::cout<<&(trackletsInStSlimV[3].end())<<std::endl;
+	std::cout<<&(*trackletsInStSlimV[3].end())<<std::endl;
 #endif
       }
 #ifdef _DEBUG_PATRICK
@@ -1631,7 +1632,468 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlim_v2()
   return;
 }
 
-void KalmanFastTracking_NEW::buildBackPartialTracksSlimX(int pass)
+
+
+
+
+
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3()
+{
+#ifdef _DEBUG_ON
+  LogInfo("HELLO I'm in buildBackPartialTracksSlim");
+#endif
+  
+  std::vector<Tracklet> acceptedStation2Tracklets;
+  std::vector<Tracklet> acceptedStation3Tracklets;
+  
+  for(std::list<Tracklet>::iterator trackletX = trackletsInStSlimX[3].begin(); trackletX != trackletsInStSlimX[3].end(); ++trackletX){
+    Tracklet tracklet_best;
+    for(std::list<Tracklet>::iterator trackletU = trackletsInStSlimU[3].begin(); trackletU != trackletsInStSlimU[3].end(); ++trackletU){
+      Tracklet tracklet_best_UX;
+      for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3].begin(); trackletV != trackletsInStSlimV[3].end(); ++trackletV){
+
+
+
+
+	/*
+	double posy2U = ((*trackletU).st2U - p_geomSvc->getCostheta((*trackletX).getHit(0).hit.detectorID+2)*((*trackletX).st2X + (*trackletX).st2Xsl * ((*trackletU).st2Z - (*trackletX).st2Z) ))/p_geomSvc->getSintheta((*trackletX).getHit(0).hit.detectorID+2);
+	double posy2V = ((*trackletV).st2V - p_geomSvc->getCostheta((*trackletX).getHit(0).hit.detectorID-2)*((*trackletX).st2X + (*trackletX).st2Xsl * ((*trackletV).st2Z - (*trackletX).st2Z) ))/p_geomSvc->getSintheta((*trackletX).getHit(0).hit.detectorID-2);
+	double posy3U = ((*trackletU).st3U - p_geomSvc->getCostheta((*trackletX).getHit(2).hit.detectorID+2)*((*trackletX).st3X + (*trackletX).st3Xsl * ((*trackletU).st3Z - (*trackletX).st3Z) ))/p_geomSvc->getSintheta((*trackletX).getHit(2).hit.detectorID+2);
+	double posy3V = ((*trackletV).st3V - p_geomSvc->getCostheta((*trackletX).getHit(2).hit.detectorID-2)*((*trackletX).st3X + (*trackletX).st3Xsl * ((*trackletV).st3Z - (*trackletX).st3Z) ))/p_geomSvc->getSintheta((*trackletX).getHit(2).hit.detectorID-2);
+	*/
+
+
+
+	
+#ifdef _DEBUG_PATRICK
+	LogInfo("HELLO I'm in buildBackPartialTracksSlim");
+#endif
+
+
+
+
+
+
+
+
+	
+	double st2UWireSin = TMath::Sin(TMath::ATan(1./trackletU->acceptedULine2.wire1Slope));
+	double st2VWireSin = TMath::Sin(TMath::ATan(1./trackletV->acceptedVLine2.wire1Slope));
+	double st3UWireSin = TMath::Sin(TMath::ATan(1./trackletU->acceptedULine3.wire1Slope));
+	double st3VWireSin = TMath::Sin(TMath::ATan(1./trackletV->acceptedVLine3.wire1Slope));
+
+	double st2UWireCos = TMath::Cos(TMath::ATan(1./trackletU->acceptedULine2.wire1Slope));
+	double st2VWireCos = TMath::Cos(TMath::ATan(1./trackletV->acceptedVLine2.wire1Slope));
+	double st3UWireCos = TMath::Cos(TMath::ATan(1./trackletU->acceptedULine3.wire1Slope));
+	double st3VWireCos = TMath::Cos(TMath::ATan(1./trackletV->acceptedVLine3.wire1Slope));
+
+	double testTY2 = ( trackletV->st2Vsl - (st2VWireCos/st2UWireCos)*trackletU->st2Usl )/( (st2VWireCos * st2UWireSin)/(st2UWireCos) - st2VWireSin );
+	double testTY3 = ( trackletV->st3Vsl - (st3VWireCos/st3UWireCos)*trackletU->st3Usl )/( (st3VWireCos * st3UWireSin)/(st3UWireCos) - st3VWireSin );
+	double testTX2 = ( trackletU->st2Usl - (st2UWireSin/st2VWireSin)*trackletV->st2Vsl )/( st2UWireCos - ( st2UWireSin * st2VWireCos )/st2VWireSin );
+	double testTX3 = ( trackletU->st3Usl - (st3UWireSin/st3VWireSin)*trackletV->st3Vsl )/( st3UWireCos - ( st3UWireSin * st3VWireCos )/st3VWireSin );
+
+#ifdef _DEBUG_PATRICK
+	std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
+	std::cout<<"tracklet2.tx = "<<trackletX->st2Xsl<<", and tracklet3.tx = "<<trackletX->st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
+#endif
+	if(std::abs(testTY2 - testTY3) > 0.005) continue;
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 1");
+#endif
+	if(std::abs(trackletX->st2Xsl - testTX2) > 0.005 || std::abs(trackletX->st2Xsl - testTX3) > 0.005) continue;
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 2");
+#endif	
+	//double posy = tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y; //WPM
+
+
+
+
+
+
+
+
+	/*
+	//updated segment
+	double tracklet2Ys_D = 0.; //This is the sum of the Y-values of the hits in the U and V planes of the two tracklets.  The sum is taken to be used in an average.  The _D here stands for driftDistance.  I originally did this part of the code without taking the drift distance in the slanted layers into account
+	double tracklet3Ys_D = 0.;
+	
+	for(unsigned int h = 0; h < trackletU->hits.size(); h++){
+	  double posx = trackletX->st2Xsl * (z_plane[(*trackletU).getHit(h).hit.detectorID] - trackletX->st2Z) + trackletX->st2X;
+	  if((*trackletU).getHit(h).hit.detectorID == 17){
+	    tracklet2Ys_D += trackletU->acceptedULine2.wire1Slope * posx + trackletU->acceptedULine2.wireIntercept1;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 18){
+	    tracklet2Ys_D += trackletU->acceptedULine2.wire2Slope * posx + trackletU->acceptedULine2.wireIntercept2;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 19 || (*trackletU).getHit(h).hit.detectorID == 25){
+	    tracklet3Ys_D += trackletU->acceptedULine3.wire1Slope * posx + trackletU->acceptedULine3.wireIntercept1;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 20 || (*trackletU).getHit(h).hit.detectorID == 26){
+	    tracklet3Ys_D += trackletU->acceptedULine3.wire2Slope * posx + trackletU->acceptedULine3.wireIntercept2;
+	  }
+	}
+
+	for(unsigned int h = 0; h < trackletV->hits.size(); h++){
+	  double posx = trackletX->st2Xsl * (z_plane[(*trackletV).getHit(h).hit.detectorID] - trackletX->st2Z) + trackletX->st2X;
+	  if((*trackletV).getHit(h).hit.detectorID == 13){
+	    tracklet2Ys_D += trackletV->acceptedVLine2.wire1Slope * posx + trackletV->acceptedVLine2.wireIntercept1;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 14){
+	    tracklet2Ys_D += trackletV->acceptedVLine2.wire2Slope * posx + trackletV->acceptedVLine2.wireIntercept2;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 23 || (*trackletV).getHit(h).hit.detectorID == 29){
+	    tracklet3Ys_D += trackletV->acceptedVLine3.wire1Slope * posx + trackletV->acceptedVLine3.wireIntercept1;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 24 || (*trackletV).getHit(h).hit.detectorID == 30){
+	    tracklet3Ys_D += trackletV->acceptedVLine3.wire2Slope * posx + trackletV->acceptedVLine3.wireIntercept2;
+	  }
+	}
+
+	double differentYSlope = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(trackletX->st3Z - trackletX->st2Z);
+#ifdef _DEBUG_PATRICK
+	std::cout<<"differentYSlope = "<<differentYSlope<<", and tracklet2Ys_D/4. = "<<tracklet2Ys_D/4.<<", and tracklet3Ys_D/4. = "<<tracklet3Ys_D/4.<<std::endl;
+#endif	
+	//if(std::abs(testTY2 - differentYSlope) > 0.005 || std::abs(testTY3 - differentYSlope) > 0.005) continue;
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 3");
+#endif	*/
+
+
+
+	
+
+
+
+
+
+
+	
+	//older segment
+	/*
+	double tracklet2Ys_D = 0.; //This is the sum of the Y-values of the hits in the U and V planes of the two tracklets.  The sum is taken to be used in an average.  The _D here stands for driftDistance.  I originally did this part of the code without taking the drift distance in the slanted layers into account
+	double tracklet3Ys_D = 0.;
+	
+	for(unsigned int h = 0; h < trackletU->hits.size(); h++){
+	  double posx = trackletX->st2Xsl * (z_plane[(*trackletU).getHit(h).hit.detectorID] - trackletX->st2Z) + trackletX->st2X;
+	  if((*trackletU).getHit(h).hit.detectorID == 17){
+	    tracklet2Ys_D += trackletU->acceptedULine2.wire1Slope * posx + trackletU->acceptedULine2.wireIntercept1;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 18){
+	    tracklet2Ys_D += trackletU->acceptedULine2.wire2Slope * posx + trackletU->acceptedULine2.wireIntercept2;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 19 || (*trackletU).getHit(h).hit.detectorID == 25){
+	    tracklet3Ys_D += trackletU->acceptedULine3.wire1Slope * posx + trackletU->acceptedULine3.wireIntercept1;
+	  }
+	  if((*trackletU).getHit(h).hit.detectorID == 20 || (*trackletU).getHit(h).hit.detectorID == 26){
+	    tracklet3Ys_D += trackletU->acceptedULine3.wire2Slope * posx + trackletU->acceptedULine3.wireIntercept2;
+	  }
+	}
+
+	for(unsigned int h = 0; h < trackletV->hits.size(); h++){
+	  double posx = trackletX->st2Xsl * (z_plane[(*trackletV).getHit(h).hit.detectorID] - trackletX->st2Z) + trackletX->st2X;
+	  if((*trackletV).getHit(h).hit.detectorID == 13){
+	    tracklet2Ys_D += trackletV->acceptedVLine2.wire1Slope * posx + trackletV->acceptedVLine2.wireIntercept1;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 14){
+	    tracklet2Ys_D += trackletV->acceptedVLine2.wire2Slope * posx + trackletV->acceptedVLine2.wireIntercept2;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 23 || (*trackletV).getHit(h).hit.detectorID == 29){
+	    tracklet3Ys_D += trackletV->acceptedVLine3.wire1Slope * posx + trackletV->acceptedVLine3.wireIntercept1;
+	  }
+	  if((*trackletV).getHit(h).hit.detectorID == 24 || (*trackletV).getHit(h).hit.detectorID == 30){
+	    tracklet3Ys_D += trackletV->acceptedVLine3.wire2Slope * posx + trackletV->acceptedVLine3.wireIntercept2;
+	  }
+	}
+
+	double differentYSlope = (tracklet3Ys_D/4. - tracklet2Ys_D/4.)/(trackletX->st3Z - trackletX->st2Z);
+#ifdef _DEBUG_PATRICK
+	std::cout<<"differentYSlope = "<<differentYSlope<<", and tracklet2Ys_D/4. = "<<tracklet2Ys_D/4.<<", and tracklet3Ys_D/4. = "<<tracklet3Ys_D/4.<<std::endl;
+#endif	
+	if(std::abs(testTY2 - differentYSlope) > 0.005 || std::abs(testTY3 - differentYSlope) > 0.005) continue;
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 3");
+#endif	
+*/
+
+
+
+
+
+
+
+
+
+
+
+	//updated segment
+	Tracklet tracklet_TEST_23 = (*trackletX) + (*trackletU) + (*trackletV);
+	tracklet_TEST_23.tx = trackletX->st2Xsl;
+	//tracklet_TEST_23.ty = (differentYSlope + testTY2 + testTY3)/3.;
+	tracklet_TEST_23.ty = (testTY2 + testTY3)/2.;
+	tracklet_TEST_23.invP = 1./50.;
+	tracklet_TEST_23.x0 = trackletX->st2Xsl * (0. - trackletX->st2Z) + trackletX->st2X;
+
+	tracklet_TEST_23.sortHits();
+	
+	/*std::cout<<"about to test out y0 vals?"<<std::endl;
+	
+	for(int y0val = -20; y0val < 21; y0val = y0val+5){
+	  std::cout<<"y0val = "<<y0val<<".  first X hit DCA = "<<p_geomSvc->getDCA((*trackletX).getHit(0).hit.detectorID, (*trackletX).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, y0val)<<"first U hit DCA = "<<p_geomSvc->getDCA((*trackletU).getHit(0).hit.detectorID, (*trackletU).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, y0val)<<"first V hit DCA = "<<p_geomSvc->getDCA((*trackletV).getHit(0).hit.detectorID, (*trackletV).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, y0val)<<std::endl;
+	  tracklet_TEST_23.y0 = y0val;
+	  tracklet_TEST_23.calcChisq();
+	  std::cout<<"This gives chisq = "<<tracklet_TEST_23.chisq<<std::endl;
+	    //p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
+	}*/
+
+	double testY0 = (-1.*p_geomSvc->getDCA((*trackletU).getHit(0).hit.detectorID, (*trackletU).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin) + p_geomSvc->getDCA((*trackletV).getHit(0).hit.detectorID, (*trackletV).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin))/2.;
+	//std::cout<<"testY0 = "<<testY0<<std::endl;
+	
+	//tracklet_TEST_23.y0 = (differentYSlope + testTY2 + testTY3)/3. * (0. - trackletX->st2Z) + tracklet2Ys_D/4.;
+	//tracklet_TEST_23.y0 = (testTY2 + testTY3)/2. * (0. - trackletX->st2Z) + tracklet2Ys_D/4.;
+	tracklet_TEST_23.y0 = testY0;
+
+	/*
+	std::vector<int> candidateSigns;
+	for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	  //for(unsigned int h = 0; h < tracklet_TEST_23.hits.size(); h++){
+	  candidateSigns.push_back(hit1->sign);
+	  hit1->sign = 0;
+	}
+	tracklet_TEST_23.calcChisq();
+#ifdef _DEBUG_PATRICK
+	tracklet_TEST_23.print();
+#endif
+	*/
+
+
+#ifdef _DEBUG_PATRICK
+	std::cout<<"chisq using no drift distance = "<<tracklet_TEST_23.calcChisq_noDrift()<<std::endl;
+#endif	
+	//if(tracklet_TEST_23.chisq > 300) continue;
+	std::cout<<"Just a very quick check here.  tracklet_TEST_23.calcChisq_noDrift: "<<tracklet_TEST_23.calcChisq_noDrift()<<std::endl;
+	if( tracklet_TEST_23.calcChisq_noDrift() > 300 ) continue;
+	//if( tracklet_TEST_23.calcChisq_noDrift() > 300 || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue;
+	std::cout<<"got past chisq check"<<std::endl;
+	tracklet_TEST_23.print();
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 4");
+#endif	
+
+	tracklet_TEST_23.st2Z = trackletX->st2Z;
+	tracklet_TEST_23.st2X = trackletX->st2X;
+	//tracklet_TEST_23.st2Y = tracklet2Ys_D/4.;
+	//tracklet_TEST_23.st3Y = tracklet3Ys_D/4.;
+	tracklet_TEST_23.st2Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * tracklet_TEST_23.st2Z;
+	tracklet_TEST_23.st3Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * trackletX->st3Z;
+	tracklet_TEST_23.st2U = trackletU->st2U;
+	tracklet_TEST_23.st2V = trackletV->st2V;
+	tracklet_TEST_23.st2Usl = trackletU->st2Usl;
+	tracklet_TEST_23.st2Vsl = trackletV->st2Vsl;
+
+
+
+
+	
+
+
+
+	
+
+
+
+
+
+
+
+
+	//older segment
+	/*
+	Tracklet tracklet_TEST_23 = (*trackletX) + (*trackletU) + (*trackletV);
+	tracklet_TEST_23.tx = trackletX->st2Xsl;
+	tracklet_TEST_23.ty = (differentYSlope + testTY2 + testTY3)/3.;
+	tracklet_TEST_23.invP = 1./50.;
+	tracklet_TEST_23.x0 = trackletX->st2Xsl * (0. - trackletX->st2Z) + trackletX->st2X;
+	tracklet_TEST_23.y0 = (differentYSlope + testTY2 + testTY3)/3. * (0. - trackletX->st2Z) + tracklet2Ys_D/4.;
+	tracklet_TEST_23.calcChisq();
+#ifdef _DEBUG_PATRICK
+	tracklet_TEST_23.print();
+#endif	
+	if(tracklet_TEST_23.chisq > 300) continue;
+#ifdef _DEBUG_PATRICK
+	LogInfo("past cont 4");
+#endif	
+
+	tracklet_TEST_23.st2Z = trackletX->st2Z;
+	tracklet_TEST_23.st2X = trackletX->st2X;
+	tracklet_TEST_23.st2Y = tracklet2Ys_D/4.;
+	tracklet_TEST_23.st3Y = tracklet3Ys_D/4.;
+	tracklet_TEST_23.st2U = trackletU->st2U;
+	tracklet_TEST_23.st2V = trackletV->st2V;
+	tracklet_TEST_23.st2Usl = trackletU->st2Usl;
+	tracklet_TEST_23.st2Vsl = trackletV->st2Vsl;
+	*/
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	/*
+	//updated segment
+	int hitCounter = 0;
+	//for(unsigned int h = 0; h < tracklet_TEST_23.hits.size(); h++){
+	for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	  hit1->sign = candidateSigns.at(hitCounter);
+	  hitCounter++;
+	}
+	tracklet_TEST_23.calcChisq();
+#ifdef _DEBUG_PATRICK
+	tracklet_TEST_23.print();
+#endif
+	
+
+#ifdef _DEBUG_PATRICK
+	LogInfo("now test my sign assignments");
+	tracklet_TEST_23.print();
+#endif
+*/
+
+	
+	fitTracklet(tracklet_TEST_23);
+	
+#ifdef _DEBUG_PATRICK
+	LogInfo("right after fitting");
+	tracklet_TEST_23.print();
+#endif
+
+	for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	  if(hit1->sign == 0){
+	    hit1->sign = 1;
+	    double dcaPlus = tracklet_TEST_23.calcChisq();
+	    hit1->sign = -1;
+	    double dcaMinus = tracklet_TEST_23.calcChisq();
+	    if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+	      hit1->sign = 1;
+	    } else{
+	      hit1->sign = -1;
+	    }
+	  }
+	}
+	
+
+
+	
+
+
+
+
+
+
+
+
+
+
+	//older segment
+	/*
+	if(!COARSE_MODE)
+	  {
+	    resolveLeftRight(tracklet_TEST_23, 40.); //resolveLeftRight at this stage is, in truth, not needed.  We already know which side of the wire the particle passed by from compareTracklet.  However, getting rid of this would take a bit of work
+	    resolveLeftRight(tracklet_TEST_23, 150.);
+	  }
+	*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	///Remove bad hits if needed
+	//removeBadHits(tracklet_TEST_23);
+	
+	//fitTracklet(tracklet_TEST_23); //This is the fit that needs the seeded tx and ty information. Without the seed information, the fit occasionally finds bad slope and X0 or Y0 values, much in the same way that it does for single-station tracklets.  Note from Patrick: this fit could probably be throw out, as we already know the tx and ty information from compareTracklets.  I would just need to extrapolate back to z = 0 and calculate the chisq by hand
+	if(tracklet_TEST_23.chisq > 9000.)
+	  {
+#ifdef _DEBUG_ON
+	    tracklet_TEST_23.print();
+	    LogInfo("Impossible combination!");
+#endif
+	    continue;
+	  }
+	
+#ifdef _DEBUG_PATRICK
+	LogInfo("New tracklet: ");
+	tracklet_TEST_23.print();
+	
+	LogInfo("Current best:");
+	tracklet_best_UX.print();
+	
+	LogInfo("Comparison: " << (tracklet_TEST_23 < tracklet_best_UX));
+	LogInfo("Candidate chisq: " << tracklet_TEST_23.chisq);
+	LogInfo("Quality: " << acceptTracklet(tracklet_TEST_23));
+#endif
+	
+	//If current tracklet is better than the best tracklet up-to-now
+	if(acceptTracklet(tracklet_TEST_23) && tracklet_TEST_23 < tracklet_best_UX)
+	  {
+	    tracklet_best_UX = tracklet_TEST_23;
+	  }
+#ifdef _DEBUG_ON
+	else
+	  {
+	    LogInfo("Rejected!!");
+	  }
+#endif
+	
+      }
+      if(tracklet_best_UX < tracklet_best){
+	tracklet_best = tracklet_best_UX;
+      }
+    }
+    if(acceptTracklet(tracklet_best)){
+      if(tracklet_best.isValid() > 0){
+	//std::cout<<"pushing back 2+3 tracklets with candidate with the following chisq: "<<tracklet_best.chisq<<std::endl;
+	if(tracklet_best.chisq < 5.){
+	  trackletsInSt[3].push_back(tracklet_best);
+#ifdef _DEBUG_PATRICK
+	  tracklet_best.print();
+#endif
+
+	}
+      }
+    }
+  }
+  
+}
+
+
+
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimX(int pass)
 {
   //Temporary container for a simple chisq fit
     int nHitsX2, nHitsX3;
@@ -1810,7 +2272,7 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlimX(int pass)
     trackletsInSt[3].sort();*/
 }
 
-void KalmanFastTracking_NEW::buildBackPartialTracksSlimU(int pass)
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimU(int pass)
 {
     //Temporary container for a simple chisq fit
     int nHitsX2, nHitsX3;
@@ -1874,7 +2336,7 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlimU(int pass)
 
 
 
-void KalmanFastTracking_NEW::buildBackPartialTracksSlimV(int pass)
+void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimV(int pass)
 {
     //Temporary container for a simple chisq fit
     int nHitsX2, nHitsX3;
@@ -1939,7 +2401,7 @@ void KalmanFastTracking_NEW::buildBackPartialTracksSlimV(int pass)
 
 }
 
-void KalmanFastTracking_NEW::buildGlobalTracks()
+void KalmanFastTracking_NEW_2::buildGlobalTracks()
 {
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
@@ -2112,7 +2574,7 @@ void KalmanFastTracking_NEW::buildGlobalTracks()
 }
 
 
-void KalmanFastTracking_NEW::buildGlobalTracksDisplaced()
+void KalmanFastTracking_NEW_2::buildGlobalTracksDisplaced()
 {
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
@@ -2373,11 +2835,11 @@ void KalmanFastTracking_NEW::buildGlobalTracksDisplaced()
                 tracklet1->print();
 #endif
 
-		int unsignedHits = 0;
-		for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
-		  {
-		    if(hit1->sign == 0) unsignedHits++;
-		  }
+		//int unsignedHits = 0;
+		//for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
+		//  {
+		//    if(hit1->sign == 0) unsignedHits++;
+		//  }
 		//if(unsignedHits>0){
 		//  for(std::list<SignedHit>::iterator hit1 = tracklet1->hits.begin(); hit1 != tracklet1->hits.end(); ++hit1)
 		//    {
@@ -2436,7 +2898,7 @@ void KalmanFastTracking_NEW::buildGlobalTracksDisplaced()
 		}*/
 		
                 ///Remove bad hits if needed
-                removeBadHits(tracklet_global);
+                //removeBadHits(tracklet_global);
 
 #ifdef _DEBUG_ON
                 LogInfo("removed bad hits in global tracks displaced");
@@ -2581,7 +3043,7 @@ void KalmanFastTracking_NEW::buildGlobalTracksDisplaced()
     return;
 }
 
-void KalmanFastTracking_NEW::resolveLeftRight(Tracklet& tracklet, double threshold)
+void KalmanFastTracking_NEW_2::resolveLeftRight(Tracklet& tracklet, double threshold)
 {
 #ifdef _DEBUG_ON
     LogInfo("Left right for this track..");
@@ -2683,7 +3145,7 @@ void KalmanFastTracking_NEW::resolveLeftRight(Tracklet& tracklet, double thresho
     if(isUpdated) fitTracklet(tracklet);
 }
 
-void KalmanFastTracking_NEW::resolveSingleLeftRight(Tracklet& tracklet)
+void KalmanFastTracking_NEW_2::resolveSingleLeftRight(Tracklet& tracklet)
 {
 #ifdef _DEBUG_ON
     LogInfo("Single left right for this track..");
@@ -2706,7 +3168,7 @@ void KalmanFastTracking_NEW::resolveSingleLeftRight(Tracklet& tracklet)
     if(isUpdated) fitTracklet(tracklet);
 }
 
-void KalmanFastTracking_NEW::removeBadHits(Tracklet& tracklet)
+void KalmanFastTracking_NEW_2::removeBadHits(Tracklet& tracklet)
 {
 #ifdef _DEBUG_ON
     LogInfo("Removing hits for this track..");
@@ -2806,7 +3268,7 @@ void KalmanFastTracking_NEW::removeBadHits(Tracklet& tracklet)
     }
 }
 
-void KalmanFastTracking_NEW::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR1, int& LR2)
+void KalmanFastTracking_NEW_2::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR1, int& LR2)
 {
     LR1 = 0;
     LR2 = 0;
@@ -2846,7 +3308,7 @@ void KalmanFastTracking_NEW::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR
     //LogInfo("Final: " << LR1 << "  " << LR2);
 }
 
-void KalmanFastTracking_NEW::buildTrackletsInStation(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_2::buildTrackletsInStation(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station " << stationID);
@@ -3023,7 +3485,7 @@ void KalmanFastTracking_NEW::buildTrackletsInStation(int stationID, int listID, 
 
 
 
-bool KalmanFastTracking_NEW::buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp, double* window)
+bool KalmanFastTracking_NEW_2::buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station " << stationID);
@@ -3440,7 +3902,7 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1(int stationID, int listID,
 
 
 
-bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp, double* window)
+bool KalmanFastTracking_NEW_2::buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
   LogInfo("Building tracklets in station " << stationID);
@@ -3654,7 +4116,11 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int lis
 	tracklet_new_Station1.ty = expYSlope;
 
 	tracklet_new_Station1.sortHits();
+#ifdef _DEBUG_PATRICK
+	std::cout<<"station 1 chisq using no drift distance = "<<tracklet_new_Station1.calcChisq_noDrift()<<std::endl;
+#endif	
 	
+	/*	
 	std::vector<int> candidateSigns;
 	for(std::list<SignedHit>::iterator hit1 = tracklet_new_Station1.hits.begin(); hit1 != tracklet_new_Station1.hits.end(); ++hit1){
 	  candidateSigns.push_back(hit1->sign);
@@ -3666,7 +4132,7 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int lis
 	tracklet_new_Station1.print();
 #endif
 
-	//if(tracklet_new_Station1.chisq > 300) continue;
+	if(tracklet_new_Station1.chisq > 300) continue;
 	
 	int hitCounter = 0;
 	for(std::list<SignedHit>::iterator hit1 = tracklet_new_Station1.hits.begin(); hit1 != tracklet_new_Station1.hits.end(); ++hit1){
@@ -3678,15 +4144,32 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int lis
 	std::cout<<"just put the hit signs back on station 1 tracklet"<<std::endl;
 	tracklet_new_Station1.print();
 #endif
+	*/
 
+	if(tracklet_new_Station1.calcChisq_noDrift() > 3000) continue;
+	//if(tracklet_new_Station1.calcChisq_noDrift() > 3000 || isnan(tracklet_new_Station1.calcChisq_noDrift()) ) continue;
 	fitTracklet(tracklet_new_Station1);
 
 #ifdef _DEBUG_PATRICK
-	LogInfo("right after fitting");
-	tracklet_new_Station1.print();
+	//LogInfo("right after fitting");
+	//tracklet_new_Station1.print();
 #endif
-	
+
 	for(std::list<SignedHit>::iterator hit1 = tracklet_new_Station1.hits.begin(); hit1 != tracklet_new_Station1.hits.end(); ++hit1){
+	  if(hit1->sign == 0){
+	    hit1->sign = 1;
+	    double dcaPlus = tracklet_new_Station1.calcChisq();
+	    hit1->sign = -1;
+	    double dcaMinus = tracklet_new_Station1.calcChisq();
+	    if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+	      hit1->sign = 1;
+	    } else{
+	      hit1->sign = -1;
+	    }
+	  }
+	}
+	
+	/*for(std::list<SignedHit>::iterator hit1 = tracklet_new_Station1.hits.begin(); hit1 != tracklet_new_Station1.hits.end(); ++hit1){
 	  if(hit1->sign == 0){
 	    hit1->sign = 1;
 	    double dcaPlus = p_geomSvc->getDCA(hit1->hit.detectorID, hit1->hit.elementID, tracklet_new_Station1.tx, tracklet_new_Station1.ty, tracklet_new_Station1.x0, tracklet_new_Station1.y0);
@@ -3698,7 +4181,7 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int lis
 	      hit1->sign = -1;
 	    }
 	  }
-	}
+	}*/
 
 	fitTracklet(tracklet_new_Station1);
 
@@ -3722,7 +4205,7 @@ bool KalmanFastTracking_NEW::buildTrackletsInStation1_NEW(int stationID, int lis
 
 
 
-void KalmanFastTracking_NEW::buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_2::buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station (slim version) " << stationID);
@@ -3812,7 +4295,7 @@ void KalmanFastTracking_NEW::buildTrackletsInStationSlim(int stationID, int list
 }
 
 
-void KalmanFastTracking_NEW::buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_2::buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building U tracklets in station (slim version) " << stationID);
@@ -3914,7 +4397,7 @@ void KalmanFastTracking_NEW::buildTrackletsInStationSlimU(int stationID, int lis
 
 
 
-void KalmanFastTracking_NEW::buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_2::buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building V tracklets in station (slim version) " << stationID);
@@ -4016,7 +4499,7 @@ void KalmanFastTracking_NEW::buildTrackletsInStationSlimV(int stationID, int lis
 
 
 
-void KalmanFastTracking_NEW::buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_2::buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp, double* window)
 {
 
   Tracklet tracklet_best;
@@ -4365,7 +4848,7 @@ void KalmanFastTracking_NEW::buildTrackletsInStationWithUV(int stationID, int li
 }
 
 
-bool KalmanFastTracking_NEW::acceptTracklet(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_2::acceptTracklet(Tracklet& tracklet)
 {
     //Tracklet itself is okay with enough hits (4-out-of-6) and small chi square
     if(tracklet.isValid() == 0)
@@ -4402,7 +4885,7 @@ bool KalmanFastTracking_NEW::acceptTracklet(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW::hodoMask(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_2::hodoMask(Tracklet& tracklet)
 {
     //LogInfo(tracklet.stationID);
   if(TRACK_ELECTRONS && (tracklet.stationID == 4 || tracklet.stationID == 5)) return true; //Patrick's skip of hodoscope checks for station 3 tracks in the electron-tracking setup.  I could actually probably extrapolate backwards the station 2 hodoscope, now that I get an accurate X-Z slope in station 3
@@ -4490,7 +4973,7 @@ bool KalmanFastTracking_NEW::hodoMask(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW::muonID_search(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_2::muonID_search(Tracklet& tracklet)
 {
     //Set the cut value on multiple scattering
     //multiple scattering: sigma = 0.0136*sqrt(L/L0)*(1. + 0.038*ln(L/L0))/P, L = 1m, L0 = 1.76cm
@@ -4562,7 +5045,7 @@ bool KalmanFastTracking_NEW::muonID_search(Tracklet& tracklet)
     return false;
 }
 
-bool KalmanFastTracking_NEW::muonID_comp(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_2::muonID_comp(Tracklet& tracklet)
 {
     //Set the cut value on multiple scattering
     //multiple scattering: sigma = 0.0136*sqrt(L/L0)*(1. + 0.038*ln(L/L0))/P, L = 1m, L0 = 1.76cm
@@ -4619,7 +5102,7 @@ bool KalmanFastTracking_NEW::muonID_comp(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW::muonID_hodoAid(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_2::muonID_hodoAid(Tracklet& tracklet)
 {
     double win = 0.03;
     double factor = 5.;
@@ -4668,7 +5151,7 @@ bool KalmanFastTracking_NEW::muonID_hodoAid(Tracklet& tracklet)
     return true;
 }
 
-void KalmanFastTracking_NEW::buildPropSegments()
+void KalmanFastTracking_NEW_2::buildPropSegments()
 {
 #ifdef _DEBUG_ON
     LogInfo("Building prop. tube segments");
@@ -4733,7 +5216,7 @@ void KalmanFastTracking_NEW::buildPropSegments()
 }
 
 
-int KalmanFastTracking_NEW::fitTracklet(Tracklet& tracklet)
+int KalmanFastTracking_NEW_2::fitTracklet(Tracklet& tracklet)
 {
     tracklet_curr = tracklet;
 
@@ -4782,7 +5265,7 @@ int KalmanFastTracking_NEW::fitTracklet(Tracklet& tracklet)
     return status;
 }
 
-int KalmanFastTracking_NEW::reduceTrackletList(std::list<Tracklet>& tracklets)
+int KalmanFastTracking_NEW_2::reduceTrackletList(std::list<Tracklet>& tracklets)
 {
     std::list<Tracklet> targetList;
 
@@ -4819,7 +5302,7 @@ int KalmanFastTracking_NEW::reduceTrackletList(std::list<Tracklet>& tracklets)
     return 0;
 }
 
-void KalmanFastTracking_NEW::getExtrapoWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
+void KalmanFastTracking_NEW_2::getExtrapoWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
 {
     if(tracklet.stationID != nStations-1)
     {
@@ -4847,7 +5330,7 @@ void KalmanFastTracking_NEW::getExtrapoWindowsInSt1(Tracklet& tracklet, double* 
     }
 }
 
-void KalmanFastTracking_NEW::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
+void KalmanFastTracking_NEW_2::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
 {
     if(tracklet.stationID != nStations-1)
     {
@@ -4897,7 +5380,7 @@ void KalmanFastTracking_NEW::getSagittaWindowsInSt1(Tracklet& tracklet, double* 
     }
 }
 
-void KalmanFastTracking_NEW::printAtDetectorBack(int stationID, std::string outputFileName)
+void KalmanFastTracking_NEW_2::printAtDetectorBack(int stationID, std::string outputFileName)
 {
     TCanvas c1;
 
@@ -4941,7 +5424,7 @@ void KalmanFastTracking_NEW::printAtDetectorBack(int stationID, std::string outp
     c1.SaveAs(outputFileName.c_str());
 }
 
-SRecTrack KalmanFastTracking_NEW::processOneTracklet(Tracklet& tracklet)
+SRecTrack KalmanFastTracking_NEW_2::processOneTracklet(Tracklet& tracklet)
 {
     //tracklet.print();
     KalmanTrack kmtrk;
@@ -5066,7 +5549,7 @@ SRecTrack KalmanFastTracking_NEW::processOneTracklet(Tracklet& tracklet)
     }
 }
 
-bool KalmanFastTracking_NEW::fitTrack(KalmanTrack& kmtrk)
+bool KalmanFastTracking_NEW_2::fitTrack(KalmanTrack& kmtrk)
 {
     if(kmtrk.getNodeList().empty()) return false;
 
@@ -5079,7 +5562,7 @@ bool KalmanFastTracking_NEW::fitTrack(KalmanTrack& kmtrk)
     return true;
 }
 
-void KalmanFastTracking_NEW::resolveLeftRight(KalmanTrack& kmtrk)
+void KalmanFastTracking_NEW_2::resolveLeftRight(KalmanTrack& kmtrk)
 {
     bool isUpdated = false;
 
@@ -5119,8 +5602,8 @@ void KalmanFastTracking_NEW::resolveLeftRight(KalmanTrack& kmtrk)
     if(isUpdated) fitTrack(kmtrk);
 }
 
-void KalmanFastTracking_NEW::printTimers() {
-	std::cout <<"KalmanFastTracking_NEW::printTimers: " << std::endl;
+void KalmanFastTracking_NEW_2::printTimers() {
+	std::cout <<"KalmanFastTracking_NEW_2::printTimers: " << std::endl;
 	std::cout <<"================================================================" << std::endl;
 	std::cout << "Tracklet St2                "<<_timers["st2"]->get_accumulated_time()/1000. << " sec" <<std::endl;
 	std::cout << "Tracklet St3                "<<_timers["st3"]->get_accumulated_time()/1000. << " sec" <<std::endl;
@@ -5133,7 +5616,7 @@ void KalmanFastTracking_NEW::printTimers() {
 	std::cout <<"================================================================" << std::endl;
 }
 
-void KalmanFastTracking_NEW::chi2fit(int n, double x[], double y[], double& a, double& b)
+void KalmanFastTracking_NEW_2::chi2fit(int n, double x[], double y[], double& a, double& b)
 {
     double sum = 0.;
     double sx = 0.;
@@ -5165,7 +5648,7 @@ void KalmanFastTracking_NEW::chi2fit(int n, double x[], double y[], double& a, d
     b = (sy*sxx - sxy*sx)/det;
 }
 
-bool KalmanFastTracking_NEW::compareTracklets(Tracklet& tracklet2, Tracklet& tracklet3)
+bool KalmanFastTracking_NEW_2::compareTracklets(Tracklet& tracklet2, Tracklet& tracklet3)
 {
   //Here we will compare the possible X-Z slopes within the station 2 and station 3 tracklets
   Tracklet::linedef line2X;
@@ -5377,7 +5860,7 @@ bool KalmanFastTracking_NEW::compareTracklets(Tracklet& tracklet2, Tracklet& tra
 }
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSerious(Tracklet& tracklet2, Tracklet& tracklet3)
+bool KalmanFastTracking_NEW_2::compareTrackletsSerious(Tracklet& tracklet2, Tracklet& tracklet3)
 {
   //Here we will compare the possible X-Z slopes within the station 2 and station 3 tracklets
   Tracklet::linedef line2X;
@@ -5626,7 +6109,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSerious(Tracklet& tracklet2, Trackl
 }
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
 
   double slopeWindow = 0.005;
@@ -5801,7 +6284,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlim(Tracklet& tracklet2, Tracklet&
 }
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSlim_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlim_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -5948,7 +6431,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlim_3hits(Tracklet& tracklet2, Tra
 }
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
 
   double slopeWindow = 0.005;
@@ -6135,7 +6618,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet
   
 }
 
-bool KalmanFastTracking_NEW::compareTrackletsSlimU_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlimU_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -6280,7 +6763,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlimU_3hits(Tracklet& tracklet2, Tr
 
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
 
   double slopeWindow = 0.005;
@@ -6465,7 +6948,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet
 }
 
 
-bool KalmanFastTracking_NEW::compareTrackletsSlimV_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
+bool KalmanFastTracking_NEW_2::compareTrackletsSlimV_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -6609,7 +7092,7 @@ bool KalmanFastTracking_NEW::compareTrackletsSlimV_3hits(Tracklet& tracklet2, Tr
 }
 
 
-bool KalmanFastTracking_NEW::checkTwoTracklets(Tracklet& tracklet2, Tracklet& tracklet3)
+bool KalmanFastTracking_NEW_2::checkTwoTracklets(Tracklet& tracklet2, Tracklet& tracklet3)
 {
 
   bool sameTracklet = true;
@@ -6668,7 +7151,7 @@ bool KalmanFastTracking_NEW::checkTwoTracklets(Tracklet& tracklet2, Tracklet& tr
   
 }
 
-bool KalmanFastTracking_NEW::checkSingleTracklet(Tracklet& tracklet23)
+bool KalmanFastTracking_NEW_2::checkSingleTracklet(Tracklet& tracklet23)
 {
 
   bool acceptableTracklet = true;
@@ -6722,7 +7205,7 @@ bool KalmanFastTracking_NEW::checkSingleTracklet(Tracklet& tracklet23)
 }
 
 /*
-double KalmanFastTracking_NEW::YSlopes(Tracklet& trackletU, Tracklet& trackletV)
+double KalmanFastTracking_NEW_2::YSlopes(Tracklet& trackletU, Tracklet& trackletV)
 {
 
   double differentYSlope = 100.;

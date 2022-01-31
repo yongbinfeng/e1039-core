@@ -176,6 +176,7 @@ public:
     double Eval(const double* par);
     double Eval4(const double* par);
     double calcChisq();
+    double calcChisq_noDrift();
 
     //Add dummy hits
     void addDummyHits();

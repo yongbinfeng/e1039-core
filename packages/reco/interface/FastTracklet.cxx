@@ -975,6 +975,50 @@ double Tracklet::calcChisq()
     return chisq;
 }
 
+double Tracklet::calcChisq_noDrift()
+{
+    chisq = 0.;
+
+    double tx_st1, x0_st1;
+    if(stationID == nStations && KMAG_ON)
+    {
+        getXZInfoInSt1(tx_st1, x0_st1);
+    }
+    for(std::list<SignedHit>::const_iterator iter = hits.begin(); iter != hits.end(); ++iter)
+    {
+        if(iter->hit.index < 0) continue;
+
+        int detectorID = iter->hit.detectorID;
+        int index = detectorID - 1;
+
+        double sigma;
+        //if(iter->sign == 0 || COARSE_MODE) 
+	sigma = p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.);
+            //sigma = fabs(iter->hit.driftDistance)/sqrt(12.);
+        //else
+	//  sigma = p_geomSvc->getPlaneResolution(detectorID);
+
+        //double p = iter->hit.pos + iter->sign*fabs(iter->hit.driftDistance);
+        if(KMAG_ON && stationID == nStations && detectorID <= 12)
+        {
+	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx_st1, ty, x0_st1, y0);
+	  //residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
+	  residual[index] = p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
+        }
+        else
+        {
+	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
+	  //residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
+	  residual[index] = p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
+        }
+
+        chisq += (residual[index]*residual[index]/sigma/sigma);
+    }
+
+    return chisq;
+}
+
+
 
 //getSlopesX finds the possible X-Z lines for the single-station tracklet, based on the two input hits, which must be associated with the vertical wires in the station
 void Tracklet::getSlopesX(Hit hit1, Hit hit2){
