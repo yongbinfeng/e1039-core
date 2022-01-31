@@ -1872,10 +1872,10 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3()
 #endif	
 	//if(tracklet_TEST_23.chisq > 300) continue;
 	std::cout<<"Just a very quick check here.  tracklet_TEST_23.calcChisq_noDrift: "<<tracklet_TEST_23.calcChisq_noDrift()<<std::endl;
-	if( tracklet_TEST_23.calcChisq_noDrift() > 300 ) continue;
-	//if( tracklet_TEST_23.calcChisq_noDrift() > 300 || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue;
+	//if( tracklet_TEST_23.calcChisq_noDrift() > 300 ) continue;
+	if( tracklet_TEST_23.calcChisq_noDrift() > 300 || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue;
 	std::cout<<"got past chisq check"<<std::endl;
-	tracklet_TEST_23.print();
+	//tracklet_TEST_23.print();
 #ifdef _DEBUG_PATRICK
 	LogInfo("past cont 4");
 #endif	
@@ -2036,7 +2036,7 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3()
 	///Remove bad hits if needed
 	//removeBadHits(tracklet_TEST_23);
 	
-	//fitTracklet(tracklet_TEST_23); //This is the fit that needs the seeded tx and ty information. Without the seed information, the fit occasionally finds bad slope and X0 or Y0 values, much in the same way that it does for single-station tracklets.  Note from Patrick: this fit could probably be throw out, as we already know the tx and ty information from compareTracklets.  I would just need to extrapolate back to z = 0 and calculate the chisq by hand
+	fitTracklet(tracklet_TEST_23); //This is the fit that needs the seeded tx and ty information. Without the seed information, the fit occasionally finds bad slope and X0 or Y0 values, much in the same way that it does for single-station tracklets.  Note from Patrick: this fit could probably be throw out, as we already know the tx and ty information from compareTracklets.  I would just need to extrapolate back to z = 0 and calculate the chisq by hand
 	if(tracklet_TEST_23.chisq > 9000.)
 	  {
 #ifdef _DEBUG_ON
@@ -4146,8 +4146,8 @@ bool KalmanFastTracking_NEW_2::buildTrackletsInStation1_NEW(int stationID, int l
 #endif
 	*/
 
-	if(tracklet_new_Station1.calcChisq_noDrift() > 3000) continue;
-	//if(tracklet_new_Station1.calcChisq_noDrift() > 3000 || isnan(tracklet_new_Station1.calcChisq_noDrift()) ) continue;
+	//if(tracklet_new_Station1.calcChisq_noDrift() > 3000) continue;
+	if(tracklet_new_Station1.calcChisq_noDrift() > 3000 || isnan(tracklet_new_Station1.calcChisq_noDrift()) ) continue;
 	fitTracklet(tracklet_new_Station1);
 
 #ifdef _DEBUG_PATRICK
