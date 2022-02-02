@@ -59,7 +59,7 @@ public:
     void buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   
   bool buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp = nullptr, double* window = nullptr);
-  bool buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp = nullptr, double* window = nullptr);
+  bool buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, bool tight, double* pos_exp = nullptr, double* window = nullptr);
   bool buildTrackletsInStation1_UFirst(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp = nullptr, double* window = nullptr);
   
   void buildTrackletsInStation1X(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
@@ -69,7 +69,7 @@ public:
     void buildBackPartialTracks();
   void buildBackPartialTracksSlim();
   void buildBackPartialTracksSlim_v2();
-  void buildBackPartialTracksSlim_v3();
+  void buildBackPartialTracksSlim_v3(int cut);
   void buildBackPartialTracksSlimX(int pass, double slopeComparison, double windowSize);
   void buildBackPartialTracksSlimU(int pass, double slopeComparison, double windowSize);
   void buildBackPartialTracksSlimV(int pass, double slopeComparison, double windowSize);
@@ -166,11 +166,64 @@ private:
 
     //Tracklets in one event, id = 0, 1, 2 for station 0/1, 2, 3+/-, id = 3 for station 2&3 combined, id = 4 for global tracks
     //Likewise for the next part
-    std::list<Tracklet> trackletsInSt[5];
-    std::list<Tracklet> trackletsInStSlimX[5];
-  std::list<Tracklet> trackletsInStSlimU[5];
-  std::list<Tracklet> trackletsInStSlimV[5];
+  //std::list<Tracklet> trackletsInSt[5];
+  //std::list<Tracklet> trackletsInStSlimX[5];
+  //std::list<Tracklet> trackletsInStSlimU[5];
+  //std::list<Tracklet> trackletsInStSlimV[5];
 
+  std::list<Tracklet> trackletsInSt[5];
+  std::list<Tracklet> trackletsInStSlimX[5][100];
+  std::list<Tracklet> trackletsInStSlimU[5][100];
+  std::list<Tracklet> trackletsInStSlimV[5][100];
+
+  long int num23XCombos;
+  long int num23UCombos;
+  long int num23VCombos;
+
+  int getNum23Combos(){
+    num23XCombos = 0;
+    num23UCombos = 0;
+    num23VCombos = 0;
+    for(unsigned int b = 0; b < 100; b++){
+      num23XCombos += trackletsInStSlimX[3][b].size();
+      num23UCombos += trackletsInStSlimU[3][b].size();
+      num23VCombos += trackletsInStSlimV[3][b].size();
+    }
+  }
+
+  bool isSlimMiddle(){
+    int nX = 0;
+    int nU = 0;
+    int nV = 0;
+    for(unsigned int b = 35; b < 65; b++){
+      //std::cout<<"bs that we test: "<<b<<std::endl;
+      nX += trackletsInStSlimX[3][b].size();
+      nU += trackletsInStSlimU[3][b].size();
+      nV += trackletsInStSlimV[3][b].size();
+    }
+    std::cout<<"nX = "<<nX<<", nU = "<<nU<<", nV = "<<nV<<", nX*nU*nV = "<<nX*nU*nV<<std::endl;
+    if(nX*nU*nV < 1000000){
+      return true;
+    } else{
+      return false;
+    }
+  }
+
+  int num1XCombos;
+  int num1UCombos;
+  int num1VCombos;
+
+  int getNum1Combos(){
+    num1XCombos = 0;
+    num1UCombos = 0;
+    num1VCombos = 0;
+    for(unsigned int b = 0; b < 100; b++){
+      num1XCombos += trackletsInStSlimX[0][b].size();
+      num1UCombos += trackletsInStSlimU[0][b].size();
+      num1VCombos += trackletsInStSlimV[0][b].size();
+    }
+  }
+  
     //Final SRecTrack list
     std::list<SRecTrack> stracks;
 
