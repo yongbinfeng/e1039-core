@@ -70,9 +70,9 @@ public:
   void buildBackPartialTracksSlim();
   void buildBackPartialTracksSlim_v2();
   void buildBackPartialTracksSlim_v3();
-    void buildBackPartialTracksSlimX(int pass);
-    void buildBackPartialTracksSlimU(int pass);
-  void buildBackPartialTracksSlimV(int pass);
+  void buildBackPartialTracksSlimX(int pass, double slopeComparison, double windowSize);
+  void buildBackPartialTracksSlimU(int pass, double slopeComparison, double windowSize);
+  void buildBackPartialTracksSlimV(int pass, double slopeComparison, double windowSize);
 
     //Build global tracks by connecting station 23 tracklets and station 1 tracklets
     void buildGlobalTracks();
@@ -92,14 +92,14 @@ public:
 
     bool compareTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
 
-  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlim_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
+  bool compareTrackletsSlim_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
   
-  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimU_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
+  bool compareTrackletsSlimU_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
   
-  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimV_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
+  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
+  bool compareTrackletsSlimV_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
 
     bool compareTrackletsSerious(Tracklet& tracklet1, Tracklet& tracklet2);
   
@@ -255,6 +255,18 @@ private:
 
     //Timer
     std::map<std::string, PHTimer*> _timers;
+
+  double m_slopeComparison = 0.15;
+  double m_windowSize = 20.;
+
+  double m_slopeComparisonMedium = 0.07;
+  double m_windowSizeMedium = 11.;
+  
+  double m_slopeComparisonTight = 0.04;
+  double m_windowSizeTight = 7.;
+
+  double m_slopeComparisonSt1 = 0.30;
+  
 };
 
 #endif
