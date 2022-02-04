@@ -58,17 +58,10 @@ public:
   void buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
     void buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
   
-  bool buildTrackletsInStation1(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp = nullptr, double* window = nullptr);
   bool buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, bool tight, double* pos_exp = nullptr, double* window = nullptr);
-  bool buildTrackletsInStation1_UFirst(int stationID, int listID, double expXZSlope, double expYSlope, double y0, double* pos_exp = nullptr, double* window = nullptr);
   
-  void buildTrackletsInStation1X(int stationID, int listID, double* pos_exp = nullptr, double* window = nullptr);
-  void buildTrackletsInStationWithUV(int stationID, int listID, Tracklet& tracklet23, double* pos_exp = nullptr, double* window = nullptr);
-
     //Build back partial tracks using tracklets in station 2 & 3
     void buildBackPartialTracks();
-  void buildBackPartialTracksSlim();
-  void buildBackPartialTracksSlim_v2();
   void buildBackPartialTracksSlim_v3(int cut);
   void buildBackPartialTracksSlimX(int pass, double slopeComparison, double windowSize);
   void buildBackPartialTracksSlimU(int pass, double slopeComparison, double windowSize);
@@ -100,18 +93,6 @@ public:
   
   bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
   bool compareTrackletsSlimV_3hits(Tracklet& tracklet1, Tracklet& tracklet2, int pass, double slopeComparison, double windowSize);
-
-    bool compareTrackletsSerious(Tracklet& tracklet1, Tracklet& tracklet2);
-  
-      bool compareTracklets_v2(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlim_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimU_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimV_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-
-  double YSlopes(Tracklet& tracklet1, Tracklet& tracklet2);
-  
-  bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool checkSingleTracklet(Tracklet& tracklet1);
   
     void buildPropSegments();
 
