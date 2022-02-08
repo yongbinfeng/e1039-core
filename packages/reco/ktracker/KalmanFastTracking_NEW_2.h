@@ -153,9 +153,9 @@ private:
   //std::list<Tracklet> trackletsInStSlimV[5];
 
   std::list<Tracklet> trackletsInSt[5];
-  std::list<Tracklet> trackletsInStSlimX[5][100];
-  std::list<Tracklet> trackletsInStSlimU[5][100];
-  std::list<Tracklet> trackletsInStSlimV[5][100];
+  std::list<Tracklet> trackletsInStSlimX[5][200];
+  std::list<Tracklet> trackletsInStSlimU[5][200];
+  std::list<Tracklet> trackletsInStSlimV[5][200];
 
   long int num23XCombos;
   long int num23UCombos;
@@ -165,7 +165,7 @@ private:
     num23XCombos = 0;
     num23UCombos = 0;
     num23VCombos = 0;
-    for(unsigned int b = 0; b < 100; b++){
+    for(unsigned int b = 0; b < 200; b++){
       num23XCombos += trackletsInStSlimX[3][b].size();
       num23UCombos += trackletsInStSlimU[3][b].size();
       num23VCombos += trackletsInStSlimV[3][b].size();
@@ -176,7 +176,7 @@ private:
     int nX = 0;
     int nU = 0;
     int nV = 0;
-    for(unsigned int b = 35; b < 65; b++){
+    for(unsigned int b = 85; b < 115; b++){
       //std::cout<<"bs that we test: "<<b<<std::endl;
       nX += trackletsInStSlimX[3][b].size();
       nU += trackletsInStSlimU[3][b].size();
@@ -198,7 +198,7 @@ private:
     num1XCombos = 0;
     num1UCombos = 0;
     num1VCombos = 0;
-    for(unsigned int b = 0; b < 100; b++){
+    for(unsigned int b = 0; b < 200; b++){
       num1XCombos += trackletsInStSlimX[0][b].size();
       num1UCombos += trackletsInStSlimU[0][b].size();
       num1VCombos += trackletsInStSlimV[0][b].size();

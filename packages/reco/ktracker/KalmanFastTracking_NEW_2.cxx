@@ -459,7 +459,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
     //Initialize tracklet lists
     for(int i = 0; i < 5; i++){
       trackletsInSt[i].clear();
-      for(int b = 0; b < 100; b++){
+      for(int b = 0; b < 200; b++){
 	trackletsInStSlimX[i][b].clear();
 	trackletsInStSlimU[i][b].clear();
 	trackletsInStSlimV[i][b].clear();
@@ -561,7 +561,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
 
     //Use tighter hit requirements if the number of combinations in a wire-tilt set is large.  The below buildBackPartialTracksSlim calls require that all 4 wires have a hit for the particular wire tilt.  NOTE: alternatively, we could try changing the extrapolation/slope-matching requirements rather than the hit requirements!  I.e. we could use m_slopeComparisonMedium/m_slopeComparisonTight and m_windowSizeMedium/m_windowSizeTight
     if(num23XCombos > 900){
-      for(int b = 0; b < 100; b++){
+      for(int b = 0; b < 200; b++){
 	trackletsInStSlimX[3][b].clear();
       }
       buildBackPartialTracksSlimX(2, m_slopeComparison, m_windowSize);
@@ -570,7 +570,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
       if(verbosity >= 2) std::cout<<"Station 2+3 x combos tight = "<<num23XCombos<<std::endl;
     }
     if(num23UCombos > 900){
-      for(int b = 0; b < 100; b++){
+      for(int b = 0; b < 200; b++){
 	trackletsInStSlimU[3][b].clear();
       }
       buildBackPartialTracksSlimU(2, m_slopeComparison, m_windowSize);
@@ -579,7 +579,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
       if(verbosity >= 2) std::cout<<"Station 2+3 u combos tight = "<<num23UCombos<<std::endl;
     }
     if(num23VCombos > 900){
-      for(int b = 0; b < 100; b++){
+      for(int b = 0; b < 200; b++){
 	trackletsInStSlimV[3][b].clear();
       }
       buildBackPartialTracksSlimV(2, m_slopeComparison, m_windowSize);
@@ -645,7 +645,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
     } else{ //There were a lot of combinations even in the middle of the detector.  Let's tighten our hit requirements and extrapolation/slope-matching requirements
 
       if(num23XCombos > 300){
-	for(int b = 0; b < 100; b++){
+	for(int b = 0; b < 200; b++){
 	  trackletsInStSlimX[3][b].clear();
 	}
 	buildBackPartialTracksSlimX(2, m_slopeComparisonMedium, m_windowSizeMedium);
@@ -654,7 +654,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
 	if(verbosity >= 2) std::cout<<"Station 2+3 x combos slim tight = "<<num23XCombos<<std::endl;
       }
       if(num23UCombos > 300){
-	for(int b = 0; b < 100; b++){
+	for(int b = 0; b < 200; b++){
 	  trackletsInStSlimU[3][b].clear();
 	}
 	buildBackPartialTracksSlimU(2, m_slopeComparisonMedium, m_windowSizeMedium);
@@ -663,7 +663,7 @@ int KalmanFastTracking_NEW_2::setRawEvent(SRawEvent* event_input)
 	if(verbosity >= 2) std::cout<<"Station 2+3 u combos tight = "<<num23UCombos<<std::endl;
       }
       if(num23VCombos > 300){
-	for(int b = 0; b < 100; b++){
+	for(int b = 0; b < 200; b++){
 	  trackletsInStSlimV[3][b].clear();
 	}
 	buildBackPartialTracksSlimV(2, m_slopeComparisonMedium, m_windowSizeMedium);
@@ -801,39 +801,54 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlim_v3(int cut)
   double chiSqCut = 300; //This can be dynamically decreased as a means of PU mitigation
   //if( trackletsInStSlimX[3].size() > 150 || trackletsInStSlimU[3].size() > 150 || trackletsInStSlimV[3].size() > 150 ) chiSqCut = 100; //Example of cut decrease from old PU mitigation scheme
   
-  int scanWidth = 102; //In the binned PU mitigation scheme, there are 100 bins that st2+st3 hit combinations fall into.  The bins have width of 2cm, and are based on the st2 position information.
+  int scanWidth = 142; //In the binned PU mitigation scheme, there are 200 bins that st2+st3 hit combinations fall into.  The bins have width of 2cm, and are based on the st2 position information.
   if(cut == 1) scanWidth = 30; //this will scan the innermost 60 cm of station 2 in x from -30 to +30
   
   for(int binx = 2; binx < scanWidth; binx++){ //Rather than scanning just from left to right in the detector, I scan outwards from the center of station 2 (there's more PU at the edges typically).  The outermost component of this triple loop is the vertical wire combinations
-    int bx = 50-(binx % 2 == 0 ? -1*floor((binx-1)/2) : floor(binx/2)); //Again, I'm scanning from the center, so the bin steps are 50, 49, 51, 48, 52, 47, 53, etc.
+    int bx = 100-(binx % 2 == 0 ? -1*floor((binx-1)/2) : floor(binx/2)); //Again, I'm scanning from the center, so the bin steps are 100, 99, 101, 98, 102, 97, 103, etc.
     if(trackletsInStSlimX[3][bx].size()==0) continue; //Don't need to do anything if there aren't any hit combinations in this bin!
     Tracklet tracklet_best_bin; //keep track of the best st2+st3 full combination per bin.
     
     for(std::list<Tracklet>::iterator trackletX = trackletsInStSlimX[3][bx].begin(); trackletX != trackletsInStSlimX[3][bx].end(); ++trackletX){ //loop over the st2+st3 hit combinations for the vertical wires in this positional bin
       Tracklet tracklet_best;
+
+#ifdef _DEBUG_FAST
+      std::cout<<"m_v3 try tracklet X:"<<std::endl;
+      trackletX->print();
+#endif
       
-      for(int bu = std::max(0,bx-15); bu < std::min(100,bx+16); bu++){ //Rather than looking at all possible U combinations for each X combination, let's look at +/- 15 U bins.  Relatively large set of bins because U is slanted relative to X, and we don't know the y position or y-slant of the particle!
+      for(int bu = std::max(0,bx-15); bu < std::min(200,bx+16); bu++){ //Rather than looking at all possible U combinations for each X combination, let's look at +/- 15 U bins.  Relatively large set of bins because U is slanted relative to X, and we don't know the y position or y-slant of the particle!
 	if(trackletsInStSlimU[3][bu].size()==0) continue;
 	Tracklet tracklet_best_UX_bin;
 	
 	for(std::list<Tracklet>::iterator trackletU = trackletsInStSlimU[3][bu].begin(); trackletU != trackletsInStSlimU[3][bu].end(); ++trackletU){ //loop over combinations in the U bin
 	  Tracklet tracklet_best_UX;
+
+#ifdef _DEBUG_FAST
+	  std::cout<<"m_v3 try tracklet U:"<<std::endl;
+	  trackletU->print();
+#endif
 	  
-	  for(int bv = std::max(0, bx-1*(bu-bx)-2); bv < std::min(100,bx-1*(bu-bx)+3); bv++){ //For the bv bins, we combine our X and U position information.  We scan a window of combinations on the opposite side of the st2 X position from the U combination in question.  E.g., if the x bin was 55, and the U bin was 50, we would expect the correct V combination to be in the 60 bin.  However, we still do a bit of a scan to allow for imprecision in those rough measurements
+	  for(int bv = std::max(0, bx-1*(bu-bx)-2); bv < std::min(200,bx-1*(bu-bx)+3); bv++){ //For the bv bins, we combine our X and U position information.  We scan a window of combinations on the opposite side of the st2 X position from the U combination in question.  E.g., if the x bin was 55, and the U bin was 50, we would expect the correct V combination to be in the 60 bin.  However, we still do a bit of a scan to allow for imprecision in those rough measurements
 	    if(trackletsInStSlimV[3][bv].size()==0) continue;
 	    Tracklet tracklet_best_UV_bin;
 	    
 	    for(std::list<Tracklet>::iterator trackletV = trackletsInStSlimV[3][bv].begin(); trackletV != trackletsInStSlimV[3][bv].end(); ++trackletV){
+
+#ifdef _DEBUG_FAST
+	      std::cout<<"m_v3 try tracklet V:"<<std::endl;
+	      trackletV->print();
+#endif
 	      
 #ifdef _DEBUG_FAST
-	      if(trackletsInStSlimX[3][bx].size() * trackletsInStSlimU[3][bu].size() * trackletsInStSlimV[3][bv].size() < 300){
+	      //if(trackletsInStSlimX[3][bx].size() * trackletsInStSlimU[3][bu].size() * trackletsInStSlimV[3][bv].size() < 300){
 		LogInfo("New combo");
 		std::cout<<"trackletX->st2X = "<<trackletX->st2X<<"; trackletU->st2U = "<<trackletU->st2U<<"; trackletV->st2V = "<<trackletV->st2V<<";;; trackletX->st3X = "<<trackletX->st3X<<"; trackletU->st3U = "<<trackletU->st3U<<"; trackletV->st3V = "<<trackletV->st3V<<std::endl;
 		std::cout<<"trackletX->st2Xsl = "<<trackletX->st2Xsl<<"; trackletU->st2Usl = "<<trackletU->st2Usl<<"; trackletV->st2Vsl = "<<trackletV->st2Vsl<<";;; trackletX->st3Xsl = "<<trackletX->st3Xsl<<"; trackletU->st3Usl = "<<trackletU->st3Usl<<"; trackletV->st3Vsl = "<<trackletV->st3Vsl<<std::endl;
 		trackletX->print();
 		trackletU->print();
 		trackletV->print();
-	      }
+		//}
 #endif	
 
 	      //quick checks on hit combination compatibility in the three wire slants
@@ -1037,8 +1052,8 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimX(int pass, double slop
 	      tracklet_23.print();
 #endif
 	      
-	      if(tracklet_23.st2X > -100. && tracklet_23.st2X < 100){
-		int bin = floor( (tracklet_23.st2X + 100) / 2 ); //Put tracklet into a bin based on st2 position
+	      if(tracklet_23.st2X > -200. && tracklet_23.st2X < 200){
+		int bin = floor( (tracklet_23.st2X + 200) / 2 ); //Put tracklet into a bin based on st2 position
 		trackletsInStSlimX[3][bin].push_back(tracklet_23);
 	      } else{
 		continue;
@@ -1092,8 +1107,8 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimU(int pass, double slop
 	      tracklet_23.print();
 #endif
 	      
-	      if(tracklet_23.st2U > -100. && tracklet_23.st2U < 100){
-		int bin = floor( (tracklet_23.st2U + 100) / 2 );
+	      if(tracklet_23.st2U > -200. && tracklet_23.st2U < 200){
+		int bin = floor( (tracklet_23.st2U + 200) / 2 );
 		trackletsInStSlimU[3][bin].push_back(tracklet_23);
 	      } else{
 		continue;
@@ -1149,8 +1164,8 @@ void KalmanFastTracking_NEW_2::buildBackPartialTracksSlimV(int pass, double slop
 	      tracklet_23.print();
 #endif
 	      
-	      if(tracklet_23.st2V > -100. && tracklet_23.st2V < 100){
-		int bin = floor( (tracklet_23.st2V + 100) / 2 );
+	      if(tracklet_23.st2V > -200. && tracklet_23.st2V < 200){
+		int bin = floor( (tracklet_23.st2V + 200) / 2 );
 		trackletsInStSlimV[3][bin].push_back(tracklet_23);
 	      } else{
 		continue;
