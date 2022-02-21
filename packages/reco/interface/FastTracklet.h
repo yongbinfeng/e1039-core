@@ -194,6 +194,7 @@ public:
 
     //For sorting tracklet list
     bool operator<(const Tracklet& elem) const;
+    bool operator==(const Tracklet& elem) const;
 
     //For reducing similar tracklets
     bool similarity(const Tracklet& elem) const;

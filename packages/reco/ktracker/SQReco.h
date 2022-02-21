@@ -23,6 +23,7 @@ class Tracklet;
 class KalmanFastTracking;
 class KalmanFastTracking_NEW;
 class KalmanFastTracking_NEW_2;
+class KalmanFastTracking_NEW_HODO;
 class KalmanFitter;
 class EventReducer;
 class SRawEvent;
@@ -117,7 +118,8 @@ private:
   TString _evt_reducer_opt;
   //KalmanFastTracking* _fastfinder;
   //KalmanFastTracking_NEW* _fastfinder;
-  KalmanFastTracking_NEW_2* _fastfinder;
+  //KalmanFastTracking_NEW_2* _fastfinder;
+  KalmanFastTracking_NEW_HODO* _fastfinder;
   EventReducer*       _eventReducer;
 
   bool _enable_KF;
@@ -148,6 +150,8 @@ private:
   SQTrackVector* _recTrackVec;
   SQTrackVector* _recSt3TrackletVec;
 
+  double _totalTime;
+  
   bool _use_geom_io_node;
   std::string  _geom_file_name;
   TGeoManager* _t_geo_manager;

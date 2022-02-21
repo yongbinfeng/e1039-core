@@ -113,6 +113,7 @@ public:
     std::list<Int_t> getHitsIndexInDetector(Short_t detectorID, Double_t x_exp, Double_t win);
     std::list<Int_t> getHitsIndexInSuperDetector(Short_t detectorID);
     std::list<Int_t> getHitsIndexInDetectors(std::vector<Int_t>& detectorIDs);
+    std::list<Int_t> getHitsIndexInDetectorsNoRepeats(std::vector<Int_t>& detectorIDs);
     std::list<Int_t> getAdjacentHitsIndex(Hit& _hit);
 
     Int_t getNHitsAll() { return fNHits[0]; }

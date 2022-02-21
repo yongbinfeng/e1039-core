@@ -671,6 +671,19 @@ bool Tracklet::operator<(const Tracklet& elem) const
     }
 }
 
+bool Tracklet::operator==(const Tracklet& elem) const
+{
+    //return nXHits + nUHits + nVHits - 0.4*chisq > elem.nXHits + elem.nUHits + elem.nVHits - 0.4*elem.chisq;
+    if(getNHits() == elem.getNHits())
+    {
+        return chisq == elem.chisq;
+    }
+    else
+    {
+      return false;
+    }
+}
+
 bool Tracklet::similarity(const Tracklet& elem) const
 {
     int nCommonHits = 0;

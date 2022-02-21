@@ -3,6 +3,7 @@
 #include "KalmanFastTracking.h"
 #include "KalmanFastTracking_NEW.h"
 #include "KalmanFastTracking_NEW_2.h"
+#include "KalmanFastTracking_NEW_HODO.h"
 #include "EventReducer.h"
 #include "UtilSRawEvent.h"
 
@@ -118,7 +119,8 @@ int SQReco::InitRun(PHCompositeNode* topNode)
   //Init track finding
   //_fastfinder = new KalmanFastTracking(_phfield, _t_geo_manager, false);
   //_fastfinder = new KalmanFastTracking_NEW(_phfield, _t_geo_manager, false);
-  _fastfinder = new KalmanFastTracking_NEW_2(_phfield, _t_geo_manager, false);
+  //_fastfinder = new KalmanFastTracking_NEW_2(_phfield, _t_geo_manager, false);
+  _fastfinder = new KalmanFastTracking_NEW_HODO(_phfield, _t_geo_manager, false);
 
   _fastfinder->Verbosity(Verbosity());
 
@@ -352,6 +354,12 @@ int SQReco::process_event(PHCompositeNode* topNode)
   }
   //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers(); //WPM
   _fastfinder->printTimers(); //WPM
+
+  _totalTime = _fastfinder->getTotalTime();
+  //_rawEvent->setTotalTime(_totalTime);
+  //_event_header->set_totalTime(_totalTime);
+  
+  if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) LogInfo("TOTAL TIME is: "<<_totalTime);
   
   int nTracklets = 0;
   int nFittedTracks = 0;
@@ -373,6 +381,10 @@ int SQReco::process_event(PHCompositeNode* topNode)
     if(!fitOK)
     {
       SRecTrack recTrack = iter->getSRecTrack(_enable_KF && (_fitter_type == SQReco::LEGACY));
+      //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT){
+      //LogInfo("print a recTrack from SQReco");
+      //recTrack.print();
+      //}
       recTrack.setKalmanStatus(-1);
       
       fillRecTrack(recTrack);
@@ -668,6 +680,7 @@ int SQReco::MakeNodes(PHCompositeNode* topNode)
     PHIODataNode<PHObject>* recEventNodeSt3 = new PHIODataNode<PHObject>(_recSt3TrackletVec, "SQRecSt3TrackletVector", "PHObject");
     eventNode->addNode(recEventNodeSt3);
     if(Verbosity() >= Fun4AllBase::VERBOSITY_SOME) LogInfo("DST/SQRecTrackVector Added");
+    //PHIODataNode<double>* recEventNodeTotalTime = new PHIODataNode<double>(_totalTime, "TotalTime");
   }
 
   if(_enable_eval_dst)

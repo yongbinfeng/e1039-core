@@ -252,6 +252,40 @@ std::list<Int_t> SRawEvent::getHitsIndexInDetectors(std::vector<Int_t>& detector
     return hit_list;
 }
 
+std::list<Int_t> SRawEvent::getHitsIndexInDetectorsNoRepeats(std::vector<Int_t>& detectorIDs)
+{
+  std::vector<std::pair<int, int>> usedHits;
+
+  std::list<Int_t> hit_list;
+    hit_list.clear();
+
+    UInt_t nDetectors = detectorIDs.size();
+    for(Int_t i = 0; i < fNHits[0]; i++)
+    {
+        for(UInt_t j = 0; j < nDetectors; j++)
+        {
+            if(fAllHits[i].detectorID == detectorIDs[j])
+            {
+
+	      bool newHit = true;
+	      for(int uH = 0; uH < usedHits.size(); uH++){
+		if(usedHits.at(uH).first == fAllHits[i].detectorID && usedHits.at(uH).second == fAllHits[i].elementID){
+		  newHit = false;
+		}
+	      }
+	      
+	      if(newHit){
+                hit_list.push_back(i);
+		usedHits.push_back(std::make_pair(fAllHits[i].detectorID, fAllHits[i].elementID));
+	      }
+	      break;
+            }
+        }
+    }
+
+    return hit_list;
+}
+
 std::list<SRawEvent::hit_pair> SRawEvent::getPartialHitPairsInSuperDetector(Short_t detectorID)
 {
     std::list<SRawEvent::hit_pair> _hitpairs;
