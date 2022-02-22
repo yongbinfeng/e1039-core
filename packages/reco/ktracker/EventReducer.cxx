@@ -80,7 +80,7 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 {
 
   int evID = rawEvent->getEventID()+1; //WPM
-  rndm.SetSeed(evID); //WPM
+  //rndm.SetSeed(evID); //WPM
   
     int nHits_before = rawEvent->getNChamberHitsAll();
 
@@ -99,6 +99,7 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
         if(outoftime && (!iter->isInTime())) continue;
 
 	if(iter->index < 1000){
+	  rndm.SetSeed(evID+iter->index);
 	  if(iter->detectorID <= nChamberPlanes)    //chamber hits
 	    {
 	      //if(iter->index < 100) std::cout<<"signal hit in "<<iter->detectorID<<std::endl; //WPM

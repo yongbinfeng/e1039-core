@@ -303,6 +303,32 @@ public:
   linedef acceptedXLine3;
   linedef acceptedULine3;
   linedef acceptedVLine3;
+
+  std::vector<std::pair<int, int>> allowedHodos;
+  std::vector<int> allowedUIndices;
+  std::vector<int> allowedVIndices;
+  std::vector<Tracklet*> allowedUTracklets;
+  std::vector<Tracklet*> allowedVTracklets;
+
+  struct UXCombo {
+
+    //Tracklet* trackletU;
+    int trackletUIndex;
+    std::vector<std::pair<int, int>> hodoMatches;
+    
+  };
+  std::vector<UXCombo> allowedUXCombos;
+
+  struct VUXCombo {
+
+    //Tracklet* trackletU;
+    //Tracklet* trackletV;
+    int trackletUIndex;
+    int trackletVIndex;
+    std::vector<std::pair<int, int>> hodoMatches;
+    
+  };
+  std::vector<VUXCombo> allowedVUXCombos;
   
     std::vector<linedef> possibleXLines;
     std::vector<linedef> possibleULines;

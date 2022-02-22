@@ -1,7 +1,7 @@
 /*
-KalmanFastTracking_NEW_HODO.cxx
+KalmanFastTracking_NEW_HODO_2.cxx
 
-Implementation of class Tracklet, KalmanFastTracking_NEW_HODO
+Implementation of class Tracklet, KalmanFastTracking_NEW_HODO_2
 
 Author: Kun Liu, liuk@fnal.gov
 Created: 05-28-2013
@@ -21,7 +21,7 @@ Created: 05-28-2013
 #include <TBox.h>
 #include <TMatrixD.h>
 
-#include "KalmanFastTracking_NEW_HODO.h"
+#include "KalmanFastTracking_NEW_HODO_2.h"
 #include "TriggerRoad.h"
 
 //#define _DEBUG_ON
@@ -36,7 +36,7 @@ Created: 05-28-2013
 //#define _DEBUG_HODO_2
 
 //#define _DEBUG_GLOBAL
-#define _DEBUG_HODO_3
+//#define _DEBUG_GLOBAL_2
 
 namespace 
 {
@@ -151,13 +151,13 @@ namespace
     }
 }
 
-KalmanFastTracking_NEW_HODO::KalmanFastTracking_NEW_HODO(const PHField* field, const TGeoManager* geom, bool flag): verbosity(0), enable_KF(flag), outputListIdx(4)
+KalmanFastTracking_NEW_HODO_2::KalmanFastTracking_NEW_HODO_2(const PHField* field, const TGeoManager* geom, bool flag): verbosity(0), enable_KF(flag), outputListIdx(4)
 {
     using namespace std;
     initGlobalVariables();
 
 #ifdef _DEBUG_ON
-    cout << "Initialization of KalmanFastTracking_NEW_HODO ..." << endl;
+    cout << "Initialization of KalmanFastTracking_NEW_HODO_2 ..." << endl;
     cout << "========================================" << endl;
 #endif
 
@@ -442,20 +442,20 @@ KalmanFastTracking_NEW_HODO::KalmanFastTracking_NEW_HODO(const PHField* field, c
     s_detectorID[2] = p_geomSvc->getDetectorID("D2Vp");
 }
 
-KalmanFastTracking_NEW_HODO::~KalmanFastTracking_NEW_HODO()
+KalmanFastTracking_NEW_HODO_2::~KalmanFastTracking_NEW_HODO_2()
 {
     if(enable_KF) delete kmfitter;
     delete minimizer[0];
     delete minimizer[1];
 }
 
-void KalmanFastTracking_NEW_HODO::setRawEventDebug(SRawEvent* event_input)
+void KalmanFastTracking_NEW_HODO_2::setRawEventDebug(SRawEvent* event_input)
 {
     rawEvent = event_input;
     hitAll = event_input->getAllHits();
 }
 
-int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
+int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 {
 
   totalTime = 0;
@@ -479,6 +479,10 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
     }
     stracks.clear();
 
+    trackletsInSt23SlimX.clear();
+    trackletsInSt23SlimU.clear();
+    trackletsInSt23SlimV.clear();
+    
     //pre-tracking cuts
     rawEvent = event_input;
     if(!acceptEvent(rawEvent)) return TFEXIT_FAIL_MULTIPLICITY;
@@ -569,17 +573,48 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
     
     //Matching of station 2 and station 3 hits separately for the three wire tilts
     _timers["connect"]->restart();
-    buildBackPartialTracksSlimX(1, m_slopeComparison, m_windowSize);
-    buildBackPartialTracksSlimU(1, m_slopeComparison, m_windowSize);
-    buildBackPartialTracksSlimV(1, m_slopeComparison, m_windowSize);
+    buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
+    buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
+    buildBackPartialTracksSlimV(reqHits, slopeComp, windowSize);
 
     getNum23Combos();
     if(verbosity >= 2){
-      std::cout<<"Station 2+3 x combos = "<<num23XCombos<<std::endl;
-      std::cout<<"Station 2+3 u combos = "<<num23UCombos<<std::endl;
-      std::cout<<"Station 2+3 v combos = "<<num23VCombos<<std::endl;
+      std::cout<<"Station 2+3 x combos = "<<trackletsInSt23SlimX.size()<<std::endl;
+      std::cout<<"Station 2+3 u combos = "<<trackletsInSt23SlimU.size()<<std::endl;
+      std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
     }
 
+    int numHodoValidCombos = 0;
+    for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
+      numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
+    }
+    std::cout<<"numHodoValidCombos = "<<numHodoValidCombos<<std::endl;
+    
+    if(numHodoValidCombos > 50000){
+      trackletsInSt23SlimX.clear();
+      trackletsInSt23SlimU.clear();
+      trackletsInSt23SlimV.clear();
+      cutAdjuster(numHodoValidCombos);
+      buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
+      buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
+      buildBackPartialTracksSlimV(reqHits, slopeComp, windowSize);
+
+      numHodoValidCombos = 0;
+      for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
+	numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
+      }
+      std::cout<<"numHodoValidCombos 2 = "<<numHodoValidCombos<<std::endl;
+    }
+
+
+    
+    
+    /*
+    trackletsInSt23SlimX.clear();
+    trackletsInSt23SlimU.clear();
+    trackletsInSt23SlimV.clear();
+    */
+    /*
 #ifdef _DEBUG_HODO
     for(int b = 0; b < 50; b++){
       std::cout<<"X bin "<<b<<" (pos = "<<-200 + 2*b<<") size = "<<trackletsInStSlimX[3][b][0].size()<<std::endl;
@@ -624,7 +659,7 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
       getNum23Combos();
       if(verbosity >= 2) std::cout<<"Station 2+3 v combos tight = "<<num23VCombos<<std::endl;
     }
-    
+*/    
     /* //This commented out section is what I used to use for PU mitigation before transitioning to the binned method
     if(trackletsInStSlimX[3].size() > 300 && !checkedX){
       trackletsInStSlimX[3].clear();
@@ -677,10 +712,14 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
     totalTime += _timers["connect"]->get_accumulated_time()/1000.;
 
     _timers["st23"]->restart();
-    std::cout<<"num23XCombos*num23UCombos*num23VCombos = "<<num23XCombos*num23UCombos*num23VCombos<<std::endl;
-    if(num23XCombos*num23UCombos*num23VCombos < 50000000){
+    //std::cout<<"num23XCombos*num23UCombos*num23VCombos = "<<num23XCombos*num23UCombos*num23VCombos<<std::endl;
+
+    //if(num23XCombos*num23UCombos*num23VCombos < 50000000){
+    if(numHodoValidCombos < 50000000){
       buildBackPartialTracksSlim_v3(0); //This should be relatively fast given the binned combination method
-    } else if( isSlimMiddle() ){ //There were over 1,000,000 possible combinations.  Are there relatively few combinations in the middle 60cm of the detector?
+    }
+
+    /*else if( isSlimMiddle() ){ //There were over 1,000,000 possible combinations.  Are there relatively few combinations in the middle 60cm of the detector?
       buildBackPartialTracksSlim_v3(1); //This only looks for tracklets that are in the middle 60 cm of station 2.  This is to avoid PU hits in the edges of the detector, though you will miss signal particles outside of [-30cm, 30cm]
     } else{ //There were a lot of combinations even in the middle of the detector.  Let's tighten our hit requirements and extrapolation/slope-matching requirements
 
@@ -718,7 +757,7 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
 	return TFEXIT_FAIL_BACKPARTIAL;
       }      
       
-    }
+    }*/
     _timers["st23"]->stop();
 
     totalTime += _timers["st23"]->get_accumulated_time()/1000.;
@@ -800,7 +839,7 @@ int KalmanFastTracking_NEW_HODO::setRawEvent(SRawEvent* event_input)
     return TFEXIT_SUCCESS;
 }
 
-bool KalmanFastTracking_NEW_HODO::acceptEvent(SRawEvent* rawEvent)
+bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
 {
   if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT)
     {
@@ -826,6 +865,184 @@ bool KalmanFastTracking_NEW_HODO::acceptEvent(SRawEvent* rawEvent)
 
     if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) > 50 ) return false;
     if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) > 50 ) return false;
+    /*
+    slopeComp = .25;
+    windowSize = 27.5;
+    reqHits = 1;
+    slopeCompSt1 = m_slopeComparisonSt1;
+    XWinSt1 = 1.25;
+    UVWinSt1 = 2.25;
+    hodoXWin = 14;
+    hodoUVWin = 40;
+    hodoXDIFFWin = 10;
+    hodoUVDIFFWin = 20;
+    XUVSlopeWin = 0.04;
+    XUVPosWin = 9.;
+    YSlopesDiff = 0.007;
+    XSlopesDiff = 0.007;
+    chiSqCut = m_chiSqCut;
+    st23ChiSqCut = 50;
+    */
+    /*
+    slopeComp = .1;
+    windowSize = 10;
+    reqHits = 2;
+    slopeCompSt1 = .2;
+    XWinSt1 = 1.25;
+    UVWinSt1 = 1.5;
+    hodoXWin = 7;
+    hodoUVWin = 20;
+    hodoXDIFFWin = 7;
+    hodoUVDIFFWin = 10;
+    XUVSlopeWin = 0.04;
+    XUVPosWin = 9.;
+    YSlopesDiff = 0.007;
+    XSlopesDiff = 0.007;
+    chiSqCut = 75;
+    st23ChiSqCut = 20;
+    */
+    /*
+    slopeComp = m_slopeComparison;
+    windowSize = m_windowSize;
+    reqHits = 2;
+    slopeCompSt1 = m_slopeComparisonSt1;
+    XWinSt1 = m_XWindowSt1;
+    UVWinSt1 = m_UVWindowSt1;
+    hodoXWin = m_hodoXWindow;
+    hodoUVWin = m_hodoUVWindow;
+    hodoXDIFFWin = m_hodoXDIFFWindow;
+    hodoUVDIFFWin = m_hodoUVDIFFWindow;
+    XUVSlopeWin = m_XUVSlopeWindowCoarse;
+    XUVPosWin = m_XUVPosWindowCoarse;
+    YSlopesDiff = m_YSlopesDiff;
+    XSlopesDiff = m_XSlopesDiff;
+    chiSqCut = m_chiSqCut;
+    st23ChiSqCut = m_st23ChiSqCut;
+    */
+    /*
+    slopeComp = .25;
+    windowSize = 27.5;
+    reqHits = 1;
+    slopeCompSt1 = .15;
+    XWinSt1 = 1.25;
+    UVWinSt1 = 1.5;
+    hodoXWin = 14;
+    hodoUVWin = 40;
+    hodoXDIFFWin = 10;
+    hodoUVDIFFWin = 13;
+    XUVSlopeWin = 0.04;
+    XUVPosWin = 9.;
+    YSlopesDiff = 0.007;
+    XSlopesDiff = 0.007;
+    chiSqCut = m_chiSqCut;
+    st23ChiSqCut = 30;
+    */
+    /*
+    slopeComp = .15;
+    windowSize = 15;
+    reqHits = 2;
+    slopeCompSt1 = .15;
+    XWinSt1 = 1.25;
+    UVWinSt1 = 1.5;
+    hodoXWin = 7;
+    hodoUVWin = 30;
+    hodoXDIFFWin = 7;
+    hodoUVDIFFWin = 7;
+    XUVSlopeWin = 0.04;
+    XUVPosWin = 9.;
+    YSlopesDiff = 0.007;
+    XSlopesDiff = 0.007;
+    chiSqCut = 100;
+    st23ChiSqCut = 15;
+    */
+    
+    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = m_slopeComparison;
+      windowSize = m_windowSize;
+      reqHits = 1;
+      slopeCompSt1 = m_slopeComparisonSt1;
+      XWinSt1 = m_XWindowSt1;
+      UVWinSt1 = m_UVWindowSt1;
+      hodoXWin = m_hodoXWindow;
+      hodoUVWin = m_hodoUVWindow;
+      hodoXDIFFWin = m_hodoXDIFFWindow;
+      hodoUVDIFFWin = m_hodoUVDIFFWindow;
+      XUVSlopeWin = m_XUVSlopeWindowCoarse;
+      XUVPosWin = m_XUVPosWindowCoarse;
+      YSlopesDiff = m_YSlopesDiff;
+      XSlopesDiff = m_XSlopesDiff;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = m_st23ChiSqCut;
+    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = m_slopeComparisonSt1;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 2.25;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 20;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 50;
+    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 500 && rawEvent->getNHitsInD3p() < 500 && rawEvent->getNHitsInD3m() < 500 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else{
+      slopeComp = .15;
+      windowSize = 15;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 7;
+      hodoUVWin = 30;
+      hodoXDIFFWin = 7;
+      hodoUVDIFFWin = 7;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = 100;
+      st23ChiSqCut = 15;
+    }
+    
     
     /*
     if(rawEvent->getNHitsInDetectors(detectorIDs_maskX[0]) > 15) return false;
@@ -844,7 +1061,7 @@ bool KalmanFastTracking_NEW_HODO::acceptEvent(SRawEvent* rawEvent)
 
 
 /*
-void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
 {
 #ifdef _DEBUG_PATRICK
   LogInfo("In buildBackPartialTracksSlim_v3");
@@ -1108,8 +1325,8 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
 
 
 
-
-void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
+/*
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
 {
 #ifdef _DEBUG_PATRICK
   LogInfo("In buildBackPartialTracksSlim_v3");
@@ -1118,7 +1335,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
   int numH2 = rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]);
   int numH3 = rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]);
   
-  /**NOTE: THERE ARE SOME LOW-HANGING FRUITS HERE.  FOR EXAMPLE, THIS IS EFFECTIVELY A TRIPLE LOOP OVER PLANES.  WE COULD DO SOME STRAIGHFORWARD MATH TO FIGURE OUT THE LINE DEFINED BY THE INTERSECTIONS OF THE VARIOUS PLANES TO EXTRACT TRAJECTORY PARAMETERS AND CHECK COMPATIBILITY.**/
+  //NOTE: THERE ARE SOME LOW-HANGING FRUITS HERE.  FOR EXAMPLE, THIS IS EFFECTIVELY A TRIPLE LOOP OVER PLANES.  WE COULD DO SOME STRAIGHFORWARD MATH TO FIGURE OUT THE LINE DEFINED BY THE INTERSECTIONS OF THE VARIOUS PLANES TO EXTRACT TRAJECTORY PARAMETERS AND CHECK COMPATIBILITY.
   
   double chiSqCut = 300; //This can be dynamically decreased as a means of PU mitigation
   //if( trackletsInStSlimX[3].size() > 150 || trackletsInStSlimU[3].size() > 150 || trackletsInStSlimV[3].size() > 150 ) chiSqCut = 100; //Example of cut decrease from old PU mitigation scheme
@@ -1129,13 +1346,6 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
   for(int bH2 = 0; bH2 < numH2; bH2++){
     for(int bH3 = 0; bH3 < numH3; bH3++){
       if( trackletsInStSlimX[3][bH2][bH3].size()==0 || trackletsInStSlimU[3][bH2][bH3].size()==0 || trackletsInStSlimV[3][bH2][bH3].size()==0  ) continue;
-
-#ifdef _DEBUG_HODO_3
-      LogInfo("bH2 = "<<bH2<<" and bH3 = "<<bH3);
-      LogInfo("trackletsInStSlimX[3][bH2][bH3].size() = "<<trackletsInStSlimX[3][bH2][bH3].size()<<", trackletsInStSlimU[3][bH2][bH3].size() = "<<trackletsInStSlimU[3][bH2][bH3].size()<<", trackletsInStSlimV[3][bH2][bH3].size()"<<trackletsInStSlimV[3][bH2][bH3].size());
-#endif
-
-      
       Tracklet tracklet_best_bin; //keep track of the best st2+st3 full combination per bin.
       
       for(std::list<Tracklet>::iterator trackletX = trackletsInStSlimX[3][bH2][bH3].begin(); trackletX != trackletsInStSlimX[3][bH2][bH3].end(); ++trackletX){ //loop over the st2+st3 hit combinations for the vertical wires in this positional bin
@@ -1181,9 +1391,9 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
 #endif	
 	    
 	    //quick checks on hit combination compatibility in the three wire slants
-	    if( std::abs( (trackletX->st2Xsl - trackletU->st2Usl) - -1.*(trackletX->st2Xsl - trackletV->st2Vsl) ) > m_XUVSlopeWindowCoarse ) continue;
-	    if( std::abs( (trackletX->st2X - trackletU->st2U) - -1.*(trackletX->st2X - trackletV->st2V) ) > m_XUVPosWindowCoarse ) continue; //WPM Feb 16 was 7.
-	    if( std::abs( (trackletX->st3X - trackletU->st3U) - -1.*(trackletX->st3X - trackletV->st3V) ) > m_XUVPosWindowCoarse ) continue; //WPM Feb 16 was 7.
+	    if( std::abs( (trackletX->st2Xsl - trackletU->st2Usl) - -1.*(trackletX->st2Xsl - trackletV->st2Vsl) ) > XUVSlopeWin ) continue;
+	    if( std::abs( (trackletX->st2X - trackletU->st2U) - -1.*(trackletX->st2X - trackletV->st2V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
+	    if( std::abs( (trackletX->st3X - trackletU->st3U) - -1.*(trackletX->st3X - trackletV->st3V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
 	    
 #ifdef _DEBUG_HODO_2
 	    LogInfo("OK combo");
@@ -1208,12 +1418,12 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
 	    std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
 	    std::cout<<"tracklet2.tx = "<<trackletX->st2Xsl<<", and tracklet3.tx = "<<trackletX->st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
 #endif
-	    if(std::abs(testTY2 - testTY3) > m_YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
+	    if(std::abs(testTY2 - testTY3) > YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
 	    
 #ifdef _DEBUG_HODO_2
 	    LogInfo("past cont 1");
 #endif
-	    if(std::abs(trackletX->st2Xsl - testTX2) > m_XSlopesDiff || std::abs(trackletX->st2Xsl - testTX3) > m_XSlopesDiff) continue; //The x-slopes extracted from the U and V wires should match the slope found from the X wires
+	    if(std::abs(trackletX->st2Xsl - testTX2) > XSlopesDiff || std::abs(trackletX->st2Xsl - testTX3) > XSlopesDiff) continue; //The x-slopes extracted from the U and V wires should match the slope found from the X wires
 	    
 #ifdef _DEBUG_HODO_2
 	    LogInfo("past cont 2");
@@ -1233,7 +1443,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
 	    tracklet_TEST_23.y0 = testY0;
 	    
 	    
-	    if( tracklet_TEST_23.calcChisq_noDrift() > m_chiSqCut || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue; //check the chisq when drift distances are not accounted for.  (When using drift distance, the expected precision changes, driving up the chisq given that we only have a "rough" extraction of the trajectory parameters at this point)
+	    if( tracklet_TEST_23.calcChisq_noDrift() > chiSqCut || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue; //check the chisq when drift distances are not accounted for.  (When using drift distance, the expected precision changes, driving up the chisq given that we only have a "rough" extraction of the trajectory parameters at this point)
 #ifdef _DEBUG_HODO_2
 	    LogInfo("past cont 4");
 #endif	
@@ -1338,7 +1548,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
       } //end tracklet X loop
       if(acceptTracklet(tracklet_best_bin)){
 	if(tracklet_best_bin.isValid() > 0){
-	  if(tracklet_best_bin.chisq < m_st23ChiSqCut){ //WPM was 15 //then was 20
+	  if(tracklet_best_bin.chisq < st23ChiSqCut){ //WPM was 15 //then was 20
 	    bool newTracklet = true;
 	    //for(int trkl = 0; trkl < trackletsInSt[3].size(); trkl++){
 	    for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23){
@@ -1368,6 +1578,260 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
   } //close bH2
 
 }
+*/
+
+
+
+
+
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
+{
+#ifdef _DEBUG_PATRICK
+  LogInfo("In buildBackPartialTracksSlim_v3");
+#endif
+
+  int numH2 = rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]);
+  int numH3 = rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]);
+  
+  //NOTE: THERE ARE SOME LOW-HANGING FRUITS HERE.  FOR EXAMPLE, THIS IS EFFECTIVELY A TRIPLE LOOP OVER PLANES.  WE COULD DO SOME STRAIGHFORWARD MATH TO FIGURE OUT THE LINE DEFINED BY THE INTERSECTIONS OF THE VARIOUS PLANES TO EXTRACT TRAJECTORY PARAMETERS AND CHECK COMPATIBILITY.
+  
+  //double chiSqCut = 300; //This can be dynamically decreased as a means of PU mitigation
+  //if( trackletsInStSlimX[3].size() > 150 || trackletsInStSlimU[3].size() > 150 || trackletsInStSlimV[3].size() > 150 ) chiSqCut = 100; //Example of cut decrease from old PU mitigation scheme
+  
+  //int scanWidth = 142; //In the binned PU mitigation scheme, there are 200 bins that st2+st3 hit combinations fall into.  The bins have width of 2cm, and are based on the st2 position information.
+  //if(cut == 1) scanWidth = 30; //this will scan the innermost 60 cm of station 2 in x from -30 to +30
+
+
+
+
+
+  for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
+    Tracklet tracklet_best;
+
+    Tracklet trackletX = trackletsInSt23SlimX.at(tx);
+
+#ifdef _DEBUG_GLOBAL
+    std::cout<<"m_v3 try tracklet X:"<<std::endl;
+    trackletX.print();
+#endif
+
+#ifdef _DEBUG_GLOBAL_2
+    //LogInfo("trackletsInSt23SlimX.at(tx).allowedUIndices.size() = "<<trackletsInSt23SlimX.at(tx).allowedUIndices.size());
+    //LogInfo("trackletsInSt23SlimX.at(tx).allowedVIndices.size() = "<<trackletsInSt23SlimX.at(tx).allowedVIndices.size());
+    //for(unsigned int tv = 0; tv < trackletsInSt23SlimX.at(tx).allowedVIndices.size(); tv++){
+    //std::cout<<"trackletsInSt23SlimX.at(tx).allowedVIndices.at(tv) = "<<trackletsInSt23SlimX.at(tx).allowedVIndices.at(tv)<<std::endl;
+    //}
+    LogInfo("trackletsInSt23SlimX.at(tx).allowedVUXCombos.size()"<<trackletsInSt23SlimX.at(tx).allowedVUXCombos.size());
+#endif
+
+    for(unsigned int com = 0; com < trackletsInSt23SlimX.at(tx).allowedVUXCombos.size(); com++){
+
+      //Tracklet trackletU = *trackletsInSt23SlimX.at(tx).allowedVUXCombos.at(com).trackletU;
+      //Tracklet trackletV = *trackletsInSt23SlimX.at(tx).allowedVUXCombos.at(com).trackletV;
+      Tracklet trackletU = trackletsInSt23SlimU.at( trackletsInSt23SlimX.at(tx).allowedVUXCombos.at(com).trackletUIndex );
+      Tracklet trackletV = trackletsInSt23SlimV.at( trackletsInSt23SlimX.at(tx).allowedVUXCombos.at(com).trackletVIndex );
+
+
+
+
+#ifdef _DEBUG_HODO_2
+      //if(trackletsInStSlimX[3][bx].size() * trackletsInStSlimU[3][bu].size() * trackletsInStSlimV[3][bv].size() < 300){
+      LogInfo("New combo");
+      std::cout<<"trackletX.st2X = "<<trackletX.st2X<<"; trackletU.st2U = "<<trackletU.st2U<<"; trackletV.st2V = "<<trackletV.st2V<<";;; trackletX.st3X = "<<trackletX.st3X<<"; trackletU.st3U = "<<trackletU.st3U<<"; trackletV.st3V = "<<trackletV.st3V<<std::endl;
+      std::cout<<"trackletX.st2Xsl = "<<trackletX.st2Xsl<<"; trackletU.st2Usl = "<<trackletU.st2Usl<<"; trackletV.st2Vsl = "<<trackletV.st2Vsl<<";;; trackletX.st3Xsl = "<<trackletX.st3Xsl<<"; trackletU.st3Usl = "<<trackletU.st3Usl<<"; trackletV.st3Vsl = "<<trackletV.st3Vsl<<std::endl;
+      trackletX.print();
+      trackletU.print();
+      trackletV.print();
+      //}
+#endif	
+      
+      //quick checks on hit combination compatibility in the three wire slants
+      if( std::abs( (trackletX.st2Xsl - trackletU.st2Usl) - -1.*(trackletX.st2Xsl - trackletV.st2Vsl) ) > XUVSlopeWin ) continue;
+      if( std::abs( (trackletX.st2X - trackletU.st2U) - -1.*(trackletX.st2X - trackletV.st2V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
+      if( std::abs( (trackletX.st3X - trackletU.st3U) - -1.*(trackletX.st3X - trackletV.st3V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
+      
+#ifdef _DEBUG_HODO_2
+      LogInfo("OK combo");
+#endif
+      
+      double st2UWireSin = TMath::Sin(TMath::ATan(1./trackletU.acceptedULine2.wire1Slope));
+      double st2VWireSin = TMath::Sin(TMath::ATan(1./trackletV.acceptedVLine2.wire1Slope));
+      double st3UWireSin = TMath::Sin(TMath::ATan(1./trackletU.acceptedULine3.wire1Slope));
+      double st3VWireSin = TMath::Sin(TMath::ATan(1./trackletV.acceptedVLine3.wire1Slope));
+      
+      double st2UWireCos = TMath::Cos(TMath::ATan(1./trackletU.acceptedULine2.wire1Slope));
+      double st2VWireCos = TMath::Cos(TMath::ATan(1./trackletV.acceptedVLine2.wire1Slope));
+      double st3UWireCos = TMath::Cos(TMath::ATan(1./trackletU.acceptedULine3.wire1Slope));
+      double st3VWireCos = TMath::Cos(TMath::ATan(1./trackletV.acceptedVLine3.wire1Slope));
+      
+      double testTY2 = ( trackletV.st2Vsl - (st2VWireCos/st2UWireCos)*trackletU.st2Usl )/( (st2VWireCos * st2UWireSin)/(st2UWireCos) - st2VWireSin );
+      double testTY3 = ( trackletV.st3Vsl - (st3VWireCos/st3UWireCos)*trackletU.st3Usl )/( (st3VWireCos * st3UWireSin)/(st3UWireCos) - st3VWireSin );
+      double testTX2 = ( trackletU.st2Usl - (st2UWireSin/st2VWireSin)*trackletV.st2Vsl )/( st2UWireCos - ( st2UWireSin * st2VWireCos )/st2VWireSin );
+      double testTX3 = ( trackletU.st3Usl - (st3UWireSin/st3VWireSin)*trackletV.st3Vsl )/( st3UWireCos - ( st3UWireSin * st3VWireCos )/st3VWireSin );
+      
+#ifdef _DEBUG_HODO_2
+      std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
+      std::cout<<"tracklet2.tx = "<<trackletX.st2Xsl<<", and tracklet3.tx = "<<trackletX.st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
+#endif
+      if(std::abs(testTY2 - testTY3) > YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
+      
+#ifdef _DEBUG_HODO_2
+      LogInfo("past cont 1");
+#endif
+      if(std::abs(trackletX.st2Xsl - testTX2) > XSlopesDiff || std::abs(trackletX.st2Xsl - testTX3) > XSlopesDiff) continue; //The x-slopes extracted from the U and V wires should match the slope found from the X wires
+      
+#ifdef _DEBUG_HODO_2
+      LogInfo("past cont 2");
+#endif
+      
+      
+      //Let's build a tracklet and assign the x0, tx, and ty parameters (and also the dummy invP parameter).  What we don't know right now is y0.  HOWEVER, IF WE DID SOME MATH TO FIND THE LINE DEFINED BY THE INTERSECTION OF THE PLANES, WE WOULD KNOW THE Y0 VALUE!
+      Tracklet tracklet_TEST_23 = (trackletX) + (trackletU) + (trackletV);
+      tracklet_TEST_23.tx = trackletX.st2Xsl;
+      tracklet_TEST_23.ty = (testTY2 + testTY3)/2.; //take an average of the ty value extracted from the U and V values to hedge your bets
+      tracklet_TEST_23.invP = 1./50.;
+      tracklet_TEST_23.x0 = trackletX.st2Xsl * (0. - trackletX.st2Z) + trackletX.st2X; //simple exrapolation back to z = 0
+      
+      tracklet_TEST_23.sortHits();
+      
+      double testY0 = (-1.*p_geomSvc->getDCA((trackletU).getHit(0).hit.detectorID, (trackletU).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin) + p_geomSvc->getDCA((trackletV).getHit(0).hit.detectorID, (trackletV).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin))/2.; //This is a method to extract y0 based on what the distance of closest approach would be to the st2 U and V hits if the y0 was 0.  A little hacky.  Again, extracting this information from the line defined by the plane intersections would be much smarter and better
+      tracklet_TEST_23.y0 = testY0;
+      
+      
+      if( tracklet_TEST_23.calcChisq_noDrift() > chiSqCut || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue; //check the chisq when drift distances are not accounted for.  (When using drift distance, the expected precision changes, driving up the chisq given that we only have a "rough" extraction of the trajectory parameters at this point)
+#ifdef _DEBUG_HODO_2
+      LogInfo("past cont 4");
+#endif	
+      //Assign some parameters that get used later
+      tracklet_TEST_23.st2Z = trackletX.st2Z;
+      tracklet_TEST_23.st2X = trackletX.st2X;
+      tracklet_TEST_23.st2Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * tracklet_TEST_23.st2Z;
+      tracklet_TEST_23.st3Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * trackletX.st3Z;
+      tracklet_TEST_23.st2U = trackletU.st2U;
+      tracklet_TEST_23.st2V = trackletV.st2V;
+      tracklet_TEST_23.st2Usl = trackletU.st2Usl;
+      tracklet_TEST_23.st2Vsl = trackletV.st2Vsl;
+      
+      
+      fitTracklet(tracklet_TEST_23);
+      
+      //Assign hit sign for unknown hits
+      for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	if(hit1->sign == 0){
+	  hit1->sign = 1;
+	  fitTracklet(tracklet_TEST_23);
+	  double dcaPlus = tracklet_TEST_23.chisq;
+	  hit1->sign = -1;
+	  fitTracklet(tracklet_TEST_23);
+	  double dcaMinus = tracklet_TEST_23.chisq;
+	  if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+	    hit1->sign = 1;
+	  } else{
+	    hit1->sign = -1;
+	  }
+	}
+      }
+      
+      ///Remove bad hits if needed;  Right now this doesn't play nicely with this algorithm
+      //removeBadHits(tracklet_TEST_23);
+      
+      fitTracklet(tracklet_TEST_23); //A final fit now that all hits have been assigned signs
+      
+#ifdef _DEBUG_HODO_2
+      LogInfo("how does this look?");
+      tracklet_TEST_23.print();
+#endif	      
+      
+      if(tracklet_TEST_23.chisq > 9000.)
+	{
+#ifdef _DEBUG_ON
+	  tracklet_TEST_23.print();
+	  LogInfo("Impossible combination!");
+#endif
+	  continue;
+	}
+      
+#ifdef _DEBUG_PATRICK
+      LogInfo("New tracklet: ");
+      tracklet_TEST_23.print();
+      
+      LogInfo("Current best:");
+      tracklet_best_UX.print();
+      
+      LogInfo("Comparison: " << (tracklet_TEST_23 < tracklet_best_UX));
+      LogInfo("Candidate chisq: " << tracklet_TEST_23.chisq);
+      LogInfo("Quality: " << acceptTracklet(tracklet_TEST_23));
+#endif
+      
+#ifdef _DEBUG_HODO_2
+      LogInfo("Current best:");
+      tracklet_best_UX.print();
+      
+      LogInfo("Comparison: " << (tracklet_TEST_23 < tracklet_best_UX));
+      LogInfo("Candidate chisq: " << tracklet_TEST_23.chisq);
+      LogInfo("Quality: " << acceptTracklet(tracklet_TEST_23));
+#endif
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      //If current tracklet is better than the best tracklet up-to-now
+      if(acceptTracklet(tracklet_TEST_23) && tracklet_TEST_23 < tracklet_best)
+	{
+	  tracklet_best = tracklet_TEST_23;
+	}
+#ifdef _DEBUG_ON
+      else
+	{
+	  LogInfo("Rejected!!");
+	}
+#endif
+
+
+
+
+      
+
+
+      
+    } //end loop over VUX combos
+    
+    
+    if(acceptTracklet(tracklet_best)){
+      if(tracklet_best.isValid() > 0){
+	if(tracklet_best.chisq < st23ChiSqCut){ //WPM was 15 //then was 20
+	  bool newTracklet = true;
+	  //for(int trkl = 0; trkl < trackletsInSt[3].size(); trkl++){
+	  for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23){
+	    if(tracklet_best==(*tracklet23)){
+	      newTracklet = false;
+	    }
+	  }
+	  if(newTracklet){
+	    trackletsInSt[3].push_back(tracklet_best);
+#ifdef _DEBUG_ON
+	    tracklet_best.print();
+#endif
+#ifdef _DEBUG_GLOBAL_2
+	    LogInfo("accepted a 2+3 tracklet");
+	    tracklet_best.print();
+#endif
+	  }
+	  
+	  
+	}
+      }
+    }
+    
+    
+  } //end X loop
+  
+}
 
 
 
@@ -1376,7 +1840,247 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlim_v3(int cut)
 
 
 
-void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double slopeComparison, double windowSize)
+
+
+
+
+
+
+
+
+
+
+
+/*    
+    for(unsigned int tu = 0; tu < trackletsInSt23SlimX.at(tx).allowedUIndices.size(); tu++){
+      Tracklet tracklet_best_UX;
+
+      Tracklet trackletU = trackletsInSt23SlimU.at(trackletsInSt23SlimX.at(tx).allowedUIndices.at(tu));
+
+#ifdef _DEBUG_GLOBAL
+      std::cout<<"m_v3 try tracklet U:"<<std::endl;
+      trackletU.print();
+#endif
+      
+      for(unsigned int tv = 0; tv < trackletsInSt23SlimX.at(tx).allowedVIndices.size(); tv++){
+	
+	Tracklet trackletV = trackletsInSt23SlimV.at(trackletsInSt23SlimX.at(tx).allowedVIndices.at(tv));
+	
+#ifdef _DEBUG_GLOBAL
+	std::cout<<"m_v3 try tracklet V:"<<std::endl;
+	trackletV.print();
+	LogInfo("test");
+#endif
+
+
+
+
+#ifdef _DEBUG_HODO_2
+	    //if(trackletsInStSlimX[3][bx].size() * trackletsInStSlimU[3][bu].size() * trackletsInStSlimV[3][bv].size() < 300){
+	    LogInfo("New combo");
+	    std::cout<<"trackletX.st2X = "<<trackletX.st2X<<"; trackletU.st2U = "<<trackletU.st2U<<"; trackletV.st2V = "<<trackletV.st2V<<";;; trackletX.st3X = "<<trackletX.st3X<<"; trackletU.st3U = "<<trackletU.st3U<<"; trackletV.st3V = "<<trackletV.st3V<<std::endl;
+	    std::cout<<"trackletX.st2Xsl = "<<trackletX.st2Xsl<<"; trackletU.st2Usl = "<<trackletU.st2Usl<<"; trackletV.st2Vsl = "<<trackletV.st2Vsl<<";;; trackletX.st3Xsl = "<<trackletX.st3Xsl<<"; trackletU.st3Usl = "<<trackletU.st3Usl<<"; trackletV.st3Vsl = "<<trackletV.st3Vsl<<std::endl;
+	    trackletX.print();
+	    trackletU.print();
+	    trackletV.print();
+	    //}
+#endif	
+	    
+	    //quick checks on hit combination compatibility in the three wire slants
+	    if( std::abs( (trackletX.st2Xsl - trackletU.st2Usl) - -1.*(trackletX.st2Xsl - trackletV.st2Vsl) ) > XUVSlopeWin ) continue;
+	    if( std::abs( (trackletX.st2X - trackletU.st2U) - -1.*(trackletX.st2X - trackletV.st2V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
+	    if( std::abs( (trackletX.st3X - trackletU.st3U) - -1.*(trackletX.st3X - trackletV.st3V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
+	    
+#ifdef _DEBUG_HODO_2
+	    LogInfo("OK combo");
+#endif
+	    
+	    double st2UWireSin = TMath::Sin(TMath::ATan(1./trackletU.acceptedULine2.wire1Slope));
+	    double st2VWireSin = TMath::Sin(TMath::ATan(1./trackletV.acceptedVLine2.wire1Slope));
+	    double st3UWireSin = TMath::Sin(TMath::ATan(1./trackletU.acceptedULine3.wire1Slope));
+	    double st3VWireSin = TMath::Sin(TMath::ATan(1./trackletV.acceptedVLine3.wire1Slope));
+	    
+	    double st2UWireCos = TMath::Cos(TMath::ATan(1./trackletU.acceptedULine2.wire1Slope));
+	    double st2VWireCos = TMath::Cos(TMath::ATan(1./trackletV.acceptedVLine2.wire1Slope));
+	    double st3UWireCos = TMath::Cos(TMath::ATan(1./trackletU.acceptedULine3.wire1Slope));
+	    double st3VWireCos = TMath::Cos(TMath::ATan(1./trackletV.acceptedVLine3.wire1Slope));
+	    
+	    double testTY2 = ( trackletV.st2Vsl - (st2VWireCos/st2UWireCos)*trackletU.st2Usl )/( (st2VWireCos * st2UWireSin)/(st2UWireCos) - st2VWireSin );
+	    double testTY3 = ( trackletV.st3Vsl - (st3VWireCos/st3UWireCos)*trackletU.st3Usl )/( (st3VWireCos * st3UWireSin)/(st3UWireCos) - st3VWireSin );
+	    double testTX2 = ( trackletU.st2Usl - (st2UWireSin/st2VWireSin)*trackletV.st2Vsl )/( st2UWireCos - ( st2UWireSin * st2VWireCos )/st2VWireSin );
+	    double testTX3 = ( trackletU.st3Usl - (st3UWireSin/st3VWireSin)*trackletV.st3Vsl )/( st3UWireCos - ( st3UWireSin * st3VWireCos )/st3VWireSin );
+	    
+#ifdef _DEBUG_HODO_2
+	    std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
+	    std::cout<<"tracklet2.tx = "<<trackletX.st2Xsl<<", and tracklet3.tx = "<<trackletX.st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
+#endif
+	    if(std::abs(testTY2 - testTY3) > YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
+	    
+#ifdef _DEBUG_HODO_2
+	    LogInfo("past cont 1");
+#endif
+	    if(std::abs(trackletX.st2Xsl - testTX2) > XSlopesDiff || std::abs(trackletX.st2Xsl - testTX3) > XSlopesDiff) continue; //The x-slopes extracted from the U and V wires should match the slope found from the X wires
+	    
+#ifdef _DEBUG_HODO_2
+	    LogInfo("past cont 2");
+#endif
+	    
+	    
+	    //Let's build a tracklet and assign the x0, tx, and ty parameters (and also the dummy invP parameter).  What we don't know right now is y0.  HOWEVER, IF WE DID SOME MATH TO FIND THE LINE DEFINED BY THE INTERSECTION OF THE PLANES, WE WOULD KNOW THE Y0 VALUE!
+	    Tracklet tracklet_TEST_23 = (trackletX) + (trackletU) + (trackletV);
+	    tracklet_TEST_23.tx = trackletX.st2Xsl;
+	    tracklet_TEST_23.ty = (testTY2 + testTY3)/2.; //take an average of the ty value extracted from the U and V values to hedge your bets
+	    tracklet_TEST_23.invP = 1./50.;
+	    tracklet_TEST_23.x0 = trackletX.st2Xsl * (0. - trackletX.st2Z) + trackletX.st2X; //simple exrapolation back to z = 0
+	    
+	    tracklet_TEST_23.sortHits();
+	    
+	    double testY0 = (-1.*p_geomSvc->getDCA((trackletU).getHit(0).hit.detectorID, (trackletU).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin) + p_geomSvc->getDCA((trackletV).getHit(0).hit.detectorID, (trackletV).getHit(0).hit.elementID, tracklet_TEST_23.tx, tracklet_TEST_23.ty, tracklet_TEST_23.x0, 0)/std::abs(st2UWireSin))/2.; //This is a method to extract y0 based on what the distance of closest approach would be to the st2 U and V hits if the y0 was 0.  A little hacky.  Again, extracting this information from the line defined by the plane intersections would be much smarter and better
+	    tracklet_TEST_23.y0 = testY0;
+	    
+	    
+	    if( tracklet_TEST_23.calcChisq_noDrift() > chiSqCut || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue; //check the chisq when drift distances are not accounted for.  (When using drift distance, the expected precision changes, driving up the chisq given that we only have a "rough" extraction of the trajectory parameters at this point)
+#ifdef _DEBUG_HODO_2
+	    LogInfo("past cont 4");
+#endif	
+	    //Assign some parameters that get used later
+	    tracklet_TEST_23.st2Z = trackletX.st2Z;
+	    tracklet_TEST_23.st2X = trackletX.st2X;
+	    tracklet_TEST_23.st2Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * tracklet_TEST_23.st2Z;
+	    tracklet_TEST_23.st3Y = tracklet_TEST_23.y0 + tracklet_TEST_23.ty * trackletX.st3Z;
+	    tracklet_TEST_23.st2U = trackletU.st2U;
+	    tracklet_TEST_23.st2V = trackletV.st2V;
+	    tracklet_TEST_23.st2Usl = trackletU.st2Usl;
+	    tracklet_TEST_23.st2Vsl = trackletV.st2Vsl;
+	    
+	    
+	    fitTracklet(tracklet_TEST_23);
+	    
+	    //Assign hit sign for unknown hits
+	    for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	      if(hit1->sign == 0){
+		hit1->sign = 1;
+		fitTracklet(tracklet_TEST_23);
+		double dcaPlus = tracklet_TEST_23.chisq;
+		hit1->sign = -1;
+		fitTracklet(tracklet_TEST_23);
+		double dcaMinus = tracklet_TEST_23.chisq;
+		if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+		  hit1->sign = 1;
+		} else{
+		  hit1->sign = -1;
+		}
+	      }
+	    }
+	    
+	    ///Remove bad hits if needed;  Right now this doesn't play nicely with this algorithm
+	    //removeBadHits(tracklet_TEST_23);
+	    
+	    fitTracklet(tracklet_TEST_23); //A final fit now that all hits have been assigned signs
+	    
+#ifdef _DEBUG_HODO_2
+	    LogInfo("how does this look?");
+	    tracklet_TEST_23.print();
+#endif	      
+	    
+	    if(tracklet_TEST_23.chisq > 9000.)
+	      {
+#ifdef _DEBUG_ON
+		tracklet_TEST_23.print();
+		LogInfo("Impossible combination!");
+#endif
+		continue;
+	      }
+	    
+#ifdef _DEBUG_PATRICK
+	    LogInfo("New tracklet: ");
+	    tracklet_TEST_23.print();
+	    
+	    LogInfo("Current best:");
+	    tracklet_best_UX.print();
+	    
+	    LogInfo("Comparison: " << (tracklet_TEST_23 < tracklet_best_UX));
+	    LogInfo("Candidate chisq: " << tracklet_TEST_23.chisq);
+	    LogInfo("Quality: " << acceptTracklet(tracklet_TEST_23));
+#endif
+	    
+#ifdef _DEBUG_HODO_2
+	    LogInfo("Current best:");
+	    tracklet_best_UX.print();
+	    
+	    LogInfo("Comparison: " << (tracklet_TEST_23 < tracklet_best_UX));
+	    LogInfo("Candidate chisq: " << tracklet_TEST_23.chisq);
+	    LogInfo("Quality: " << acceptTracklet(tracklet_TEST_23));
+#endif
+
+
+
+
+
+
+	    
+
+
+	    //If current tracklet is better than the best tracklet up-to-now
+	    if(acceptTracklet(tracklet_TEST_23) && tracklet_TEST_23 < tracklet_best_UX)
+	      {
+		tracklet_best_UX = tracklet_TEST_23;
+	      }
+#ifdef _DEBUG_ON
+	    else
+	      {
+		LogInfo("Rejected!!");
+	      }
+#endif
+	    
+      } //end tracklet V loop
+	  if(tracklet_best_UX < tracklet_best){
+	    tracklet_best = tracklet_best_UX;
+	  }
+	} //end tracklet U loop
+    //if(tracklet_best < tracklet_best_bin){
+    //tracklet_best_bin = tracklet_best;
+    //}
+    
+    if(acceptTracklet(tracklet_best)){
+      if(tracklet_best.isValid() > 0){
+	if(tracklet_best.chisq < st23ChiSqCut){ //WPM was 15 //then was 20
+	  bool newTracklet = true;
+	  //for(int trkl = 0; trkl < trackletsInSt[3].size(); trkl++){
+	  for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23){
+	    if(tracklet_best==(*tracklet23)){
+	      newTracklet = false;
+	    }
+	  }
+	  if(newTracklet){
+	    trackletsInSt[3].push_back(tracklet_best);
+#ifdef _DEBUG_ON
+	    tracklet_best.print();
+#endif
+#ifdef _DEBUG_GLOBAL_2
+	    LogInfo("accepted a 2+3 tracklet");
+	    tracklet_best.print();
+#endif
+	  }
+	  
+	    
+	}
+      }
+    }
+    
+    
+  } //end tracklet X loop
+
+
+
+}
+*/
+
+
+
+
+
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimX(int pass, double slopeComparison, double windowSize)
 {
   
   for(std::list<Tracklet>::iterator tracklet3 = trackletsInStSlimX[2][0][0].begin(); tracklet3 != trackletsInStSlimX[2][0][0].end(); ++tracklet3)
@@ -1510,7 +2214,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double s
 		  LogInfo("diff = "<<hodo2x - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo2x - hitAll[*iter].pos) < m_hodoXWindow){
+		  if(std::abs(hodo2x - hitAll[*iter].pos) < hodoXWin){
 		    passHodo2 = true;
 		    hodo2Hit = hitAll[*iter].pos;
 		    hodo2Diffs.push_back(std::make_pair(h2index, hodo2x - hitAll[*iter].pos));
@@ -1550,7 +2254,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double s
 		  LogInfo("diff = "<<hodo3x - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo3x - hitAll[*iter].pos) < m_hodoXWindow){
+		  if(std::abs(hodo3x - hitAll[*iter].pos) < hodoXWin){
 		    passHodo3 = true;
 		    hodo3Hit = hitAll[*iter].pos;
 		    hodo3Diffs.push_back(std::make_pair(h3index, hodo3x - hitAll[*iter].pos));
@@ -1584,25 +2288,40 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double s
 
 	      if(!passHodo2) continue;
 	      if(!passHodo3) continue;
-
+	      
+	      double bestDiff = 1000.;
+	      int bestIndex2 = -1;
+	      int bestIndex3 = -1;
 	      for(int hd2 = 0; hd2 < hodo2Diffs.size(); hd2++){
 		for(int hd3 = 0; hd3 < hodo3Diffs.size(); hd3++){
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < m_hodoXDIFFWindow ){ //WPM was 15
-		    allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoXDIFFWin ){ //WPM was 15
+		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  }
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoXDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		    bestIndex2 = hd2;
+		    bestIndex3 = hd3;
+		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
 		}
 	      }
-
+	      if(bestIndex2 > -1 && bestIndex3 > -1){
+		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      }
+	      
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("new combo");
 #endif
 	      
-	      if(allowedHodos.size() > 0){
-		for(int aH = 0; aH < allowedHodos.size(); aH++){
-		  trackletsInStSlimX[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
+	      if(tracklet_23.allowedHodos.size() > 0){
+		
+		trackletsInSt23SlimX.push_back(tracklet_23);
+		
+		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		  trackletsInStSlimX[3][tracklet_23.allowedHodos.at(aH).first][tracklet_23.allowedHodos.at(aH).second].push_back(tracklet_23);
+		  //trackletsInStSlimX[3][0][0].push_back(tracklet_23);
 
 #ifdef _DEBUG_GLOBAL
-		  LogInfo("VERY important, I pushed back a combo at: "<<allowedHodos.at(aH).first<<" and "<<allowedHodos.at(aH).second);
+		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
 #endif
 		  
 		}
@@ -1611,12 +2330,19 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double s
 		continue;
 	      }
 	      
-	      //if(tracklet_23.st2X > -200. && tracklet_23.st2X < 200){
-	      //int bin = floor( (tracklet_23.st2X + 200) / 2 ); //Put tracklet into a bin based on st2 position
-	      //trackletsInStSlimX[3][bin].push_back(tracklet_23);
-	      //} else{
-	      //continue;
-	      //}
+	      /*
+	      if(tracklet_23.st2X > -200. && tracklet_23.st2X < 200){
+		int bin2 = floor( (tracklet_23.st2X + 200) / 8 ); //Put tracklet into a bin based on st2 position
+		int bin3 = floor( (tracklet_23.st3X + 200) / 8 ); //Put tracklet into a bin based on st3 position
+		trackletsInStSlimX[3][bin2][bin3].push_back(tracklet_23);
+#ifdef _DEBUG_GLOBAL
+		LogInfo("VERY important, I pushed back a combo at: "<<bin2<<" and "<<bin3);
+#endif
+	      } else{
+		continue;
+	      }
+	      */
+
 	    }
 	    else{
 	      continue;
@@ -1626,7 +2352,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimX(int pass, double s
     }
 }
 
-void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double slopeComparison, double windowSize)
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double slopeComparison, double windowSize)
 {
 
   for(std::list<Tracklet>::iterator tracklet3 = trackletsInStSlimU[2][0][0].begin(); tracklet3 != trackletsInStSlimU[2][0][0].end(); ++tracklet3)
@@ -1660,6 +2386,10 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double s
 
 	      double U0 = tracklet2->st2Usl * (0. - tracklet2->st2Z) + tracklet2->st2U; //simple exrapolation back to z = 0
 
+#ifdef _DEBUG_GLOBAL
+	      LogInfo("U0 = "<<U0<<" and tracklet_23.st2Usl = "<<tracklet_23.st2Usl);
+#endif	      
+	      
 	      if(std::abs(tracklet_23.st2Usl) > 0.15 || std::abs(U0) > 150) continue;
 	      
 	      
@@ -1712,7 +2442,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double s
 		  LogInfo("diff = "<<hodo2u - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo2u - hitAll[*iter].pos) < m_hodoUVWindow){
+		  if(std::abs(hodo2u - hitAll[*iter].pos) < hodoUVWin){
 		    passHodo2 = true;
 		    hodo2Hit = hitAll[*iter].pos;
 		    hodo2Diffs.push_back(std::make_pair(h2index, hodo2u - hitAll[*iter].pos));
@@ -1752,7 +2482,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double s
 		  LogInfo("diff = "<<hodo3u - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo3u - hitAll[*iter].pos) < m_hodoUVWindow){
+		  if(std::abs(hodo3u - hitAll[*iter].pos) < hodoUVWin){
 		    passHodo3 = true;
 		    hodo3Hit = hitAll[*iter].pos;
 		    hodo3Diffs.push_back(std::make_pair(h3index, hodo3u - hitAll[*iter].pos));
@@ -1787,43 +2517,119 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double s
 	      if(!passHodo2) continue;
 	      if(!passHodo3) continue;
 
+	      
+	      double bestDiff = 1000.;
+	      int bestIndex2 = -1;
+	      int bestIndex3 = -1;
 	      for(int hd2 = 0; hd2 < hodo2Diffs.size(); hd2++){
 		for(int hd3 = 0; hd3 < hodo3Diffs.size(); hd3++){
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < m_hodoUVDIFFWindow ){
-		    allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin ){ //WPM was 15
+		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  }
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		    bestIndex2 = hd2;
+		    bestIndex3 = hd3;
+		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
 		}
 	      }
-
+	      if(bestIndex2 > -1 && bestIndex3 > -1){
+		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      }
+	      
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("new combo");
 #endif
 	      
-	      if(allowedHodos.size() > 0){
-		for(int aH = 0; aH < allowedHodos.size(); aH++){
-		  trackletsInStSlimU[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
+	      if(tracklet_23.allowedHodos.size() > 0){
+		
+		trackletsInSt23SlimU.push_back(tracklet_23);
 
-#ifdef _DEBUG_GLOBAL
-		  LogInfo("VERY important, I pushed back a combo at: "<<allowedHodos.at(aH).first<<" and "<<allowedHodos.at(aH).second);
-#endif
 
+
+		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
+
+		  Tracklet::UXCombo newCombo;
+		  //newCombo.trackletU = &trackletsInSt23SlimU.back();
+		  newCombo.trackletUIndex = trackletsInSt23SlimU.size() - 1;
+		  
+		  for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		    for( unsigned int tx23AH = 0; tx23AH < trackletsInSt23SlimX.at(tx23).allowedHodos.size(); tx23AH++ ){
+
+		      if( tracklet_23.allowedHodos.at(aH).first == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).first && tracklet_23.allowedHodos.at(aH).second == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).second ){
+			newCombo.hodoMatches.push_back( std::make_pair( tracklet_23.allowedHodos.at(aH).first, tracklet_23.allowedHodos.at(aH).second ) );
+		      }
+		      
+		    }
+		  }
+
+		  if(newCombo.hodoMatches.size() > 0){
+		    trackletsInSt23SlimX.at(tx23).allowedUXCombos.push_back(newCombo);
+		  }
 		  
 		}
+
+
+
+		
+		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		  //trackletsInStSlimU[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
+		  trackletsInStSlimU[3][0][0].push_back(tracklet_23);
+
+#ifdef _DEBUG_GLOBAL
+		  LogInfo("trackletsInSt23SlimX.size() = "<< trackletsInSt23SlimX.size());
+#endif
+		  
+		  for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){		    
+#ifdef _DEBUG_GLOBAL
+		    LogInfo("trackletsInSt23SlimX.at(tx23).allowedHodos.size() = "<<trackletsInSt23SlimX.at(tx23).allowedHodos.size());
+#endif
+		    for( unsigned int tx23AH = 0; tx23AH < trackletsInSt23SlimX.at(tx23).allowedHodos.size(); tx23AH++ ){
+		      if( tracklet_23.allowedHodos.at(aH).first == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).first && tracklet_23.allowedHodos.at(aH).second == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).second ){
+#ifdef _DEBUG_GLOBAL
+			LogInfo("tx23 = "<<tx23<<" tx23AH = "<<tx23AH);
+#endif			
+			if(trackletsInSt23SlimX.at(tx23).allowedUIndices.size() == 0 || trackletsInSt23SlimX.at(tx23).allowedUIndices.back() != trackletsInSt23SlimU.size()-1){
+			  trackletsInSt23SlimX.at(tx23).allowedUIndices.push_back(trackletsInSt23SlimU.size()-1);
+			}
+		      }
+		    }
+		  }
+		  
+#ifdef _DEBUG_GLOBAL
+		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
+#endif
+		  
+		}
+
+
+
+
+		
+
+		
 	      }
 	      else{
 		continue;
 	      }
-
+	      
 	      
 
+	      /*	      
+	      if(tracklet_23.st2U > -200. && tracklet_23.st2U < 200){
+		int bin2 = floor( (tracklet_23.st2U + 200) / 8 );
+		int bin3 = floor( (tracklet_23.st3U + 200) / 8 );
+		trackletsInStSlimU[3][bin2][bin3].push_back(tracklet_23);
+#ifdef _DEBUG_GLOBAL
+		LogInfo("VERY important, I pushed back a combo at: "<<bin2<<" and "<<bin3);
+#endif
+	      } else{
+		continue;
+	      }
+	      */
 	      
-	      //if(tracklet_23.st2U > -200. && tracklet_23.st2U < 200){
-	      //int bin = floor( (tracklet_23.st2U + 200) / 2 );
-	      //trackletsInStSlimU[3][bin].push_back(tracklet_23);
-	      //} else{
-	      //continue;
-	      //}
 	    }
+	    
 	    else{
 	      continue;
 	    }
@@ -1834,7 +2640,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimU(int pass, double s
 
 
 
-void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double slopeComparison, double windowSize)
+void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double slopeComparison, double windowSize)
 {
   
   for(std::list<Tracklet>::iterator tracklet3 = trackletsInStSlimV[2][0][0].begin(); tracklet3 != trackletsInStSlimV[2][0][0].end(); ++tracklet3)
@@ -1868,9 +2674,9 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double s
 
 	      double V0 = tracklet2->st2Vsl * (0. - tracklet2->st2Z) + tracklet2->st2V; //simple extrapolation back to z = 0
 
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_GLOBAL
 	      LogInfo("V0 = "<<V0<<" and tracklet_23.st2Vsl = "<<tracklet_23.st2Vsl);
-#endif	      
+#endif
 
 	      if(std::abs(tracklet_23.st2Vsl) > 0.15 || std::abs(V0) > 150) continue;
 	      
@@ -1926,7 +2732,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double s
 		  LogInfo("diff = "<<hodo2v - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo2v - hitAll[*iter].pos) < m_hodoUVWindow){
+		  if(std::abs(hodo2v - hitAll[*iter].pos) < hodoUVWin){
 		    passHodo2 = true;
 		    hodo2Hit = hitAll[*iter].pos;
 		    hodo2Diffs.push_back(std::make_pair(h2index, hodo2v - hitAll[*iter].pos));
@@ -1966,7 +2772,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double s
 		  LogInfo("diff = "<<hodo3v - hitAll[*iter].pos);
 #endif
 
-		  if(std::abs(hodo3v - hitAll[*iter].pos) < m_hodoUVWindow){
+		  if(std::abs(hodo3v - hitAll[*iter].pos) < hodoUVWin){
 		    passHodo3 = true;
 		    hodo3Hit = hitAll[*iter].pos;
 		    hodo3Diffs.push_back(std::make_pair(h3index, hodo3v - hitAll[*iter].pos));
@@ -2001,44 +2807,119 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double s
 	      if(!passHodo2) continue;
 	      if(!passHodo3) continue;
 
+
+
+	      double bestDiff = 1000.;
+	      int bestIndex2 = -1;
+	      int bestIndex3 = -1;
 	      for(int hd2 = 0; hd2 < hodo2Diffs.size(); hd2++){
 		for(int hd3 = 0; hd3 < hodo3Diffs.size(); hd3++){
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < m_hodoUVDIFFWindow ){
-		    allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin ){ //WPM was 15
+		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  }
+		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		    bestIndex2 = hd2;
+		    bestIndex3 = hd3;
+		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
 		}
 	      }
-
-#ifdef _DEBUG_GLOBAL
-	      LogInfo("new combo");
-#endif
-
+	      if(bestIndex2 > -1 && bestIndex3 > -1){
+		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      }
 	      
-	      if(allowedHodos.size() > 0){
-		for(int aH = 0; aH < allowedHodos.size(); aH++){
-		  trackletsInStSlimV[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
-
-#ifdef _DEBUG_GLOBAL
-		  LogInfo("VERY important, I pushed back a combo at: "<<allowedHodos.at(aH).first<<" and "<<allowedHodos.at(aH).second);
+#ifdef _DEBUG_GLOBAL_2
+	      LogInfo("new V combo");
 #endif
+	      
+	      if(tracklet_23.allowedHodos.size() > 0){
+		
+		trackletsInSt23SlimV.push_back(tracklet_23);
 
+
+
+
+
+		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
+
+		  for( unsigned int tx23UC = 0; tx23UC < trackletsInSt23SlimX.at(tx23).allowedUXCombos.size(); tx23UC++ ){
+
+		    Tracklet::VUXCombo newCombo;
+		    //newCombo.trackletU = &trackletsInSt23SlimU.back();
+		    
+		    for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		      for( unsigned int tx23HM = 0; tx23HM < trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).hodoMatches.size(); tx23HM++ ){
+			
+			if( tracklet_23.allowedHodos.at(aH).first == trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).hodoMatches.at(tx23HM).first && tracklet_23.allowedHodos.at(aH).second == trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).hodoMatches.at(tx23HM).second ){
+			  newCombo.hodoMatches.push_back( std::make_pair( tracklet_23.allowedHodos.at(aH).first, tracklet_23.allowedHodos.at(aH).second ) );
+			}
+			
+		      }
+		    }
+		    
+		    if(newCombo.hodoMatches.size() > 0){
+		      //newCombo.trackletU = trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).trackletU;
+		      //newCombo.trackletV = &trackletsInSt23SlimV.back();
+		      newCombo.trackletUIndex = trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).trackletUIndex;
+		      newCombo.trackletVIndex = trackletsInSt23SlimV.size() - 1;
+		      trackletsInSt23SlimX.at(tx23).allowedVUXCombos.push_back(newCombo);
+		    }
+		    
+		  }
 		  
 		}
+
+
+
+
+
+
+
+
+		
+		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		  //trackletsInStSlimV[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
+		  trackletsInStSlimV[3][0][0].push_back(tracklet_23);
+
+		  for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
+		    for( unsigned int tx23AH = 0; tx23AH < trackletsInSt23SlimX.at(tx23).allowedHodos.size(); tx23AH++ ){
+		      if( tracklet_23.allowedHodos.at(aH).first == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).first && tracklet_23.allowedHodos.at(aH).second == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).second ){
+			if(trackletsInSt23SlimX.at(tx23).allowedVIndices.size() == 0 || trackletsInSt23SlimX.at(tx23).allowedVIndices.back() != trackletsInSt23SlimV.size()-1){
+			  trackletsInSt23SlimX.at(tx23).allowedVIndices.push_back(trackletsInSt23SlimV.size()-1);
+			}
+#ifdef _DEBUG_GLOBAL_2
+			LogInfo("pushed back "<<trackletsInSt23SlimV.size()-1);
+#endif
+		      }
+		    }
+		  }
+		  
+#ifdef _DEBUG_GLOBAL
+		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
+#endif
+		  
+		}
+
+
+		
 	      }
 	      else{
 		continue;
 	      }
-
 	      
 
-	      
-	      //if(tracklet_23.st2V > -200. && tracklet_23.st2V < 200){
-	      //int bin = floor( (tracklet_23.st2V + 200) / 2 );
-	      //trackletsInStSlimV[3][bin].push_back(tracklet_23);
-	      //} else{
-	      //continue;
-	      //}
-
+	      /*
+	      if(tracklet_23.st2V > -200. && tracklet_23.st2V < 200){
+		int bin2 = floor( (tracklet_23.st2V + 200) / 8 );
+		int bin3 = floor( (tracklet_23.st3V + 200) / 8 );
+		trackletsInStSlimV[3][bin2][bin3].push_back(tracklet_23);
+#ifdef _DEBUG_GLOBAL
+		LogInfo("VERY important, I pushed back a combo at: "<<bin2<<" and "<<bin3);
+#endif
+	      } else{
+		continue;
+	      }
+	      */
 
 
 	      
@@ -2052,7 +2933,7 @@ void KalmanFastTracking_NEW_HODO::buildBackPartialTracksSlimV(int pass, double s
     }
 }
 
-void KalmanFastTracking_NEW_HODO::buildGlobalTracks()
+void KalmanFastTracking_NEW_HODO_2::buildGlobalTracks()
 {
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
@@ -2225,7 +3106,7 @@ void KalmanFastTracking_NEW_HODO::buildGlobalTracks()
 }
 
 
-void KalmanFastTracking_NEW_HODO::buildGlobalTracksDisplaced()
+void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 {
     double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
@@ -2289,9 +3170,9 @@ void KalmanFastTracking_NEW_HODO::buildGlobalTracksDisplaced()
 		double testSt1Vpos = p_geomSvc->getCostheta(5) * ( expXZSlope * (z_plane[5] - z_plane[3]) + pos_exp[0]) + p_geomSvc->getSintheta(5) * (tracklet23->ty * z_plane[5] + tracklet23->y0);
 		pos_exp[1] = testSt1Upos;
 		pos_exp[2] = testSt1Vpos;
-		window[0] = 1.5; //WPM Feb 16 was 1.25
-		window[1] = 3.5; //WPM Feb 16 was 1.5
-		window[2] = 3.5; //WPM Feb 16 was 1.5
+		window[0] = XWinSt1; //WPM Feb 16 was 1.25
+		window[1] = UVWinSt1; //WPM Feb 16 was 1.5
+		window[2] = UVWinSt1; //WPM Feb 16 was 1.5
 		buildTrackletsInStationSlim(i+1, 0, pos_exp, window);
 		buildTrackletsInStationSlimU(i+1, 0, pos_exp, window);
 		buildTrackletsInStationSlimV(i+1, 0, pos_exp, window);
@@ -2487,7 +3368,7 @@ void KalmanFastTracking_NEW_HODO::buildGlobalTracksDisplaced()
     return;
 }
 
-void KalmanFastTracking_NEW_HODO::resolveLeftRight(Tracklet& tracklet, double threshold)
+void KalmanFastTracking_NEW_HODO_2::resolveLeftRight(Tracklet& tracklet, double threshold)
 {
 #ifdef _DEBUG_ON
     LogInfo("Left right for this track..");
@@ -2589,7 +3470,7 @@ void KalmanFastTracking_NEW_HODO::resolveLeftRight(Tracklet& tracklet, double th
     if(isUpdated) fitTracklet(tracklet);
 }
 
-void KalmanFastTracking_NEW_HODO::resolveSingleLeftRight(Tracklet& tracklet)
+void KalmanFastTracking_NEW_HODO_2::resolveSingleLeftRight(Tracklet& tracklet)
 {
 #ifdef _DEBUG_ON
     LogInfo("Single left right for this track..");
@@ -2612,7 +3493,7 @@ void KalmanFastTracking_NEW_HODO::resolveSingleLeftRight(Tracklet& tracklet)
     if(isUpdated) fitTracklet(tracklet);
 }
 
-void KalmanFastTracking_NEW_HODO::removeBadHits(Tracklet& tracklet)
+void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
 {
 #ifdef _DEBUG_ON
     LogInfo("Removing hits for this track..");
@@ -2712,7 +3593,7 @@ void KalmanFastTracking_NEW_HODO::removeBadHits(Tracklet& tracklet)
     }
 }
 
-void KalmanFastTracking_NEW_HODO::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR1, int& LR2)
+void KalmanFastTracking_NEW_HODO_2::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR1, int& LR2)
 {
     LR1 = 0;
     LR2 = 0;
@@ -2752,7 +3633,7 @@ void KalmanFastTracking_NEW_HODO::resolveLeftRight(SRawEvent::hit_pair hpair, in
     //LogInfo("Final: " << LR1 << "  " << LR2);
 }
 
-void KalmanFastTracking_NEW_HODO::buildTrackletsInStation(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station " << stationID);
@@ -2930,7 +3811,7 @@ void KalmanFastTracking_NEW_HODO::buildTrackletsInStation(int stationID, int lis
 
 
 
-bool KalmanFastTracking_NEW_HODO::buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, bool tight, double* pos_exp, double* window)
+bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, int listID, double expXZSlope, double expYSlope, double y0, bool tight, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
   LogInfo("Building tracklets in station " << stationID);
@@ -2944,7 +3825,7 @@ bool KalmanFastTracking_NEW_HODO::buildTrackletsInStation1_NEW(int stationID, in
   LogInfo("do tight? " << tight << " stationID = "<< stationID << " listID = "<<listID<<" expXZSlope = "<<expXZSlope<<" expYSlope = "<<expYSlope<<" y0 = "<<y0);
 #endif
 
-  double slopeComparisonSt1 = (tight ? 0.05 : m_slopeComparisonSt1);
+  double slopeComparisonSt1 = (tight ? 0.05 : slopeCompSt1);
   
   double testTU = p_geomSvc->getCostheta(1)*expXZSlope + p_geomSvc->getSintheta(1)*expYSlope;
   double testTV = p_geomSvc->getCostheta(5)*expXZSlope + p_geomSvc->getSintheta(5)*expYSlope;
@@ -3238,7 +4119,7 @@ bool KalmanFastTracking_NEW_HODO::buildTrackletsInStation1_NEW(int stationID, in
 
 
 //This function finds valid X hits combinations
-void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlim(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station (slim version) " << stationID);
@@ -3327,7 +4208,7 @@ void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlim(int stationID, int
 }
 
 
-void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimU(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building U tracklets in station (slim version) " << stationID);
@@ -3427,7 +4308,7 @@ void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlimU(int stationID, in
 
 
 
-void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp, double* window)
+void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimV(int stationID, int listID, double* pos_exp, double* window)
 {
 #ifdef _DEBUG_ON
     LogInfo("Building V tracklets in station (slim version) " << stationID);
@@ -3527,7 +4408,7 @@ void KalmanFastTracking_NEW_HODO::buildTrackletsInStationSlimV(int stationID, in
 
 
 
-bool KalmanFastTracking_NEW_HODO::acceptTracklet(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::acceptTracklet(Tracklet& tracklet)
 {
     //Tracklet itself is okay with enough hits (4-out-of-6) and small chi square
     if(tracklet.isValid() == 0)
@@ -3564,7 +4445,7 @@ bool KalmanFastTracking_NEW_HODO::acceptTracklet(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW_HODO::hodoMask(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::hodoMask(Tracklet& tracklet)
 {
     //LogInfo(tracklet.stationID);
   if(TRACK_ELECTRONS && (tracklet.stationID == 4 || tracklet.stationID == 5)) return true; //Patrick's skip of hodoscope checks for station 3 tracks in the electron-tracking setup.  I could actually probably extrapolate backwards the station 2 hodoscope, now that I get an accurate X-Z slope in station 3
@@ -3652,7 +4533,7 @@ bool KalmanFastTracking_NEW_HODO::hodoMask(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW_HODO::muonID_search(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::muonID_search(Tracklet& tracklet)
 {
     //Set the cut value on multiple scattering
     //multiple scattering: sigma = 0.0136*sqrt(L/L0)*(1. + 0.038*ln(L/L0))/P, L = 1m, L0 = 1.76cm
@@ -3724,7 +4605,7 @@ bool KalmanFastTracking_NEW_HODO::muonID_search(Tracklet& tracklet)
     return false;
 }
 
-bool KalmanFastTracking_NEW_HODO::muonID_comp(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::muonID_comp(Tracklet& tracklet)
 {
     //Set the cut value on multiple scattering
     //multiple scattering: sigma = 0.0136*sqrt(L/L0)*(1. + 0.038*ln(L/L0))/P, L = 1m, L0 = 1.76cm
@@ -3781,7 +4662,7 @@ bool KalmanFastTracking_NEW_HODO::muonID_comp(Tracklet& tracklet)
     return true;
 }
 
-bool KalmanFastTracking_NEW_HODO::muonID_hodoAid(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::muonID_hodoAid(Tracklet& tracklet)
 {
     double win = 0.03;
     double factor = 5.;
@@ -3830,7 +4711,7 @@ bool KalmanFastTracking_NEW_HODO::muonID_hodoAid(Tracklet& tracklet)
     return true;
 }
 
-void KalmanFastTracking_NEW_HODO::buildPropSegments()
+void KalmanFastTracking_NEW_HODO_2::buildPropSegments()
 {
 #ifdef _DEBUG_ON
     LogInfo("Building prop. tube segments");
@@ -3895,7 +4776,7 @@ void KalmanFastTracking_NEW_HODO::buildPropSegments()
 }
 
 
-int KalmanFastTracking_NEW_HODO::fitTracklet(Tracklet& tracklet)
+int KalmanFastTracking_NEW_HODO_2::fitTracklet(Tracklet& tracklet)
 {
     tracklet_curr = tracklet;
 
@@ -3939,7 +4820,7 @@ int KalmanFastTracking_NEW_HODO::fitTracklet(Tracklet& tracklet)
     return status;
 }
 
-int KalmanFastTracking_NEW_HODO::reduceTrackletList(std::list<Tracklet>& tracklets)
+int KalmanFastTracking_NEW_HODO_2::reduceTrackletList(std::list<Tracklet>& tracklets)
 {
     std::list<Tracklet> targetList;
 
@@ -3976,7 +4857,7 @@ int KalmanFastTracking_NEW_HODO::reduceTrackletList(std::list<Tracklet>& trackle
     return 0;
 }
 
-void KalmanFastTracking_NEW_HODO::getExtrapoWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
+void KalmanFastTracking_NEW_HODO_2::getExtrapoWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
 {
     if(tracklet.stationID != nStations-1)
     {
@@ -4004,7 +4885,7 @@ void KalmanFastTracking_NEW_HODO::getExtrapoWindowsInSt1(Tracklet& tracklet, dou
     }
 }
 
-void KalmanFastTracking_NEW_HODO::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
+void KalmanFastTracking_NEW_HODO_2::getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
 {
     if(tracklet.stationID != nStations-1)
     {
@@ -4054,7 +4935,7 @@ void KalmanFastTracking_NEW_HODO::getSagittaWindowsInSt1(Tracklet& tracklet, dou
     }
 }
 
-void KalmanFastTracking_NEW_HODO::printAtDetectorBack(int stationID, std::string outputFileName)
+void KalmanFastTracking_NEW_HODO_2::printAtDetectorBack(int stationID, std::string outputFileName)
 {
     TCanvas c1;
 
@@ -4098,7 +4979,7 @@ void KalmanFastTracking_NEW_HODO::printAtDetectorBack(int stationID, std::string
     c1.SaveAs(outputFileName.c_str());
 }
 
-SRecTrack KalmanFastTracking_NEW_HODO::processOneTracklet(Tracklet& tracklet)
+SRecTrack KalmanFastTracking_NEW_HODO_2::processOneTracklet(Tracklet& tracklet)
 {
     //tracklet.print();
     KalmanTrack kmtrk;
@@ -4223,7 +5104,7 @@ SRecTrack KalmanFastTracking_NEW_HODO::processOneTracklet(Tracklet& tracklet)
     }
 }
 
-bool KalmanFastTracking_NEW_HODO::fitTrack(KalmanTrack& kmtrk)
+bool KalmanFastTracking_NEW_HODO_2::fitTrack(KalmanTrack& kmtrk)
 {
     if(kmtrk.getNodeList().empty()) return false;
 
@@ -4236,7 +5117,7 @@ bool KalmanFastTracking_NEW_HODO::fitTrack(KalmanTrack& kmtrk)
     return true;
 }
 
-void KalmanFastTracking_NEW_HODO::resolveLeftRight(KalmanTrack& kmtrk)
+void KalmanFastTracking_NEW_HODO_2::resolveLeftRight(KalmanTrack& kmtrk)
 {
     bool isUpdated = false;
 
@@ -4276,8 +5157,8 @@ void KalmanFastTracking_NEW_HODO::resolveLeftRight(KalmanTrack& kmtrk)
     if(isUpdated) fitTrack(kmtrk);
 }
 
-void KalmanFastTracking_NEW_HODO::printTimers() {
-	std::cout <<"KalmanFastTracking_NEW_HODO::printTimers: " << std::endl;
+void KalmanFastTracking_NEW_HODO_2::printTimers() {
+	std::cout <<"KalmanFastTracking_NEW_HODO_2::printTimers: " << std::endl;
 	std::cout <<"================================================================" << std::endl;
 	std::cout << "Tracklet St2                "<<_timers["st2"]->get_accumulated_time()/1000. << " sec" <<std::endl;
 	std::cout << "Tracklet St3                "<<_timers["st3"]->get_accumulated_time()/1000. << " sec" <<std::endl;
@@ -4291,7 +5172,7 @@ void KalmanFastTracking_NEW_HODO::printTimers() {
 	std::cout <<"================================================================" << std::endl;
 }
 
-void KalmanFastTracking_NEW_HODO::chi2fit(int n, double x[], double y[], double& a, double& b)
+void KalmanFastTracking_NEW_HODO_2::chi2fit(int n, double x[], double y[], double& a, double& b)
 {
     double sum = 0.;
     double sx = 0.;
@@ -4326,7 +5207,7 @@ void KalmanFastTracking_NEW_HODO::chi2fit(int n, double x[], double y[], double&
 
 
 //For the case when both st2 and st3 hit combos have 2 hits
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlim(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   if( !( tracklet2.hits.size() == 2 && tracklet3.hits.size() == 2 ) ) return false;
   
@@ -4481,7 +5362,7 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlim(Tracklet& tracklet2, Trac
 
 
 //For the case when st2 X combo has 2 hits and st3 has 1, or vise versa
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlim_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlim_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -4614,7 +5495,7 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlim_3hits(Tracklet& tracklet2
 }
 
 
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlimU(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   if( !( tracklet2.hits.size() == 2 && tracklet3.hits.size() == 2 ) ) return false;
   
@@ -4762,7 +5643,7 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimU(Tracklet& tracklet2, Tra
   
 }
 
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimU_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlimU_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -4895,7 +5776,7 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimU_3hits(Tracklet& tracklet
 
 
 
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlimV(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   if( !( tracklet2.hits.size() == 2 && tracklet3.hits.size() == 2 ) ) return false;
 
@@ -5049,7 +5930,7 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimV(Tracklet& tracklet2, Tra
 }
 
 
-bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimV_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
+bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlimV_3hits(Tracklet& tracklet2, Tracklet& tracklet3, int pass, double slopeComparison, double windowSize)
 {
   
   if( ! ( (tracklet2.hits.size() == 2 && tracklet3.hits.size() == 1 ) || (tracklet2.hits.size() == 1 && tracklet3.hits.size() == 2 ) ) ) return false;
@@ -5180,3 +6061,261 @@ bool KalmanFastTracking_NEW_HODO::compareTrackletsSlimV_3hits(Tracklet& tracklet
   }
 }
 
+
+void KalmanFastTracking_NEW_HODO_2::cutAdjuster(int numCombos)
+{
+
+  if(numCombos < 500000){
+    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .3; //.25
+      windowSize = 50.; //27.5
+      reqHits = 1;
+      slopeCompSt1 = m_slopeComparisonSt1;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 2.25;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 20;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 50;
+    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = .25;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 17;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else{
+      slopeComp = .15;
+      windowSize = 15;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 7;
+      hodoUVWin = 30;
+      hodoXDIFFWin = 7;
+      hodoUVDIFFWin = 7;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = 100;
+      st23ChiSqCut = 15;
+    }
+  } else if(numCombos < 5000000){
+
+    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = .25;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 17;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else{
+      slopeComp = .15;
+      windowSize = 15;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 7;
+      hodoUVWin = 30;
+      hodoXDIFFWin = 7;
+      hodoUVDIFFWin = 7;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = 100;
+      st23ChiSqCut = 15;
+    }
+  } else{
+    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else{
+      slopeComp = .15;
+      windowSize = 15;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 7;
+      hodoUVWin = 30;
+      hodoXDIFFWin = 7;
+      hodoUVDIFFWin = 7;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = 100;
+      st23ChiSqCut = 15;
+    }
+  }
+
+  /*
+    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = m_slopeComparison;
+      windowSize = m_windowSize;
+      reqHits = 1;
+      slopeCompSt1 = m_slopeComparisonSt1;
+      XWinSt1 = m_XWindowSt1;
+      UVWinSt1 = m_UVWindowSt1;
+      hodoXWin = m_hodoXWindow;
+      hodoUVWin = m_hodoUVWindow;
+      hodoXDIFFWin = m_hodoXDIFFWindow;
+      hodoUVDIFFWin = m_hodoUVDIFFWindow;
+      XUVSlopeWin = m_XUVSlopeWindowCoarse;
+      XUVPosWin = m_XUVPosWindowCoarse;
+      YSlopesDiff = m_YSlopesDiff;
+      XSlopesDiff = m_XSlopesDiff;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = m_st23ChiSqCut;
+    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = m_slopeComparisonSt1;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 2.25;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 20;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 50;
+    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 1;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 500 && rawEvent->getNHitsInD3p() < 500 && rawEvent->getNHitsInD3m() < 500 ){
+      slopeComp = .25;
+      windowSize = 27.5;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 14;
+      hodoUVWin = 40;
+      hodoXDIFFWin = 10;
+      hodoUVDIFFWin = 13;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = m_chiSqCut;
+      st23ChiSqCut = 30;
+    } else{
+      slopeComp = .15;
+      windowSize = 15;
+      reqHits = 2;
+      slopeCompSt1 = .15;
+      XWinSt1 = 1.25;
+      UVWinSt1 = 1.5;
+      hodoXWin = 7;
+      hodoUVWin = 30;
+      hodoXDIFFWin = 7;
+      hodoUVDIFFWin = 7;
+      XUVSlopeWin = 0.04;
+      XUVPosWin = 9.;
+      YSlopesDiff = 0.007;
+      XSlopesDiff = 0.007;
+      chiSqCut = 100;
+      st23ChiSqCut = 15;
+    }
+   */
+
+  
+  
+}
