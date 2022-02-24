@@ -51,7 +51,7 @@ public:
     //Event quality cut
     bool acceptEvent(SRawEvent* rawEvent);
 
-  void cutAdjuster(int numCombos);
+  void cutAdjuster(int numCombos, int pass);
   
     ///Tracklet finding stuff
     //Build tracklets in a station
@@ -397,6 +397,8 @@ private:
   double chiSqCut;
   double st23ChiSqCut;
 
+  bool highPU;
+  bool adjusted;
   
   double totalTime;
 };

@@ -574,27 +574,69 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     //Matching of station 2 and station 3 hits separately for the three wire tilts
     _timers["connect"]->restart();
     buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
-    buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
-    buildBackPartialTracksSlimV(reqHits, slopeComp, windowSize);
-
-    getNum23Combos();
     if(verbosity >= 2){
       std::cout<<"Station 2+3 x combos = "<<trackletsInSt23SlimX.size()<<std::endl;
+      //std::cout<<"Station 2+3 u combos = "<<trackletsInSt23SlimU.size()<<std::endl;
+      //std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
+    }
+    if(trackletsInSt23SlimX.size() == 0) return TFEXIT_FAIL_BACKPARTIAL;
+    buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
+    if(verbosity >= 2){
+      //std::cout<<"Station 2+3 x combos = "<<trackletsInSt23SlimX.size()<<std::endl;
       std::cout<<"Station 2+3 u combos = "<<trackletsInSt23SlimU.size()<<std::endl;
+      //std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
+    }
+    if(trackletsInSt23SlimU.size() == 0) return TFEXIT_FAIL_BACKPARTIAL;
+    int numHodoValidUXCombos = 0;
+    for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
+      numHodoValidUXCombos += trackletsInSt23SlimX.at(tx).allowedUXCombos.size();
+    }
+    std::cout<<"numHodoValidUXCombos = "<<numHodoValidUXCombos<<std::endl;
+    if(numHodoValidUXCombos == 0) return TFEXIT_FAIL_BACKPARTIAL;
+
+    if(numHodoValidUXCombos > 10000 && !highPU){
+      trackletsInSt23SlimX.clear();
+      trackletsInSt23SlimU.clear();
+      cutAdjuster(numHodoValidUXCombos, 1);
+      adjusted = true;
+      buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
+      buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
+      
+      numHodoValidUXCombos = 0;
+      for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
+	numHodoValidUXCombos += trackletsInSt23SlimX.at(tx).allowedUXCombos.size();
+      }
+      std::cout<<"numHodoValidUXCombos 2 = "<<numHodoValidUXCombos<<std::endl;
+    } else if(numHodoValidUXCombos > 50000 && highPU){
+      return TFEXIT_FAIL_BACKPARTIAL;
+    }
+    
+    buildBackPartialTracksSlimV(reqHits, slopeComp, windowSize);
+    if(verbosity >= 2){
+      //std::cout<<"Station 2+3 x combos = "<<trackletsInSt23SlimX.size()<<std::endl;
+      //std::cout<<"Station 2+3 u combos = "<<trackletsInSt23SlimU.size()<<std::endl;
       std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
     }
+    if(trackletsInSt23SlimV.size() == 0) return TFEXIT_FAIL_BACKPARTIAL;
+    getNum23Combos();
+    //if(verbosity >= 2){
+    //std::cout<<"Station 2+3 x combos = "<<trackletsInSt23SlimX.size()<<std::endl;
+    //std::cout<<"Station 2+3 u combos = "<<trackletsInSt23SlimU.size()<<std::endl;
+    //std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
+    //}
 
     int numHodoValidCombos = 0;
     for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
       numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
     }
     std::cout<<"numHodoValidCombos = "<<numHodoValidCombos<<std::endl;
-    
-    if(numHodoValidCombos > 50000){
+    if(numHodoValidCombos == 0) return TFEXIT_FAIL_BACKPARTIAL;
+
+    if(numHodoValidCombos > 50000 && !highPU){
       trackletsInSt23SlimX.clear();
       trackletsInSt23SlimU.clear();
       trackletsInSt23SlimV.clear();
-      cutAdjuster(numHodoValidCombos);
+      cutAdjuster(numHodoValidCombos, 2);
       buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
       buildBackPartialTracksSlimU(reqHits, slopeComp, windowSize);
       buildBackPartialTracksSlimV(reqHits, slopeComp, windowSize);
@@ -604,8 +646,9 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 	numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
       }
       std::cout<<"numHodoValidCombos 2 = "<<numHodoValidCombos<<std::endl;
+    } else if(highPU && numHodoValidCombos > 1500000){
+      return TFEXIT_FAIL_BACKPARTIAL;
     }
-
 
     
     
@@ -865,6 +908,9 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
 
     if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) > 50 ) return false;
     if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) > 50 ) return false;
+
+    highPU = false;
+    adjusted = false;
     /*
     slopeComp = .25;
     windowSize = 27.5;
@@ -1041,6 +1087,7 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
       XSlopesDiff = 0.007;
       chiSqCut = 100;
       st23ChiSqCut = 15;
+      highPU = true;
     }
     
     
@@ -2297,16 +2344,16 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimX(int pass, double
 		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoXDIFFWin ){ //WPM was 15
 		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoXDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
-		    bestIndex2 = hd2;
-		    bestIndex3 = hd3;
-		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
-		  }
+		  //if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoXDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		  //bestIndex2 = hd2;
+		  //bestIndex3 = hd3;
+		    ////allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  //}
 		}
 	      }
-	      if(bestIndex2 > -1 && bestIndex3 > -1){
-		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
-	      }
+	      //if(bestIndex2 > -1 && bestIndex3 > -1){
+	      //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      //}
 	      
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("new combo");
@@ -2316,15 +2363,15 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimX(int pass, double
 		
 		trackletsInSt23SlimX.push_back(tracklet_23);
 		
-		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
-		  trackletsInStSlimX[3][tracklet_23.allowedHodos.at(aH).first][tracklet_23.allowedHodos.at(aH).second].push_back(tracklet_23);
+		//for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		//trackletsInStSlimX[3][tracklet_23.allowedHodos.at(aH).first][tracklet_23.allowedHodos.at(aH).second].push_back(tracklet_23);
 		  //trackletsInStSlimX[3][0][0].push_back(tracklet_23);
 
-#ifdef _DEBUG_GLOBAL
-		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
-#endif
+		//#ifdef _DEBUG_GLOBAL
+		//LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
+		//#endif
 		  
-		}
+		//}
 	      }
 	      else{
 		continue;
@@ -2526,16 +2573,16 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin ){ //WPM was 15
 		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
-		    bestIndex2 = hd2;
-		    bestIndex3 = hd3;
-		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
-		  }
+		  //if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		  //bestIndex2 = hd2;
+		  //bestIndex3 = hd3;
+		    ////allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  //}
 		}
 	      }
-	      if(bestIndex2 > -1 && bestIndex3 > -1){
-		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
-	      }
+	      //if(bestIndex2 > -1 && bestIndex3 > -1){
+	      //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      //}
 	      
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("new combo");
@@ -2546,23 +2593,22 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 		trackletsInSt23SlimU.push_back(tracklet_23);
 
 
-
 		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
-
+		  
 		  Tracklet::UXCombo newCombo;
 		  //newCombo.trackletU = &trackletsInSt23SlimU.back();
 		  newCombo.trackletUIndex = trackletsInSt23SlimU.size() - 1;
 		  
 		  for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
 		    for( unsigned int tx23AH = 0; tx23AH < trackletsInSt23SlimX.at(tx23).allowedHodos.size(); tx23AH++ ){
-
+		      
 		      if( tracklet_23.allowedHodos.at(aH).first == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).first && tracklet_23.allowedHodos.at(aH).second == trackletsInSt23SlimX.at(tx23).allowedHodos.at(tx23AH).second ){
 			newCombo.hodoMatches.push_back( std::make_pair( tracklet_23.allowedHodos.at(aH).first, tracklet_23.allowedHodos.at(aH).second ) );
 		      }
 		      
 		    }
 		  }
-
+		  
 		  if(newCombo.hodoMatches.size() > 0){
 		    trackletsInSt23SlimX.at(tx23).allowedUXCombos.push_back(newCombo);
 		  }
@@ -2572,7 +2618,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 
 
 		
-		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		/*for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
 		  //trackletsInStSlimU[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
 		  trackletsInStSlimU[3][0][0].push_back(tracklet_23);
 
@@ -2600,7 +2646,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
 #endif
 		  
-		}
+		}*/
 
 
 
@@ -2817,16 +2863,16 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin ){ //WPM was 15
 		    tracklet_23.allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
 		  }
-		  if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
-		    bestIndex2 = hd2;
-		    bestIndex3 = hd3;
-		    //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
-		  }
+		  //if( std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < hodoUVDIFFWin && std::abs( hodo2Diffs.at(hd2).second - hodo3Diffs.at(hd3).second ) < bestDiff ){ //WPM was 15
+		  //bestIndex2 = hd2;
+		  //bestIndex3 = hd3;
+		    ////allowedHodos.push_back(std::make_pair(hodo2Diffs.at(hd2).first, hodo3Diffs.at(hd3).first));
+		  //}
 		}
 	      }
-	      if(bestIndex2 > -1 && bestIndex3 > -1){
-		allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
-	      }
+	      //if(bestIndex2 > -1 && bestIndex3 > -1){
+	      //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
+	      //}
 	      
 #ifdef _DEBUG_GLOBAL_2
 	      LogInfo("new V combo");
@@ -2835,10 +2881,6 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 	      if(tracklet_23.allowedHodos.size() > 0){
 		
 		trackletsInSt23SlimV.push_back(tracklet_23);
-
-
-
-
 
 		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
 
@@ -2877,7 +2919,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 
 
 		
-		for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
+		/*for(int aH = 0; aH < tracklet_23.allowedHodos.size(); aH++){
 		  //trackletsInStSlimV[3][allowedHodos.at(aH).first][allowedHodos.at(aH).second].push_back(tracklet_23);
 		  trackletsInStSlimV[3][0][0].push_back(tracklet_23);
 
@@ -2898,7 +2940,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 		  LogInfo("VERY important, I pushed back a combo at: "<<tracklet_23.allowedHodos.at(aH).first<<" and "<<tracklet_23.allowedHodos.at(aH).second);
 #endif
 		  
-		}
+		}*/
 
 
 		
@@ -6062,240 +6104,263 @@ bool KalmanFastTracking_NEW_HODO_2::compareTrackletsSlimV_3hits(Tracklet& trackl
 }
 
 
-void KalmanFastTracking_NEW_HODO_2::cutAdjuster(int numCombos)
+void KalmanFastTracking_NEW_HODO_2::cutAdjuster(int numCombos, int pass)
 {
 
-  if(numCombos < 500000){
-    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .3; //.25
-      windowSize = 50.; //27.5
-      reqHits = 1;
-      slopeCompSt1 = m_slopeComparisonSt1;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 2.25;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 20;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 50;
-    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 1;
-      slopeCompSt1 = .25;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 17;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
-    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 13;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
+  if(!adjusted){
+    if((numCombos < 500000 && pass == 2) || (numCombos < 50000 && pass == 1)){
+      if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .3; //.25
+	windowSize = 50.; //27.5
+	reqHits = 1;
+	slopeCompSt1 = m_slopeComparisonSt1;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 2.25;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 20;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 50;
+      } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 1;
+	slopeCompSt1 = .25;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 17;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 13;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else{
+	slopeComp = .15;
+	windowSize = 15;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 7;
+	hodoUVWin = 30;
+	hodoXDIFFWin = 7;
+	hodoUVDIFFWin = 7;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = 100;
+	st23ChiSqCut = 15;
+      }
+    } else if((numCombos < 5000000 && pass == 2) || (numCombos < 500000 && pass == 1)){
+      
+      if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 1;
+	slopeCompSt1 = .25;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 17;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 13;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else{
+	slopeComp = .15;
+	windowSize = 15;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 7;
+	hodoUVWin = 30;
+	hodoXDIFFWin = 7;
+	hodoUVDIFFWin = 7;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = 100;
+	st23ChiSqCut = 15;
+      }
     } else{
-      slopeComp = .15;
-      windowSize = 15;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 7;
-      hodoUVWin = 30;
-      hodoXDIFFWin = 7;
-      hodoUVDIFFWin = 7;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = 100;
-      st23ChiSqCut = 15;
-    }
-  } else if(numCombos < 5000000){
-
-    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 1;
-      slopeCompSt1 = .25;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 17;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
-    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 13;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
-    } else{
-      slopeComp = .15;
-      windowSize = 15;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 7;
-      hodoUVWin = 30;
-      hodoXDIFFWin = 7;
-      hodoUVDIFFWin = 7;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = 100;
-      st23ChiSqCut = 15;
+      if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 13;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else{
+	slopeComp = .15;
+	windowSize = 15;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 7;
+	hodoUVWin = 30;
+	hodoXDIFFWin = 7;
+	hodoUVDIFFWin = 7;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = 100;
+	st23ChiSqCut = 15;
+      }
     }
   } else{
-    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 13;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
-    } else{
-      slopeComp = .15;
-      windowSize = 15;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 7;
-      hodoUVWin = 30;
-      hodoXDIFFWin = 7;
-      hodoUVDIFFWin = 7;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = 100;
-      st23ChiSqCut = 15;
-    }
-  }
 
-  /*
-    if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = m_slopeComparison;
-      windowSize = m_windowSize;
-      reqHits = 1;
-      slopeCompSt1 = m_slopeComparisonSt1;
-      XWinSt1 = m_XWindowSt1;
-      UVWinSt1 = m_UVWindowSt1;
-      hodoXWin = m_hodoXWindow;
-      hodoUVWin = m_hodoUVWindow;
-      hodoXDIFFWin = m_hodoXDIFFWindow;
-      hodoUVDIFFWin = m_hodoUVDIFFWindow;
-      XUVSlopeWin = m_XUVSlopeWindowCoarse;
-      XUVPosWin = m_XUVPosWindowCoarse;
-      YSlopesDiff = m_YSlopesDiff;
-      XSlopesDiff = m_XSlopesDiff;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = m_st23ChiSqCut;
-    } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 1;
-      slopeCompSt1 = m_slopeComparisonSt1;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 2.25;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 20;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 50;
-    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 1;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 13;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
-    } else if( rawEvent->getNHitsInD0() < 1000 && rawEvent->getNHitsInD2() < 500 && rawEvent->getNHitsInD3p() < 500 && rawEvent->getNHitsInD3m() < 500 ){
-      slopeComp = .25;
-      windowSize = 27.5;
-      reqHits = 2;
-      slopeCompSt1 = .15;
-      XWinSt1 = 1.25;
-      UVWinSt1 = 1.5;
-      hodoXWin = 14;
-      hodoUVWin = 40;
-      hodoXDIFFWin = 10;
-      hodoUVDIFFWin = 13;
-      XUVSlopeWin = 0.04;
-      XUVPosWin = 9.;
-      YSlopesDiff = 0.007;
-      XSlopesDiff = 0.007;
-      chiSqCut = m_chiSqCut;
-      st23ChiSqCut = 30;
+    if((numCombos < 500000 && pass == 2) || (numCombos < 50000 && pass == 1)){
+      if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 1;
+	slopeCompSt1 = .25;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 17;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else if( rawEvent->getNHitsInD0() < 500 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 13;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else{
+	slopeComp = .15;
+	windowSize = 15;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 7;
+	hodoUVWin = 30;
+	hodoXDIFFWin = 7;
+	hodoUVDIFFWin = 7;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = 100;
+	st23ChiSqCut = 15;
+      }
+    } else if((numCombos < 5000000 && pass == 2) || (numCombos < 500000 && pass == 1)){
+      
+      if( rawEvent->getNHitsInD0() < 400 && rawEvent->getNHitsInD2() < 300 && rawEvent->getNHitsInD3p() < 300 && rawEvent->getNHitsInD3m() < 300 ){
+	slopeComp = .25;
+	windowSize = 27.5;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 14;
+	hodoUVWin = 40;
+	hodoXDIFFWin = 10;
+	hodoUVDIFFWin = 13;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = m_chiSqCut;
+	st23ChiSqCut = 30;
+      } else{
+	slopeComp = .15;
+	windowSize = 15;
+	reqHits = 2;
+	slopeCompSt1 = .15;
+	XWinSt1 = 1.25;
+	UVWinSt1 = 1.5;
+	hodoXWin = 7;
+	hodoUVWin = 30;
+	hodoXDIFFWin = 7;
+	hodoUVDIFFWin = 7;
+	XUVSlopeWin = 0.04;
+	XUVPosWin = 9.;
+	YSlopesDiff = 0.007;
+	XSlopesDiff = 0.007;
+	chiSqCut = 100;
+	st23ChiSqCut = 15;
+      }
     } else{
       slopeComp = .15;
       windowSize = 15;
@@ -6314,7 +6379,10 @@ void KalmanFastTracking_NEW_HODO_2::cutAdjuster(int numCombos)
       chiSqCut = 100;
       st23ChiSqCut = 15;
     }
-   */
+
+
+
+  }
 
   
   
