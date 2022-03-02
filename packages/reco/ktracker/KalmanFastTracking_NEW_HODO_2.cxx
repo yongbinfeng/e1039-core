@@ -34,6 +34,7 @@ Created: 05-28-2013
 //#define _DEBUG_FAST
 //#define _DEBUG_HODO
 //#define _DEBUG_HODO_2
+//#define _DEBUG_HODO_ST1
 
 //#define _DEBUG_GLOBAL
 //#define _DEBUG_GLOBAL_2
@@ -489,7 +490,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     hitAll = event_input->getAllHits();
     
     //#ifdef _DEBUG_ON
-#ifdef _DEBUG_Hodo_2
+#ifdef _DEBUG_HODO_ST1
     for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
 #endif
 #ifdef _DEBUG_GLOBAL
@@ -3150,7 +3151,17 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracks()
 
 void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 {
-    double pos_exp[3], window[3];
+
+#ifdef _DEBUG_HODO_ST1
+  LogInfo("HODOS 0");
+  for(std::list<int>::iterator iter = hitIDs_maskX[0].begin(); iter != hitIDs_maskX[0].end(); ++iter){
+    //int detectorID = hitAll[*iter].detectorID;
+    //int elementID = hitAll[*iter].elementID;
+    LogInfo("hodo hit in detID "<<hitAll[*iter].detectorID<<" elmID "<<hitAll[*iter].elementID<<" pos = "<<hitAll[*iter].pos);
+  }
+#endif
+	      
+  double pos_exp[3], window[3];
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
 
@@ -3161,19 +3172,34 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
       double posv = tracklet23->st2Vsl * ( z_plane[5] - tracklet23->st2Z ) + tracklet23->st2V;
       double posy = tracklet23->ty * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2Y;
 	    
+#ifdef _DEBUG_HODO_ST1
+	  LogInfo("Using this back partial: ");
+	  tracklet23->print();
+#endif
       
         Tracklet tracklet_best[2];
         for(int i = 0; i < 1; ++i) //for two station-1 chambers //WPM edited so that it only does one chamber.  I think that's all we're using in our simulation...
         {
-
+	  
 	  bool validTrackFound = false; //WPM
-	  int pxSlices[8] = {1, 3, 5, 7, 9, 11, 13, 15}; //This is another scan outward from a linear extrapolation from station 2+3.  We don't know the momentum or charge at this point!  The range here does limit the pz range that you can find to some extent, but I can get below 10 GeV with this range
-	  for(int pxs = 0; pxs < 8; pxs++){ //WPM
+	  int pxSlices[23] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45}; //This is another scan outward from a linear extrapolation from station 2+3.  We don't know the momentum or charge at this point!  The range here does limit the pz range that you can find to some extent, but I can get below 10 GeV with this range
+	  for(int pxs = 0; pxs < 23; pxs++){ //WPM
 	    if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
 	    
 	    int charges[2] = {-1,1}; //WPM
 	    for(int ch = 0; ch < 2; ch++){ //WPM
-	      
+
+	      bool hodoFound = false;
+	      for(std::list<int>::iterator iter = hitIDs_maskX[0].begin(); iter != hitIDs_maskX[0].end(); ++iter){
+#ifdef _DEBUG_HODO_ST1
+		LogInfo("hodo hit pos = "<<hitAll[*iter].pos<<" exp hodo pos ="<<((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]<<" diff = "<<std::abs( hitAll[*iter].pos - (((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]) ));
+#endif
+		if( std::abs( hitAll[*iter].pos - (((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]) ) < 5. ){
+		  hodoFound = true;
+		}
+	      }
+
+	      if(!hodoFound) continue;
 	      if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop.  Finding higher pz tracks takes less time
 	      
 	      trackletsInStSlimX[0][0][0].clear();
@@ -3215,6 +3241,9 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 		window[0] = XWinSt1; //WPM Feb 16 was 1.25
 		window[1] = UVWinSt1; //WPM Feb 16 was 1.5
 		window[2] = UVWinSt1; //WPM Feb 16 was 1.5
+#ifdef _DEBUG_HODO_ST1
+		for(int j = 0; j < 3; j++) LogInfo("Extrapo: " << pos_exp[j] << "  " << window[j]);
+#endif
 		buildTrackletsInStationSlim(i+1, 0, pos_exp, window);
 		buildTrackletsInStationSlimU(i+1, 0, pos_exp, window);
 		buildTrackletsInStationSlimV(i+1, 0, pos_exp, window);
