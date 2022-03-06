@@ -35,6 +35,13 @@ Created: 05-28-2013
 //#define _DEBUG_HODO
 //#define _DEBUG_HODO_2
 //#define _DEBUG_HODO_ST1
+//#define _DEBUG_HODO_QC
+//#define _DEBUG_ST1M
+//#define _DEBUG_ST32L
+//#define _DEBUG_GCLEAN
+//#define _DEBUG_MATCH
+//#define _DEBUG_MATCH_2
+//#define _DEBUG_STRACKS
 
 //#define _DEBUG_GLOBAL
 //#define _DEBUG_GLOBAL_2
@@ -802,9 +809,6 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       }      
       
     }*/
-    _timers["st23"]->stop();
-
-    totalTime += _timers["st23"]->get_accumulated_time()/1000.;
     
     if(verbosity >= 2) LogInfo("NTracklets St2+St3: " << trackletsInSt[3].size());
 
@@ -817,6 +821,53 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
         return TFEXIT_FAIL_BACKPARTIAL;
     }
 
+
+    //LogInfo("About to print all the st2+st3 full tracklets");
+    for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
+    {
+      //tracklet23->print();
+      //LogInfo(tracklet23->calcChisq_verbose());
+      double testChisq = tracklet23->chisq;
+#ifdef _DEBUG_HODO_QC
+      LogInfo(testChisq);
+#endif
+      bool gettingBetter = true;
+      int passes = 0;
+      while(testChisq > 20. &&  gettingBetter && passes<5){
+	checkSigns((*tracklet23));
+	if(tracklet23->chisq < testChisq){
+	  testChisq = tracklet23->chisq;
+	} else{
+	  gettingBetter = false;
+	}
+	passes++;
+      }
+    }
+
+#ifdef _DEBUG_HODO_QC
+    for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
+    {
+      tracklet23->print();
+      LogInfo("st2x = "<<tracklet23->st2X<<" st2u = "<<tracklet23->st2U<<" st2v = "<<tracklet23->st2V<<" st3x = "<<tracklet23->st3X<<" st3u = "<<tracklet23->st3U<<" st3v = "<<tracklet23->st3V);
+    }
+#endif
+    
+    reduceTrackletList(trackletsInSt[3]);
+
+    if(verbosity >= 2) LogInfo("NTracklets St2+St3 (2nd pass): " << trackletsInSt[3].size());
+#ifdef _DEBUG_HODO_QC
+    for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
+    {
+      tracklet23->print();
+      LogInfo("st2x = "<<tracklet23->st2X<<" st2u = "<<tracklet23->st2U<<" st2v = "<<tracklet23->st2V<<" st3x = "<<tracklet23->st3X<<" st3u = "<<tracklet23->st3U<<" st3v = "<<tracklet23->st3V);
+    }
+#endif
+
+    _timers["st23"]->stop();
+
+    totalTime += _timers["st23"]->get_accumulated_time()/1000.;
+
+    
     //Connect tracklets in station 2/3 and station 1 to form global tracks
     _timers["global"]->restart();
     if(!TRACK_DISPLACED){
@@ -824,6 +875,32 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     } else{
       buildGlobalTracksDisplaced();
     }
+
+
+    for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
+    {
+      double testChisq = trackletG->chisq;
+#ifdef _DEBUG_GCLEAN
+      LogInfo(testChisq);
+#endif
+      bool gettingBetter = true;
+      int passes = 0;
+      while(testChisq > 20. &&  gettingBetter && passes<5){
+#ifdef _DEBUG_GCLEAN
+	LogInfo(testChisq);
+#endif
+	checkSigns((*trackletG));
+	if(trackletG->chisq < testChisq){
+	  testChisq = trackletG->chisq;
+	} else{
+	  gettingBetter = false;
+	}
+	passes++;
+      }
+    }
+
+    reduceTrackletList(trackletsInSt[4]);
+    
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
     
@@ -873,6 +950,13 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     totalTime += _timers["kalman"]->get_accumulated_time()/1000.;
     
 #ifdef _DEBUG_ON
+    LogInfo(stracks.size() << " final tracks:");
+    for(std::list<SRecTrack>::iterator strack = stracks.begin(); strack != stracks.end(); ++strack)
+    {
+        strack->print();
+    }
+#endif
+#ifdef _DEBUG_STRACKS
     LogInfo(stracks.size() << " final tracks:");
     for(std::list<SRecTrack>::iterator strack = stracks.begin(); strack != stracks.end(); ++strack)
     {
@@ -1658,12 +1742,12 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
 
     Tracklet trackletX = trackletsInSt23SlimX.at(tx);
 
-#ifdef _DEBUG_GLOBAL
+#ifdef _DEBUG_ST32L
     std::cout<<"m_v3 try tracklet X:"<<std::endl;
     trackletX.print();
 #endif
 
-#ifdef _DEBUG_GLOBAL_2
+#ifdef _DEBUG_ST32L
     //LogInfo("trackletsInSt23SlimX.at(tx).allowedUIndices.size() = "<<trackletsInSt23SlimX.at(tx).allowedUIndices.size());
     //LogInfo("trackletsInSt23SlimX.at(tx).allowedVIndices.size() = "<<trackletsInSt23SlimX.at(tx).allowedVIndices.size());
     //for(unsigned int tv = 0; tv < trackletsInSt23SlimX.at(tx).allowedVIndices.size(); tv++){
@@ -1682,7 +1766,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
 
 
 
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       //if(trackletsInStSlimX[3][bx].size() * trackletsInStSlimU[3][bu].size() * trackletsInStSlimV[3][bv].size() < 300){
       LogInfo("New combo");
       std::cout<<"trackletX.st2X = "<<trackletX.st2X<<"; trackletU.st2U = "<<trackletU.st2U<<"; trackletV.st2V = "<<trackletV.st2V<<";;; trackletX.st3X = "<<trackletX.st3X<<"; trackletU.st3U = "<<trackletU.st3U<<"; trackletV.st3V = "<<trackletV.st3V<<std::endl;
@@ -1698,7 +1782,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       if( std::abs( (trackletX.st2X - trackletU.st2U) - -1.*(trackletX.st2X - trackletV.st2V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
       if( std::abs( (trackletX.st3X - trackletU.st3U) - -1.*(trackletX.st3X - trackletV.st3V) ) > XUVPosWin ) continue; //WPM Feb 16 was 7.
       
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       LogInfo("OK combo");
 #endif
       
@@ -1717,18 +1801,18 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       double testTX2 = ( trackletU.st2Usl - (st2UWireSin/st2VWireSin)*trackletV.st2Vsl )/( st2UWireCos - ( st2UWireSin * st2VWireCos )/st2VWireSin );
       double testTX3 = ( trackletU.st3Usl - (st3UWireSin/st3VWireSin)*trackletV.st3Vsl )/( st3UWireCos - ( st3UWireSin * st3VWireCos )/st3VWireSin );
       
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
       std::cout<<"tracklet2.tx = "<<trackletX.st2Xsl<<", and tracklet3.tx = "<<trackletX.st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
 #endif
       if(std::abs(testTY2 - testTY3) > YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
       
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       LogInfo("past cont 1");
 #endif
       if(std::abs(trackletX.st2Xsl - testTX2) > XSlopesDiff || std::abs(trackletX.st2Xsl - testTX3) > XSlopesDiff) continue; //The x-slopes extracted from the U and V wires should match the slope found from the X wires
       
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       LogInfo("past cont 2");
 #endif
       
@@ -1747,7 +1831,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       
       
       if( tracklet_TEST_23.calcChisq_noDrift() > chiSqCut || isnan(tracklet_TEST_23.calcChisq_noDrift()) ) continue; //check the chisq when drift distances are not accounted for.  (When using drift distance, the expected precision changes, driving up the chisq given that we only have a "rough" extraction of the trajectory parameters at this point)
-#ifdef _DEBUG_HODO_2
+#ifdef _DEBUG_ST32L
       LogInfo("past cont 4");
 #endif	
       //Assign some parameters that get used later
@@ -1759,7 +1843,9 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       tracklet_TEST_23.st2V = trackletV.st2V;
       tracklet_TEST_23.st2Usl = trackletU.st2Usl;
       tracklet_TEST_23.st2Vsl = trackletV.st2Vsl;
-      
+      tracklet_TEST_23.st3X = trackletX.st3X;
+      tracklet_TEST_23.st3U = trackletU.st3U;
+      tracklet_TEST_23.st3V = trackletV.st3V;
       
       fitTracklet(tracklet_TEST_23);
       
@@ -2208,6 +2294,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimX(int pass, double
 	      tracklet_23.st3Z = tracklet3->st2Z;
 	      tracklet_23.st2Xsl = tracklet2->st2Xsl;
 	      tracklet_23.st3Xsl = tracklet3->st2Xsl;
+	      tracklet_23.isM = tracklet3->isM;
 	      tracklet_23.acceptedXLine2 = tracklet2->acceptedXLine2;
 	      tracklet_23.acceptedXLine3 = tracklet3->acceptedXLine3;
 	      //#ifdef _DEBUG_HODO
@@ -2224,6 +2311,50 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimX(int pass, double
 	      LogInfo("chisq no drift is "<<tracklet_23.calcChisq_noDrift());
 #endif
 
+#ifdef _DEBUG_MATCH
+              LogInfo("check norm");
+#endif
+	      int detid = -1000;
+	      int elmid = -1000;
+	      TVector3 testV3;
+	      TVector3 ep1, ep2;
+	      for(std::list<SignedHit>::iterator hit_sign = tracklet_23.hits.begin(); hit_sign != tracklet_23.hits.end(); ++hit_sign)
+		{
+		  if(hit_sign->hit.index < 0) continue;
+		  detid = hit_sign->hit.detectorID;
+		  elmid = hit_sign->hit.elementID;
+		  p_geomSvc->getEndPoints(detid, elmid, ep1, ep2);
+		  break;
+		}
+#ifdef _DEBUG_MATCH
+	      LogInfo("detid = "<<detid<<" elmid = "<<elmid);
+	      LogInfo((ep2 - ep1).X()<<" "<<(ep2 - ep1).Y()<<" "<<(ep2 - ep1).Z());
+	      LogInfo("tracklet_23.tx = "<<tracklet_23.tx<<" and tracklet_23.st2X = "<<tracklet_23.st2X);
+#endif
+	      if(detid > -1000 && elmid > -1000){
+#ifdef _DEBUG_MATCH
+		tracklet_23.print();
+#endif
+		testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+#ifdef _DEBUG_MATCH
+		LogInfo("norm is with 0 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+#endif
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, .1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with .1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, -.1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with -.1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 0 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 10 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 0 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 10 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+	      }
+	      tracklet_23.planeNorm = testV3;
+
+	      
 	      if(std::abs(tracklet_23.tx) > 0.15 || std::abs(tracklet_23.x0) > 150) continue;
 	      
 	      //LogInfo("print tracklet 2");
@@ -2429,6 +2560,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 	      tracklet_23.st3Z = tracklet3->st2Z;
 	      tracklet_23.st2Usl = tracklet2->st2Usl;
 	      tracklet_23.st3Usl = tracklet3->st2Usl;
+	      tracklet_23.isM = tracklet3->isM;
 	      tracklet_23.acceptedULine2 = tracklet2->acceptedULine2;
 	      tracklet_23.acceptedULine3 = tracklet3->acceptedULine3;
 
@@ -2437,6 +2569,52 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("U0 = "<<U0<<" and tracklet_23.st2Usl = "<<tracklet_23.st2Usl);
 #endif	      
+
+#ifdef _DEBUG_MATCH
+              LogInfo("check norm U");
+#endif
+	      int detid = -1000;
+	      int elmid = -1000;
+	      TVector3 testV3;
+	      TVector3 ep1, ep2, wiredir;
+	      for(std::list<SignedHit>::iterator hit_sign = tracklet_23.hits.begin(); hit_sign != tracklet_23.hits.end(); ++hit_sign)
+		{
+		  if(hit_sign->hit.index < 0) continue;
+		  detid = hit_sign->hit.detectorID;
+		  elmid = hit_sign->hit.elementID;
+		  p_geomSvc->getEndPoints(detid, elmid, ep1, ep2);
+		  wiredir = ep2 - ep1;
+		  break;
+		}
+#ifdef _DEBUG_MATCH	      
+	      LogInfo("detid = "<<detid<<" elmid = "<<elmid);
+	      LogInfo((ep2 - ep1).X()<<" "<<(ep2 - ep1).Y()<<" "<<(ep2 - ep1).Z());
+	      LogInfo("tracklet_23.st2Usl = "<<tracklet_23.st2Usl<<" and tracklet_23.st2U = "<<tracklet_23.st2U);
+#endif
+	      if(detid > -1000 && elmid > -1000){
+#ifdef _DEBUG_MATCH
+		tracklet_23.print();
+#endif
+		testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.st2Usl, 0, tracklet_23.st2U, ep1.Y(), z_plane[detid]);
+#ifdef _DEBUG_MATCH
+		LogInfo("norm is with 0 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+#endif
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, .1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with .1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, -.1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with -.1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 0 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 10 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 0 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 10 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+	      }
+	      TVector3 rotation(p_geomSvc->getCostheta(detid)*testV3.X() + p_geomSvc->getSintheta(detid)*testV3.Y(), p_geomSvc->getSintheta(detid)*testV3.X() - p_geomSvc->getCostheta(detid)*testV3.Y(), testV3.Z());
+	      tracklet_23.planeNorm = rotation;
+
 	      
 	      if(std::abs(tracklet_23.st2Usl) > 0.15 || std::abs(U0) > 150) continue;
 	      
@@ -2585,7 +2763,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 	      //allowedHodos.push_back(std::make_pair(hodo2Diffs.at(bestIndex2).first, hodo3Diffs.at(bestIndex3).first));
 	      //}
 	      
-#ifdef _DEBUG_GLOBAL
+#ifdef _DEBUG_MATCH
 	      LogInfo("new combo");
 #endif
 	      
@@ -2595,6 +2773,18 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 
 
 		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
+#ifdef _DEBUG_MATCH
+		  LogInfo("I'm in x loop");
+#endif
+		  if(!(trackletsInSt23SlimX.at(tx23).isM == tracklet_23.isM)) continue;
+
+		  
+		  TVector3 testCross = tracklet_23.planeNorm.Cross(trackletsInSt23SlimX.at(tx23).planeNorm);
+		  testCross.SetMag(1.);
+		  testCross *= 1./testCross.Z();
+#ifdef _DEBUG_MATCH
+		  LogInfo("the cross product is "<<testCross.X()<<" "<<testCross.Y()<<" "<<testCross.Z());
+#endif
 		  
 		  Tracklet::UXCombo newCombo;
 		  //newCombo.trackletU = &trackletsInSt23SlimU.back();
@@ -2611,7 +2801,16 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimU(int pass, double
 		  }
 		  
 		  if(newCombo.hodoMatches.size() > 0){
-		    trackletsInSt23SlimX.at(tx23).allowedUXCombos.push_back(newCombo);
+		    newCombo.tx = testCross.X();
+		    newCombo.ty = testCross.Y();
+#ifdef _DEBUG_MATCH_2
+		    LogInfo("the cross product is "<<testCross.X()<<" "<<testCross.Y()<<" "<<testCross.Z());
+		    LogInfo("try to find ~y.  x pos is "<<trackletsInSt23SlimX.at(tx23).st2X<<" wiredir.X() = "<<wiredir.X()<<" wiredir.Y() = "<<wiredir.Y()<<" ep1.X() = "<<ep1.X()<<" ep1.Y() = "<<ep1.Y()<<", tentative y = "<< (wiredir.Y()/wiredir.X())*trackletsInSt23SlimX.at(tx23).st2X + ep1.Y() - (wiredir.Y()/wiredir.X())*ep1.X() );
+#endif
+		    newCombo.y0 = (wiredir.Y()/wiredir.X())*trackletsInSt23SlimX.at(tx23).st2X + ep1.Y() - (wiredir.Y()/wiredir.X())*ep1.X();
+		    if( std::abs(testCross.X()) < .15 && std::abs(testCross.Y()) < .15 ){
+		      trackletsInSt23SlimX.at(tx23).allowedUXCombos.push_back(newCombo);
+		    }
 		  }
 		  
 		}
@@ -2716,6 +2915,7 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 	      tracklet_23.st3Z = tracklet3->st2Z;
 	      tracklet_23.st2Vsl = tracklet2->st2Vsl;
 	      tracklet_23.st3Vsl = tracklet3->st2Vsl;
+	      tracklet_23.isM = tracklet3->isM;
 	      tracklet_23.acceptedVLine2 = tracklet2->acceptedVLine2;
 	      tracklet_23.acceptedVLine3 = tracklet3->acceptedVLine3;
 
@@ -2725,6 +2925,52 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 	      LogInfo("V0 = "<<V0<<" and tracklet_23.st2Vsl = "<<tracklet_23.st2Vsl);
 #endif
 
+#ifdef _DEBUG_MATCH
+              LogInfo("check norm V");
+#endif
+	      
+	      int detid = -1000;
+	      int elmid = -1000;
+	      TVector3 testV3;
+	      TVector3 ep1, ep2, wiredir;
+	      for(std::list<SignedHit>::iterator hit_sign = tracklet_23.hits.begin(); hit_sign != tracklet_23.hits.end(); ++hit_sign)
+		{
+		  if(hit_sign->hit.index < 0) continue;
+		  detid = hit_sign->hit.detectorID;
+		  elmid = hit_sign->hit.elementID;
+		  p_geomSvc->getEndPoints(detid, elmid, ep1, ep2);
+		  wiredir = ep2 - ep1;
+		  break;
+		}
+#ifdef _DEBUG_MATCH
+	      LogInfo("detid = "<<detid<<" elmid = "<<elmid);
+	      LogInfo((ep2 - ep1).X()<<" "<<(ep2 - ep1).Y()<<" "<<(ep2 - ep1).Z());
+	      LogInfo("tracklet_23.st2Vsl = "<<tracklet_23.st2Vsl<<" and tracklet_23.st2V = "<<tracklet_23.st2V);
+#endif
+	      if(detid > -1000 && elmid > -1000){
+#ifdef _DEBUG_MATCH
+		tracklet_23.print();
+#endif
+		testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.st2Vsl, 0, tracklet_23.st2V, ep1.Y(), z_plane[detid]);
+#ifdef _DEBUG_MATCH
+		LogInfo("norm is with 0 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+#endif
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, .1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with .1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, -.1, tracklet_23.st2X, ep1.Y(), z_plane[detid]);
+		//LogInfo("norm is with -.1 epY is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 0 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 0, z_plane[detid]);
+		//LogInfo("norm is with 10 0 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 0, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 0 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+		//testV3 = p_geomSvc->getNorm(detid, elmid, tracklet_23.tx, 10, tracklet_23.st2X, 10, z_plane[detid]);
+		//LogInfo("norm is with 10 10 is "<<testV3.X()<<" "<<testV3.Y()<<" "<<testV3.Z());
+	      }
+	      TVector3 rotation(p_geomSvc->getCostheta(detid)*testV3.X() + p_geomSvc->getSintheta(detid)*testV3.Y(), p_geomSvc->getSintheta(detid)*testV3.X() - p_geomSvc->getCostheta(detid)*testV3.Y(), testV3.Z());
+	      tracklet_23.planeNorm = rotation;
+	      
 	      if(std::abs(tracklet_23.st2Vsl) > 0.15 || std::abs(V0) > 150) continue;
 	      
 	      /*
@@ -2884,9 +3130,18 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 		trackletsInSt23SlimV.push_back(tracklet_23);
 
 		for(unsigned int tx23 = 0; tx23 < trackletsInSt23SlimX.size(); tx23++){
+		  if(!(trackletsInSt23SlimX.at(tx23).isM == tracklet_23.isM)) continue;
 
+
+		  TVector3 testCross = tracklet_23.planeNorm.Cross(trackletsInSt23SlimX.at(tx23).planeNorm);
+		  testCross.SetMag(1.);
+		  testCross *= 1./testCross.Z();
+#ifdef _DEBUG_MATCH
+		  LogInfo("the V cross product is "<<testCross.X()<<" "<<testCross.Y()<<" "<<testCross.Z());
+#endif
+		  
 		  for( unsigned int tx23UC = 0; tx23UC < trackletsInSt23SlimX.at(tx23).allowedUXCombos.size(); tx23UC++ ){
-
+		    
 		    Tracklet::VUXCombo newCombo;
 		    //newCombo.trackletU = &trackletsInSt23SlimU.back();
 		    
@@ -2905,7 +3160,18 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlimV(int pass, double
 		      //newCombo.trackletV = &trackletsInSt23SlimV.back();
 		      newCombo.trackletUIndex = trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).trackletUIndex;
 		      newCombo.trackletVIndex = trackletsInSt23SlimV.size() - 1;
-		      trackletsInSt23SlimX.at(tx23).allowedVUXCombos.push_back(newCombo);
+#ifdef _DEBUG_MATCH
+		      LogInfo("difference from ux tx and ty is "<<testCross.X() - trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).tx<<" "<<testCross.Y() - trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).ty);
+#endif
+		      if(std::abs(testCross.X() - trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).tx) < .01 && std::abs(testCross.Y() - trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).ty) < 0.02){
+			if(std::abs( trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).y0 - ((wiredir.Y()/wiredir.X())*trackletsInSt23SlimX.at(tx23).st2X + ep1.Y() - (wiredir.Y()/wiredir.X())*ep1.X()) )  < 30.){
+			  trackletsInSt23SlimX.at(tx23).allowedVUXCombos.push_back(newCombo);
+			}
+#ifdef _DEBUG_MATCH_2
+			//LogInfo("try to find ~y.  x pos is "<<trackletsInSt23SlimX.at(tx23).st2X<<" wiredir.X() = "<<wiredir.X()<<" wiredir.Y() = "<<wiredir.Y()<<" ep1.X() = "<<ep1.X()<<" ep1.Y() = "<<ep1.Y()<<", tentative y = "<< (wiredir.Y()/wiredir.X())*trackletsInSt23SlimX.at(tx23).st2X + ep1.Y() - (wiredir.Y()/wiredir.X())*ep1.X() );
+			LogInfo("diff in y prediction = "<<trackletsInSt23SlimX.at(tx23).allowedUXCombos.at(tx23UC).y0 - ((wiredir.Y()/wiredir.X())*trackletsInSt23SlimX.at(tx23).st2X + ep1.Y() - (wiredir.Y()/wiredir.X())*ep1.X()) );
+#endif
+		      }
 		    }
 		    
 		  }
@@ -3165,6 +3431,11 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
 
+#ifdef _DEBUG_ST1M
+  LogInfo("in buildGlobalTracksDisplaced");
+  tracklet23->print();
+#endif
+      
       Tracklet tracklet_best_prob, tracklet_best_vtx;
 
       double posx = tracklet23->tx * ( z_plane[3] - tracklet23->st2Z ) + tracklet23->st2X;
@@ -3249,7 +3520,7 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 		buildTrackletsInStationSlimV(i+1, 0, pos_exp, window);
 		getNum1Combos();
 		bool doTight = false;
-#ifdef _DEBUG_GLOBAL
+#ifdef _DEBUG_ST1M
 		LogInfo("pos_exp = "<<pos_exp[0]<<", "<<pos_exp[1]<<", "<<pos_exp[2]);
 		LogInfo("num1XCombos*num1UCombos*num1VCombos = "<<num1XCombos*num1UCombos*num1VCombos);
 #endif
@@ -3664,6 +3935,176 @@ void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
     }
 }
 
+
+void KalmanFastTracking_NEW_HODO_2::checkSigns(Tracklet& tracklet)
+{
+#ifdef _DEBUG_ON
+    LogInfo("checking signs for..");
+    tracklet.calcChisq();
+    tracklet.print();
+#endif
+
+    double compChiSq = tracklet.chisq;
+    
+    //for(std::list<SignedHit>::const_iterator iter = tracklet.hits.begin(); iter != tracklet.hits.end(); ++iter)
+    // {
+    for(std::list<SignedHit>::iterator hit_sign = tracklet.hits.begin(); hit_sign != tracklet.hits.end(); ++hit_sign)
+      {
+
+	if(hit_sign->hit.index < 0) continue;
+	
+	SignedHit* hit_remove = nullptr;
+	
+	int detectorID = hit_sign->hit.detectorID;
+	int index = detectorID - 1;
+	
+	double sigma;
+	if(hit_sign->sign == 0 || COARSE_MODE) 
+	  sigma = p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.);
+	//sigma = fabs(hit_sign->hit.driftDistance)/sqrt(12.);
+	else
+	  sigma = p_geomSvc->getPlaneResolution(detectorID);
+	
+	//LogInfo("sigma of hit with index "<<hit_sign->hit.index<<" and detID "<<hit_sign->hit.detectorID<<" is "<<sigma);
+	
+	//residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
+	tracklet.residual[index] = hit_sign->sign*fabs(hit_sign->hit.driftDistance) - p_geomSvc->getDCA(detectorID, hit_sign->hit.elementID, tracklet.tx, tracklet.ty, tracklet.x0, tracklet.y0);
+	
+	//LogInfo("corresponding residual is "<<tracklet.residual[index]<<", so adding to chisq "<<(tracklet.residual[index]*tracklet.residual[index]/sigma/sigma));
+
+	if(  std::abs(-1*hit_sign->sign*fabs(hit_sign->hit.driftDistance) - p_geomSvc->getDCA(detectorID, hit_sign->hit.elementID, tracklet.tx, tracklet.ty, tracklet.x0, tracklet.y0)) < std::abs(2.*tracklet.residual[index])){
+	  hit_remove = &(*hit_sign);
+	  hit_remove->sign = -hit_remove->sign;
+	  fitTracklet(tracklet);
+	  if(tracklet.calcChisq() < compChiSq){
+	    //tracklet.print();
+	    compChiSq = tracklet.chisq;
+	  } else{
+	    hit_remove->sign = -hit_remove->sign;
+	    fitTracklet(tracklet);
+	  }
+	}
+	//if( hit_sign->hit.index == 37 ){
+	//  hit_remove = &(*hit_sign);
+	//  hit_remove->sign = -hit_remove->sign;
+	//  fitTracklet(tracklet);
+	//  std::cout<<"flipped 37 "<<tracklet.calcChisq()<<std::endl;
+	//}
+	
+	//if(std::abs(tracklet.residual[index])>0.1){
+	//  LogInfo("high-ish residual.  sign flip? "<<-1*hit_sign->sign*fabs(hit_sign->hit.driftDistance) - p_geomSvc->getDCA(detectorID, hit_sign->hit.elementID, tracklet.tx, tracklet.ty, tracklet.x0, tracklet.y0));
+	//  if( std::abs(-1*hit_sign->sign*fabs(hit_sign->hit.driftDistance) - p_geomSvc->getDCA(detectorID, hit_sign->hit.elementID, tracklet.tx, tracklet.ty, tracklet.x0, tracklet.y0)) < tracklet.residual[index] ){
+	//    hit_remove = &(*hit_sign);
+	//    hit_remove->sign = -hit_remove->sign;
+	//    //(*hit_sign).sign = -1*hit_sign->sign;
+	//    fitTracklet(tracklet);
+	//    tracklet.print();
+	//  }
+	//}
+	
+	//chisq += (residual[index]*residual[index]/sigma/sigma);
+      }
+    
+}
+
+
+
+/*    
+    //Check if the track has beed updated
+    int signflipflag[nChamberPlanes];
+    for(int i = 0; i < nChamberPlanes; ++i) signflipflag[i] = 0;
+
+    bool isUpdated = true;
+    while(isUpdated)
+    {
+        isUpdated = false;
+        tracklet.calcChisq();
+
+        SignedHit* hit_remove = nullptr;
+        SignedHit* hit_neighbour = nullptr;
+        double res_remove1 = -1.;
+        double res_remove2 = -1.;
+        for(std::list<SignedHit>::iterator hit_sign = tracklet.hits.begin(); hit_sign != tracklet.hits.end(); ++hit_sign)
+        {
+            if(hit_sign->hit.index < 0) continue;
+
+            int detectorID = hit_sign->hit.detectorID;
+            double res_curr = fabs(tracklet.residual[detectorID-1]);
+            if(res_remove1 < res_curr)
+            {
+                res_remove1 = res_curr;
+                res_remove2 = fabs(tracklet.residual[detectorID-1] - 2.*hit_sign->sign*hit_sign->hit.driftDistance);
+                hit_remove = &(*hit_sign);
+
+                std::list<SignedHit>::iterator iter = hit_sign;
+                hit_neighbour = detectorID % 2 == 0 ? &(*(--iter)) : &(*(++iter));
+            }
+        }
+        if(hit_remove == nullptr) continue;
+        if(hit_remove->sign == 0 && tracklet.isValid() > 0) continue;  //if sign is undecided, and chisq is OKay, then pass
+
+        double cut = hit_remove->sign == 0 ? hit_remove->hit.driftDistance + resol_plane[hit_remove->hit.detectorID] : resol_plane[hit_remove->hit.detectorID];
+        if(res_remove1 > cut)
+        {
+#ifdef _DEBUG_ON
+            LogInfo("Dropping this hit: " << res_remove1 << "  " << res_remove2 << "   " << signflipflag[hit_remove->hit.detectorID-1] << "  " << cut);
+            hit_remove->hit.print();
+            hit_neighbour->hit.print();
+#endif
+
+            //can only be changed less than twice
+            if(res_remove2 < cut && signflipflag[hit_remove->hit.detectorID-1] < 2)
+            {
+                hit_remove->sign = -hit_remove->sign;
+                hit_neighbour->sign = 0;
+                ++signflipflag[hit_remove->hit.detectorID-1];
+#ifdef _DEBUG_ON
+                LogInfo("Only changing the sign.");
+#endif
+            }
+            else
+            {
+                //Set the index of the hit to be removed to -1 so it's not used anymore
+                //also set the sign assignment of the neighbour hit to 0 (i.e. undecided)
+                hit_remove->hit.index = -1;
+                hit_neighbour->sign = 0;
+                int planeType = p_geomSvc->getPlaneType(hit_remove->hit.detectorID);
+                if(planeType == 1)
+                {
+                    --tracklet.nXHits;
+                }
+                else if(planeType == 2)
+                {
+                    --tracklet.nUHits;
+                }
+                else
+                {
+                    --tracklet.nVHits;
+                }
+
+                //If both hit pairs are not included, the track can be rejected
+                if(hit_neighbour->hit.index < 0)
+                {
+#ifdef _DEBUG_ON
+                    LogInfo("Both hits in a view are missing! Will exit the bad hit removal...");
+#endif
+                    return;
+                }
+            }
+            isUpdated = true;
+        }
+
+        if(isUpdated)
+        {
+            fitTracklet(tracklet);
+            resolveSingleLeftRight(tracklet);
+        }
+    }
+}
+*/
+
+
+
 void KalmanFastTracking_NEW_HODO_2::resolveLeftRight(SRawEvent::hit_pair hpair, int& LR1, int& LR2)
 {
     LR1 = 0;
@@ -3892,7 +4333,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
   LogInfo("In buildTrackletsInStation1_NEW");
 #endif
   
-#ifdef _DEBUG_GLOBAL
+#ifdef _DEBUG_ST1M
   LogInfo("do tight? " << tight << " stationID = "<< stationID << " listID = "<<listID<<" expXZSlope = "<<expXZSlope<<" expYSlope = "<<expYSlope<<" y0 = "<<y0);
 #endif
 
@@ -3914,7 +4355,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
     
     if(trackletX->hits.size() < 2 && tight) continue;
     
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M
     LogInfo("expected x slope = "<<expXZSlope);
     trackletX->print();
 #endif
@@ -3927,7 +4368,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
       int nValidXSlopes = 0;
       for(int t3 = 0; t3 < trackletX->possibleXLines.size(); t3++){
 	slopeDiffX = trackletX->possibleXLines.at(t3).slopeX - expXZSlope;
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M
 	LogInfo("x slope diff = "<<slopeDiffX);
 #endif
 	if(std::abs(slopeDiffX)<slopeComparisonSt1) nValidXSlopes++;
@@ -3979,7 +4420,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
       
       if(trackletU->hits.size() < 2 && tight) continue;
       
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M
       LogInfo("expected u slope = "<<testTU);
       trackletU->print();
 #endif
@@ -4047,7 +4488,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	
 	if(trackletV->hits.size() < 2 && tight) continue;
 	
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M
 	LogInfo("expected v slope = "<<testTV);
 	trackletV->print();
 #endif
@@ -4154,14 +4595,14 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
-#ifdef _DEBUG_GLOBAL
+#ifdef _DEBUG_ST1M
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
 	
 	if(tracklet_new_Station1.chisq < 20.){
-#ifdef _DEBUG_GLOBAL
-	LogInfo("PUSHING BACK TRACKLET LIST");
+#ifdef _DEBUG_ST1M
+	  LogInfo("PUSHING BACK TRACKLET LIST");
 #endif
 	  trackletsInSt[listID].push_back(tracklet_new_Station1);
 	}
@@ -4252,6 +4693,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlim(int stationID, i
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3X = hitAll[xiter->first].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->first].detectorID];
+	  if(hitAll[xiter->first].detectorID == 21 || hitAll[xiter->first].detectorID == 22){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->first].detectorID == 27 || hitAll[xiter->first].detectorID == 28){
+	    tracklet_new.isM = true;
+	  }
 	}
       } else if(xiter->second >= 0){
 	if(stationID == 3){
@@ -4261,6 +4708,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlim(int stationID, i
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3X = hitAll[xiter->second].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->second].detectorID];
+	  if(hitAll[xiter->second].detectorID == 21 || hitAll[xiter->second].detectorID == 22){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->second].detectorID == 27 || hitAll[xiter->second].detectorID == 28){
+	    tracklet_new.isM = true;
+	  }
 	}
       }
       
@@ -4351,6 +4804,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimU(int stationID, 
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3U = hitAll[xiter->first].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->first].detectorID];
+	  if(hitAll[xiter->first].detectorID == 19 || hitAll[xiter->first].detectorID == 20){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->first].detectorID == 25 || hitAll[xiter->first].detectorID == 26){
+	    tracklet_new.isM = true;
+	  }
 	}
       } else if(xiter->second >= 0){
 	if(stationID == 3){
@@ -4360,6 +4819,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimU(int stationID, 
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3U = hitAll[xiter->second].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->second].detectorID];
+	  if(hitAll[xiter->second].detectorID == 19 || hitAll[xiter->second].detectorID == 20){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->second].detectorID == 25 || hitAll[xiter->second].detectorID == 26){
+	    tracklet_new.isM = true;
+	  }
 	}
       }
       
@@ -4451,6 +4916,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimV(int stationID, 
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3V = hitAll[xiter->first].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->first].detectorID];
+	  if(hitAll[xiter->first].detectorID == 23 || hitAll[xiter->first].detectorID == 24){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->first].detectorID == 29 || hitAll[xiter->first].detectorID == 30){
+	    tracklet_new.isM = true;
+	  }
 	}
       } else if(xiter->second >= 0){
 	if(stationID == 3){
@@ -4460,6 +4931,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStationSlimV(int stationID, 
 	if(stationID == 4 || stationID == 5){
 	  tracklet_new.st3V = hitAll[xiter->second].pos;
 	  tracklet_new.st3Z = z_plane[hitAll[xiter->second].detectorID];
+	  if(hitAll[xiter->second].detectorID == 23 || hitAll[xiter->second].detectorID == 24){
+	    tracklet_new.isM = false;
+	  }
+	  if(hitAll[xiter->second].detectorID == 29 || hitAll[xiter->second].detectorID == 30){
+	    tracklet_new.isM = true;
+	  }
 	}
       }
       
@@ -4908,19 +5385,39 @@ int KalmanFastTracking_NEW_HODO_2::reduceTrackletList(std::list<Tracklet>& track
 
         for(std::list<Tracklet>::iterator iter = tracklets.begin(); iter != tracklets.end(); )
         {
-            if(iter->similarity(targetList.back()))
-            {
+	  //if(iter->similarity(targetList.back()))
+	  if(iter->stationID < nStations){
+	    if(iter->similarity(targetList.back()) && std::abs(targetList.back().st2X - iter->st2X) < 3. && std::abs(targetList.back().st2U - iter->st2U) < 3. && std::abs(targetList.back().st2V - iter->st2V) < 3. && std::abs(targetList.back().st3X - iter->st3X) < 3. && std::abs(targetList.back().st3U - iter->st3U) < 3. && std::abs(targetList.back().st3V - iter->st3V) < 3. && std::abs(targetList.back().tx - iter->tx) < 0.01 && std::abs(targetList.back().ty - iter->ty) < 0.01)
+	      {
 #ifdef _DEBUG_ON_LEVEL_2
                 LogInfo("Removing this tracklet: ");
                 iter->print();
 #endif
                 iter = tracklets.erase(iter);
                 continue;
-            }
+	      }
             else
-            {
+	      {
                 ++iter;
-            }
+	      }
+	  } else{
+	    //if(iter->similarity(targetList.back()) && std::abs(targetList.back().tx - iter->tx) < 0.01 && std::abs(targetList.back().ty - iter->ty) < 0.01 && std::abs(targetList.back().x0 - iter->x0) < 3 && std::abs(targetList.back().y0 - iter->y0) < 3)
+	    //if(iter->similarity(targetList.back()))
+	    if(iter->similarity(targetList.back()) && !(std::abs(targetList.back().tx - iter->tx) > 0.01 || std::abs(targetList.back().ty - iter->ty) > 0.01 ) && !(std::abs(targetList.back().x0 - iter->x0) > 10 || std::abs(targetList.back().y0 - iter->y0) > 10))
+	      {
+#ifdef _DEBUG_ON_LEVEL_2
+                LogInfo("Removing this tracklet: ");
+                iter->print();
+#endif
+                iter = tracklets.erase(iter);
+                continue;
+	      }
+            else
+	      {
+                ++iter;
+	      }
+	  }
+	  
         }
     }
 

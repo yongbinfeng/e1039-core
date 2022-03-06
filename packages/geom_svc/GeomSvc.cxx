@@ -852,6 +852,21 @@ double GeomSvc::getDCA(int detectorID, int elementID, double tx, double ty, doub
     return (ep1 - trkp0).Dot(norm);
 }
 
+TVector3 GeomSvc::getNorm(int detectorID, int elementID, double tx, double ty, double x0, double y0, double z0)
+{
+    TVector3 trkp0(x0, y0, z0);
+    TVector3 trkdir(tx, ty, 1.);
+
+    TVector3 ep1, ep2;
+    getEndPoints(detectorID, elementID, ep1, ep2);
+    //TVector3 wiredir = ep2 - ep1;
+    TVector3 wiredir(0., 1., 0.);
+
+    TVector3 norm = trkdir.Cross(wiredir);
+    norm.SetMag(1.);
+    return norm;
+}
+
 /// Load parameters used in the online-alignment mode.
 /**
  * The major part of this function is not implemented yet because we are 

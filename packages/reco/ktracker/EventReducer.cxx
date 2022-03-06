@@ -116,8 +116,12 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 	    }
 	  
 	  //std::cout<<"DD before = "<<iter->driftDistance<<std::endl; //WPM
-	  if(realization && iter->detectorID <= nChamberPlanes) iter->driftDistance += rndm.Gaus(0., chamResol);
-	  //std::cout<<"DD after = "<<iter->driftDistance<<std::endl; //WPM
+	  if(realization && iter->detectorID <= nChamberPlanes){
+	    double res = rndm.Gaus(0., chamResol);
+	    //iter->driftDistance += rndm.Gaus(0., chamResol);
+	    iter->driftDistance += res;
+	    std::cout<<"hit index "<<iter->index<<" had driftDistance "<<iter->driftDistance<<", but got bumped by "<<res<<std::endl; //WPM
+	  }
 	}
         if(iter->detectorID >= nChamberPlanes+1 && iter->detectorID <= nChamberPlanes+nHodoPlanes)
         {

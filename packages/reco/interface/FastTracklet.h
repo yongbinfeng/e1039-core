@@ -177,6 +177,7 @@ public:
     double Eval4(const double* par);
     double calcChisq();
     double calcChisq_noDrift();
+    double calcChisq_verbose();
 
     //Add dummy hits
     void addDummyHits();
@@ -198,6 +199,7 @@ public:
 
     //For reducing similar tracklets
     bool similarity(const Tracklet& elem) const;
+    bool elementSimilarity(const Tracklet& elem) const;
 
     //Merge the hit list from two tracklets
     Tracklet merge(Tracklet& elem);
@@ -277,7 +279,7 @@ public:
       }
 
     } ;
-
+  
   double st2X;
   double st3X;
   double st2Xsl;
@@ -315,6 +317,9 @@ public:
     //Tracklet* trackletU;
     int trackletUIndex;
     std::vector<std::pair<int, int>> hodoMatches;
+    double tx;
+    double ty;
+    double y0;
     
   };
   std::vector<UXCombo> allowedUXCombos;
@@ -337,6 +342,10 @@ public:
     void getSlopesX(Hit hit1, Hit hit2);
     void getSlopesU(Hit hit1, Hit hit2);
     void getSlopesV(Hit hit1, Hit hit2);
+
+  bool isM; //for station 3 tracklets keep track of whether the particle is in D3m or D3p
+
+  TVector3 planeNorm;
 
     double err_tx;
     double err_ty;

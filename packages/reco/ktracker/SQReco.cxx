@@ -44,7 +44,7 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 
-//#define _DEBUG_ON
+#define _DEBUG_ON
 
 #ifdef _DEBUG_ON
 #  define LogDebug(exp) std::cout << "DEBUG: " << __FUNCTION__ <<": "<< __LINE__ << ": " << exp << std::endl
@@ -382,6 +382,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
 
     if(!fitOK)
     {
+      LogDebug("fit wasnt ok?");
       SRecTrack recTrack = iter->getSRecTrack(_enable_KF && (_fitter_type == SQReco::LEGACY));
       //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT){
       //LogInfo("print a recTrack from SQReco");
@@ -491,7 +492,8 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, KalmanFitter* fitter)
     LogDebug("kFitter failed to converge");
     return false;
   }
-
+  
+  LogDebug("about to update track?");
   _kfitter->updateTrack(kmtrk);//update after fitting
 
   if(!kmtrk.isValid()) 
@@ -500,6 +502,8 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, KalmanFitter* fitter)
     return false;
   }
 
+  LogDebug("in fittrackcand.  seems that all checks were ok");
+  
   SRecTrack strack = kmtrk.getSRecTrack();
 
   //Set trigger road ID
@@ -577,6 +581,8 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
   strack.setNHitsInPT(tracklet.seg_x.getNHits(), tracklet.seg_y.getNHits());
   strack.setPTSlope(tracklet.seg_x.a, tracklet.seg_y.a);
 
+
+  LogDebug("turns out i'm dong gfitting?  about to fill rectrack.  chisq = "<<strack.getChisq());
   fillRecTrack(strack);
   return true;
 }

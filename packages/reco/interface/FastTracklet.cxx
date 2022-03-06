@@ -712,6 +712,45 @@ bool Tracklet::similarity(const Tracklet& elem) const
     return false;
 }
 
+/*bool Tracklet::elementSimilarity(const Tracklet& elem) const
+{
+
+  int nCommonHits = 0;
+  for(std::list<SignedHit>::iterator hit1 = hits.begin(); hit1 != hits.end(); ++hit1){
+    for(std::list<SignedHit>::iterator hit2 = elem.hits.begin(); hit2 != elem.hits.end(); ++hit2){
+      if(hit1.detectorID == hit2.detectorID){
+	if( std::abs( hit1.elementID - hit2.elementID) < 2){
+	  
+	}
+      }
+    }
+  }
+  
+    std::list<SignedHit>::const_iterator first = hits.begin();
+    std::list<SignedHit>::const_iterator second = elem.hits.begin();
+
+    while(first != hits.end() && second != elem.hits.end())
+    {
+        if((*first) < (*second))
+        {
+            ++first;
+        }
+        else if((*second) < (*first))
+        {
+            ++second;
+        }
+        else
+        {
+            if((*first) == (*second)) nCommonHits++;
+            ++first;
+            ++second;
+        }
+    }
+
+    if(nCommonHits/double(elem.getNHits()) > 0.33333) return true;
+    return false;
+}*/
+
 double Tracklet::getMomentum() const
 {
     //Ref. SEAQUEST-doc-453-v3 by Don. Geesaman
@@ -981,6 +1020,53 @@ double Tracklet::calcChisq()
 	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
 	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
         }
+
+        chisq += (residual[index]*residual[index]/sigma/sigma);
+    }
+
+    return chisq;
+}
+
+double Tracklet::calcChisq_verbose()
+{
+    chisq = 0.;
+
+    double tx_st1, x0_st1;
+    if(stationID == nStations && KMAG_ON)
+    {
+        getXZInfoInSt1(tx_st1, x0_st1);
+    }
+    for(std::list<SignedHit>::const_iterator iter = hits.begin(); iter != hits.end(); ++iter)
+    {
+        if(iter->hit.index < 0) continue;
+
+        int detectorID = iter->hit.detectorID;
+        int index = detectorID - 1;
+
+        double sigma;
+        if(iter->sign == 0 || COARSE_MODE) 
+            sigma = p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.);
+            //sigma = fabs(iter->hit.driftDistance)/sqrt(12.);
+        else
+            sigma = p_geomSvc->getPlaneResolution(detectorID);
+
+	LogInfo("sigma of hit with index "<<iter->hit.index<<" and detID "<<iter->hit.detectorID<<" is "<<sigma);
+	
+        //double p = iter->hit.pos + iter->sign*fabs(iter->hit.driftDistance);
+        if(KMAG_ON && stationID == nStations && detectorID <= 12)
+        {
+	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx_st1, ty, x0_st1, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
+        }
+        else
+        {
+	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
+	  residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
+        }
+	LogInfo("corresponding residual is "<<residual[index]<<", so adding to chisq "<<(residual[index]*residual[index]/sigma/sigma));
+	if(std::abs(residual[index])>0.1){
+	  LogInfo("high-ish residual.  sign flip? "<<-1*iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0));
+	}
 
         chisq += (residual[index]*residual[index]/sigma/sigma);
     }

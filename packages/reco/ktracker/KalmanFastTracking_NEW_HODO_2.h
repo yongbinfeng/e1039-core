@@ -105,6 +105,7 @@ public:
 
     //Remove bad hit if needed
     void removeBadHits(Tracklet& tracklet);
+    void checkSigns(Tracklet& tracklet);
 
     //Reduce the list of tracklets, returns the number of elements reduced
     int reduceTrackletList(std::list<Tracklet>& tracklets);
@@ -359,7 +360,7 @@ private:
   double m_slopeComparison = 0.5;
   double m_windowSize = 55.;
   
-  double m_slopeComparisonSt1 = 0.40;
+  double m_slopeComparisonSt1 = 0.45; //was 0.40, but there was an event lost because of a big st1 distortion
   double m_XWindowSt1 = 1.5;
   double m_UVWindowSt1 = 3.5;
 
