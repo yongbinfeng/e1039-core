@@ -104,7 +104,7 @@ public:
     void resolveSingleLeftRight(Tracklet& tracklet);
 
     //Remove bad hit if needed
-    void removeBadHits(Tracklet& tracklet);
+    bool removeBadHits(Tracklet& tracklet);
     void checkSigns(Tracklet& tracklet);
 
     //Reduce the list of tracklets, returns the number of elements reduced
@@ -165,6 +165,8 @@ private:
   std::vector<Tracklet> trackletsInSt23SlimX;
   std::vector<Tracklet> trackletsInSt23SlimU;
   std::vector<Tracklet> trackletsInSt23SlimV;
+
+  std::vector<Tracklet> globalTracklets;
 
   long int num23XCombos;
   long int num23UCombos;
@@ -360,9 +362,9 @@ private:
   double m_slopeComparison = 0.5;
   double m_windowSize = 55.;
   
-  double m_slopeComparisonSt1 = 0.45; //was 0.40, but there was an event lost because of a big st1 distortion
+  double m_slopeComparisonSt1 = 0.45; //was 0.40, but there was an event lost because of a big st1 distortion; then was .45
   double m_XWindowSt1 = 1.5;
-  double m_UVWindowSt1 = 3.5;
+  double m_UVWindowSt1 = 3.5; //was 3.5
 
   double m_hodoXWindow = 20;
   double m_hodoUVWindow = 55;
@@ -378,6 +380,7 @@ private:
 
   double m_chiSqCut = 300.;
   double m_st23ChiSqCut = 50.; //was 15, 20, then 40
+  //double m_st23ChiSqCut = 20.; //was 15, 20, then 40
 
 
 

@@ -157,6 +157,8 @@ private:
   bool _use_geom_io_node;
   std::string  _geom_file_name;
   TGeoManager* _t_geo_manager;
+
+  std::vector<SRecTrack> temporarySTracks;
 };
 
 #endif

@@ -96,6 +96,9 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
     hodohitlist.clear();
     for(std::vector<Hit>::iterator iter = rawEvent->fAllHits.begin(); iter != rawEvent->fAllHits.end(); ++iter)
     {
+      //std::cout<<"rawEvent->getEventID() = "<<rawEvent->getEventID()<<std::endl;
+      //if(rawEvent->getEventID() < 370 || rawEvent->getEventID() > 390) continue;
+
         if(outoftime && (!iter->isInTime())) continue;
 
 	if(iter->index < 1000){
@@ -103,6 +106,7 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 	  if(iter->detectorID <= nChamberPlanes)    //chamber hits
 	    {
 	      //if(iter->index < 100) std::cout<<"signal hit in "<<iter->detectorID<<std::endl; //WPM
+	      
 	      if(realization && rndm.Rndm() > chamEff) continue;
 	      //if(iter->index < 100) std::cout<<"the hit survived"<<std::endl; //WPM
 	      //if(realization && rndm.Rndm() > 1.5) continue;
@@ -120,7 +124,7 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 	    double res = rndm.Gaus(0., chamResol);
 	    //iter->driftDistance += rndm.Gaus(0., chamResol);
 	    iter->driftDistance += res;
-	    std::cout<<"hit index "<<iter->index<<" had driftDistance "<<iter->driftDistance<<", but got bumped by "<<res<<std::endl; //WPM
+	    //std::cout<<"hit index "<<iter->index<<" in detID "<<iter->detectorID<<" at elm "<<iter->elementID<<" had driftDistance "<<iter->driftDistance<<", but got bumped by "<<res<<std::endl; //WPM
 	  }
 	}
         if(iter->detectorID >= nChamberPlanes+1 && iter->detectorID <= nChamberPlanes+nHodoPlanes)

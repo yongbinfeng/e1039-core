@@ -42,6 +42,9 @@ Created: 05-28-2013
 //#define _DEBUG_MATCH
 //#define _DEBUG_MATCH_2
 //#define _DEBUG_STRACKS
+//#define _DEBUG_23
+//#define _DEBUG_RBH
+//#define _DEBUG_ST1M2
 
 //#define _DEBUG_GLOBAL
 //#define _DEBUG_GLOBAL_2
@@ -490,6 +493,8 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     trackletsInSt23SlimX.clear();
     trackletsInSt23SlimU.clear();
     trackletsInSt23SlimV.clear();
+    LogInfo("globalTracklets.size() = "<<globalTracklets.size());
+    globalTracklets.clear();
     
     //pre-tracking cuts
     rawEvent = event_input;
@@ -654,7 +659,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 	numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
       }
       std::cout<<"numHodoValidCombos 2 = "<<numHodoValidCombos<<std::endl;
-    } else if(highPU && numHodoValidCombos > 1500000){
+    } else if(highPU && numHodoValidCombos > 500000){
       return TFEXIT_FAIL_BACKPARTIAL;
     }
 
@@ -855,7 +860,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     reduceTrackletList(trackletsInSt[3]);
 
     if(verbosity >= 2) LogInfo("NTracklets St2+St3 (2nd pass): " << trackletsInSt[3].size());
-#ifdef _DEBUG_HODO_QC
+#ifdef _DEBUG_23
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
       tracklet23->print();
@@ -877,9 +882,15 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     }
 
 
-    for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
+    //for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
+    //for(std::list<Tracklet>::iterator trackletG = globalTracklets.begin(); trackletG != globalTracklets.end(); ++trackletG)
+    for(unsigned int gt = 0; gt < globalTracklets.size(); gt++)
     {
-      double testChisq = trackletG->chisq;
+      globalTracklets.at(gt).addDummyHits();
+      double testChisq = globalTracklets.at(gt).chisq;
+      //std::cout<<gt<<" testChisq = "<<testChisq<<std::endl;
+      //trackletG->addDummyHits();
+      //double testChisq = trackletG->chisq;
 #ifdef _DEBUG_GCLEAN
       LogInfo(testChisq);
 #endif
@@ -889,9 +900,13 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 #ifdef _DEBUG_GCLEAN
 	LogInfo(testChisq);
 #endif
-	checkSigns((*trackletG));
-	if(trackletG->chisq < testChisq){
-	  testChisq = trackletG->chisq;
+	checkSigns(globalTracklets.at(gt));
+	//checkSigns((*trackletG));
+	if(globalTracklets.at(gt).chisq < testChisq){
+	  //if(trackletG->chisq < testChisq){
+	  testChisq = globalTracklets.at(gt).chisq;
+	  //std::cout<<gt<<" testChisq = "<<testChisq<<std::endl;
+	  //testChisq = trackletG->chisq;
 	} else{
 	  gettingBetter = false;
 	}
@@ -899,6 +914,28 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       }
     }
 
+    //for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
+    //for(std::list<Tracklet>::iterator trackletG = globalTracklets.begin(); trackletG != globalTracklets.end(); ++trackletG)
+    for(unsigned int gt = 0; gt < globalTracklets.size(); gt++)
+      {
+	//std::cout<<"pushing back final "<<gt<<" globalTracklets.at(gt).chisq = "<<globalTracklets.at(gt).chisq<<std::endl;
+	if(globalTracklets.at(gt).chisq < 30){
+	  trackletsInSt[4].push_back(globalTracklets.at(gt));
+	}
+	/*
+	Tracklet testTracklet = globalTracklets.at(gt);
+	//bool testRBH = removeBadHits(globalTracklets.at(gt));
+	bool testRBH = removeBadHits(testTracklet);
+	LogInfo("what is testRBH? "<<testRBH);
+	if(testRBH){
+	  trackletsInSt[4].push_back(globalTracklets.at(gt));
+	  LogInfo("pushed back");
+	} else{
+	  LogInfo("did not push back");
+	}
+	*/
+      }
+    
     reduceTrackletList(trackletsInSt[4]);
     
     _timers["global"]->stop();
@@ -1125,7 +1162,7 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
       slopeComp = .25;
       windowSize = 27.5;
       reqHits = 1;
-      slopeCompSt1 = .15;
+      slopeCompSt1 = .25;
       XWinSt1 = 1.25;
       UVWinSt1 = 1.5;
       hodoXWin = 14;
@@ -1142,7 +1179,7 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
       slopeComp = .25;
       windowSize = 27.5;
       reqHits = 2;
-      slopeCompSt1 = .15;
+      slopeCompSt1 = .25;
       XWinSt1 = 1.25;
       UVWinSt1 = 1.5;
       hodoXWin = 14;
@@ -1159,7 +1196,7 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
       slopeComp = .15;
       windowSize = 15;
       reqHits = 2;
-      slopeCompSt1 = .15;
+      slopeCompSt1 = .18;
       XWinSt1 = 1.25;
       UVWinSt1 = 1.5;
       hodoXWin = 7;
@@ -1805,6 +1842,10 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
       std::cout<<"tracklet2.tx = "<<trackletX.st2Xsl<<", and tracklet3.tx = "<<trackletX.st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
 #endif
+#ifdef _DEBUG_ST1M
+      std::cout<<"testTY2 = "<<testTY2<<", and testTY3 = "<<testTY3<<std::endl;
+      std::cout<<"tracklet2.tx = "<<trackletX.st2Xsl<<", and tracklet3.tx = "<<trackletX.st2Xsl<<", and testTX2 = "<<testTX2<<", and testTX3 = "<<testTX3<<std::endl;
+#endif
       if(std::abs(testTY2 - testTY3) > YSlopesDiff) continue; //The y-slope extracted from the U wires should match the y-slope extracted from the V wires
       
 #ifdef _DEBUG_ST32L
@@ -1848,23 +1889,94 @@ void KalmanFastTracking_NEW_HODO_2::buildBackPartialTracksSlim_v3(int cut)
       tracklet_TEST_23.st3V = trackletV.st3V;
       
       fitTracklet(tracklet_TEST_23);
-      
-      //Assign hit sign for unknown hits
+
+#ifdef _DEBUG_ST1M
+      tracklet_TEST_23.print();
+#endif
+
+      int num0s = 0;
       for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
-	if(hit1->sign == 0){
-	  hit1->sign = 1;
-	  fitTracklet(tracklet_TEST_23);
-	  double dcaPlus = tracklet_TEST_23.chisq;
-	  hit1->sign = -1;
-	  fitTracklet(tracklet_TEST_23);
-	  double dcaMinus = tracklet_TEST_23.chisq;
-	  if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+        if(hit1->sign == 0){
+	  num0s++;
+	}
+      }
+
+      if(num0s != 2){
+	//Assign hit sign for unknown hits
+	for(std::list<SignedHit>::iterator hit1 = tracklet_TEST_23.hits.begin(); hit1 != tracklet_TEST_23.hits.end(); ++hit1){
+	  if(hit1->sign == 0){
 	    hit1->sign = 1;
-	  } else{
+	    fitTracklet(tracklet_TEST_23);
+	    double dcaPlus = tracklet_TEST_23.chisq;
+#ifdef _DEBUG_ST1M
+	    tracklet_TEST_23.print();
+	    LogInfo("dcaPlus = "<<dcaPlus);
+#endif
 	    hit1->sign = -1;
+	    fitTracklet(tracklet_TEST_23);
+	    double dcaMinus = tracklet_TEST_23.chisq;
+#ifdef _DEBUG_ST1M
+	    tracklet_TEST_23.print();
+	    LogInfo("dcaMinus = "<<dcaMinus);
+#endif
+	    if(std::abs(dcaPlus) < std::abs(dcaMinus)){
+	      hit1->sign = 1;
+	    } else{
+	      hit1->sign = -1;
+	    }
 	  }
 	}
       }
+      else{
+	bool assignedOne = false;
+	std::list<SignedHit>::iterator hit1;
+	std::list<SignedHit>::iterator hit2;
+	for(std::list<SignedHit>::iterator hitS = tracklet_TEST_23.hits.begin(); hitS != tracklet_TEST_23.hits.end(); ++hitS){
+	  if(hitS->sign == 0  && !(assignedOne) ){
+	    hit1 = hitS;
+	    assignedOne = true;
+	  }
+	  if(hitS->sign == 0  && (assignedOne) ){
+	    hit2 = hitS;
+          }
+	}
+	int possibility[4][2] = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+	double dcaPlusPlus, dcaPlusMinus, dcaMinusPlus, dcaMinusMinus;
+
+	hit1->sign = possibility[0][0];
+	hit2->sign = possibility[0][1];
+	fitTracklet(tracklet_TEST_23);
+	dcaPlusPlus = tracklet_TEST_23.chisq;
+	hit1->sign = possibility[1][0];
+	hit2->sign = possibility[1][1];
+	fitTracklet(tracklet_TEST_23);
+	dcaPlusMinus = tracklet_TEST_23.chisq;
+	hit1->sign = possibility[2][0];
+	hit2->sign = possibility[2][1];
+	fitTracklet(tracklet_TEST_23);
+	dcaMinusPlus = tracklet_TEST_23.chisq;
+	hit1->sign = possibility[3][0];
+	hit2->sign = possibility[3][1];
+	fitTracklet(tracklet_TEST_23);
+	dcaMinusMinus = tracklet_TEST_23.chisq;
+
+	std::vector<double> dcas = {dcaPlusPlus, dcaPlusMinus, dcaMinusPlus, dcaMinusMinus};
+
+	//LogInfo("dcaPlusPlus = "<<dcaPlusPlus<<" dcaPlusMinus = "<<dcaPlusMinus<<" dcaMinusPlus = "<<dcaMinusPlus<<" dcaMinusMinus = "<<dcaMinusMinus);
+
+	double bestdca = 1000;
+	int bestind = 5;
+	for(int dc = 0; dc < dcas.size(); dc++){
+	  if(dcas.at(dc)< bestdca){
+	    bestdca = dcas.at(dc);
+	    bestind = dc;
+	  }
+	}
+
+	hit1->sign = possibility[bestind][0];
+        hit2->sign = possibility[bestind][1];
+      }
+      
       
       ///Remove bad hits if needed;  Right now this doesn't play nicely with this algorithm
       //removeBadHits(tracklet_TEST_23);
@@ -3453,9 +3565,11 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
         {
 	  
 	  bool validTrackFound = false; //WPM
+	  int validTrackPX = -1; //WPM
 	  int pxSlices[23] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41, 43, 45}; //This is another scan outward from a linear extrapolation from station 2+3.  We don't know the momentum or charge at this point!  The range here does limit the pz range that you can find to some extent, but I can get below 10 GeV with this range
 	  for(int pxs = 0; pxs < 23; pxs++){ //WPM
-	    if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop
+  
+	    if(validTrackFound && (pxs - validTrackPX) > 4) continue; //WPM potentially controversial.  Trying to get out of px window loop
 	    
 	    int charges[2] = {-1,1}; //WPM
 	    for(int ch = 0; ch < 2; ch++){ //WPM
@@ -3471,7 +3585,12 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 	      }
 
 	      if(!hodoFound) continue;
-	      if(validTrackFound) continue; //WPM potentially controversial.  Trying to get out of px window loop.  Finding higher pz tracks takes less time
+
+#ifdef _DEBUG_ST1M2
+	      LogInfo("validTrackFound = "<<validTrackFound<<" validTrackPX = "<<validTrackPX<<" pxs = "<<pxs<<" ch = "<<ch);
+#endif
+	      
+	      if(validTrackFound  && (pxs - validTrackPX) > 4) continue; //WPM potentially controversial.  Trying to get out of px window loop.  Finding higher pz tracks takes less time
 	      
 	      trackletsInStSlimX[0][0][0].clear();
 	      trackletsInStSlimU[0][0][0].clear();
@@ -3504,6 +3623,9 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 	      }
 	      if(TRACK_DISPLACED){
 		pos_exp[0] = posx+charges[ch]*pxSlices[pxs];
+#ifdef _DEBUG_ST1M2
+		LogInfo("pos_exp[0] = "<<pos_exp[0]);
+#endif
 		//get expected U and V positions in station 1
 		double testSt1Upos = p_geomSvc->getCostheta(1) * ( expXZSlope * (z_plane[1] - z_plane[3]) + pos_exp[0]) + p_geomSvc->getSintheta(1) * (tracklet23->ty * z_plane[1] + tracklet23->y0);
 		double testSt1Vpos = p_geomSvc->getCostheta(5) * ( expXZSlope * (z_plane[5] - z_plane[3]) + pos_exp[0]) + p_geomSvc->getSintheta(5) * (tracklet23->ty * z_plane[5] + tracklet23->y0);
@@ -3520,7 +3642,7 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 		buildTrackletsInStationSlimV(i+1, 0, pos_exp, window);
 		getNum1Combos();
 		bool doTight = false;
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
 		LogInfo("pos_exp = "<<pos_exp[0]<<", "<<pos_exp[1]<<", "<<pos_exp[2]);
 		LogInfo("num1XCombos*num1UCombos*num1VCombos = "<<num1XCombos*num1UCombos*num1VCombos);
 #endif
@@ -3594,6 +3716,10 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 #ifdef _DEBUG_ON
 		  LogInfo("accepted tracklet global tracks displaced");
 #endif
+#ifdef _DEBUG_ST1M2
+		  LogInfo("accepted tracklet global tracks displaced");
+		  tracklet_global.print();
+#endif
 		  
 		  //Get the tracklets that has the best prob
 		  if(tracklet_global < tracklet_best_prob) tracklet_best_prob = tracklet_global;
@@ -3656,7 +3782,11 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 		  //if(tracklet_best_prob.hits.size()==6) validTrackFound = true;
 		}
 	    }
-	    if(tracklet_best_prob.chisq < 50. && tracklet_best_prob.isValid()) break; //MIGHT NEED TO RECONSIDER THIS ACTUALLY
+	    if(tracklet_best_prob.chisq < 50. && tracklet_best_prob.isValid()){
+	      //break; //MIGHT NEED TO RECONSIDER THIS ACTUALLY
+	      validTrackFound = true;
+	      if(validTrackPX < 0) validTrackPX = pxs;
+	    }
 	  }
 	  if(tracklet_best_prob.chisq < 50. && tracklet_best_prob.isValid()) break; //SIMILARLY THIS MIGHT BE TOO TIGHT
 	}
@@ -3683,25 +3813,38 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
             LogInfo("Choose merged tracklet");
 #endif
 
-            trackletsInSt[4].push_back(tracklet_merge);
+            //trackletsInSt[4].push_back(tracklet_merge);
+	    
+	    //if(tracklet_merge.chisq < 50.) globalTracklets.push_back(tracklet_merge);
+	    //std::cout<<"tracklet_merge.chisq = "<<tracklet_merge.chisq<<std::endl;
+	    globalTracklets.push_back(tracklet_merge);
 	  }
         else if(tracklet_best[0].isValid() > 0 && tracklet_best[0] < tracklet_best[1])
 	  {
 #ifdef _DEBUG_ON
             LogInfo("Choose tracklet with station-0");
 #endif
-            trackletsInSt[4].push_back(tracklet_best[0]);
+            //trackletsInSt[4].push_back(tracklet_best[0]);
+	    
+	    //if(tracklet_best[0].chisq < 50.) globalTracklets.push_back(tracklet_best[0]);
+	    //std::cout<<"tracklet_best[0].chisq = "<<tracklet_best[0].chisq<<std::endl;
+	    globalTracklets.push_back(tracklet_best[0]);
 	  }
         else if(tracklet_best[1].isValid() > 0)
 	  {
 #ifdef _DEBUG_ON
             LogInfo("Choose tracklet with station-1");
 #endif
-            trackletsInSt[4].push_back(tracklet_best[1]);
+            //trackletsInSt[4].push_back(tracklet_best[1]);
+
+	    //if(tracklet_best[1].chisq < 50.) globalTracklets.push_back(tracklet_best[1]);
+	    //std::cout<<"tracklet_best[1].chisq = "<<tracklet_best[1].chisq<<std::endl;
+	    globalTracklets.push_back(tracklet_best[1]);
 	  }
     }
     
-    trackletsInSt[4].sort();
+    //trackletsInSt[4].sort();
+    //globalTracklets.sort();
     
 #ifdef _DEBUG_PATRICK
     LogInfo("end of buildGlobalTracksDisplaced");
@@ -3835,9 +3978,14 @@ void KalmanFastTracking_NEW_HODO_2::resolveSingleLeftRight(Tracklet& tracklet)
     if(isUpdated) fitTracklet(tracklet);
 }
 
-void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
+bool KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
 {
 #ifdef _DEBUG_ON
+    LogInfo("Removing hits for this track..");
+    tracklet.calcChisq();
+    tracklet.print();
+#endif
+#ifdef _DEBUG_RBH
     LogInfo("Removing hits for this track..");
     tracklet.calcChisq();
     tracklet.print();
@@ -3884,6 +4032,11 @@ void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
             hit_remove->hit.print();
             hit_neighbour->hit.print();
 #endif
+#ifdef _DEBUG_RBH
+            LogInfo("Dropping this hit: " << res_remove1 << "  " << res_remove2 << "   " << signflipflag[hit_remove->hit.detectorID-1] << "  " << cut);
+            hit_remove->hit.print();
+            hit_neighbour->hit.print();
+#endif
 
             //can only be changed less than twice
             if(res_remove2 < cut && signflipflag[hit_remove->hit.detectorID-1] < 2)
@@ -3894,13 +4047,30 @@ void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
 #ifdef _DEBUG_ON
                 LogInfo("Only changing the sign.");
 #endif
+#ifdef _DEBUG_RBH
+                LogInfo("Only changing the sign.");
+#endif
             }
             else
             {
                 //Set the index of the hit to be removed to -1 so it's not used anymore
                 //also set the sign assignment of the neighbour hit to 0 (i.e. undecided)
+#ifdef _DEBUG_RBH
+	      LogInfo("In RBH else");
+	      LogInfo((tracklet.nXHits + tracklet.nUHits + tracklet.nVHits));
+#endif
+	      if((tracklet.nXHits + tracklet.nUHits + tracklet.nVHits) < 15){
+#ifdef _DEBUG_RBH
+		LogInfo("failed...");
+		tracklet.print();
+#endif
+		return false;
+	      }
                 hit_remove->hit.index = -1;
                 hit_neighbour->sign = 0;
+#ifdef _DEBUG_RBH
+	      LogInfo("assigned signs");
+#endif
                 int planeType = p_geomSvc->getPlaneType(hit_remove->hit.detectorID);
                 if(planeType == 1)
                 {
@@ -3915,24 +4085,50 @@ void KalmanFastTracking_NEW_HODO_2::removeBadHits(Tracklet& tracklet)
                     --tracklet.nVHits;
                 }
 
+#ifdef _DEBUG_RBH
+	      LogInfo("did hit counting");
+	      LogInfo("hit_neighbour->hit.index = "<<hit_neighbour->hit.index);
+#endif
+
                 //If both hit pairs are not included, the track can be rejected
                 if(hit_neighbour->hit.index < 0)
                 {
 #ifdef _DEBUG_ON
                     LogInfo("Both hits in a view are missing! Will exit the bad hit removal...");
 #endif
-                    return;
+#ifdef _DEBUG_RBH
+                    LogInfo("Both hits in a view are missing! Will exit the bad hit removal...");
+#endif
+                    return false;
                 }
+#ifdef _DEBUG_RBH
+	      LogInfo("cpt1");
+#endif
             }
             isUpdated = true;
+#ifdef _DEBUG_RBH
+	      LogInfo("cpt2");
+#endif
         }
 
         if(isUpdated)
         {
+	  if((tracklet.nXHits + tracklet.nUHits + tracklet.nVHits) < 14){
+#ifdef _DEBUG_RBH
+	      LogInfo("cpt3");
+#endif
+	    return false;
+	  }
             fitTracklet(tracklet);
             resolveSingleLeftRight(tracklet);
+#ifdef _DEBUG_RBH
+	    LogInfo("in isUpdated");
+	    tracklet.print();
+#endif
+
         }
     }
+    return true;
 }
 
 
@@ -4333,7 +4529,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
   LogInfo("In buildTrackletsInStation1_NEW");
 #endif
   
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
   LogInfo("do tight? " << tight << " stationID = "<< stationID << " listID = "<<listID<<" expXZSlope = "<<expXZSlope<<" expYSlope = "<<expYSlope<<" y0 = "<<y0);
 #endif
 
@@ -4355,7 +4551,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
     
     if(trackletX->hits.size() < 2 && tight) continue;
     
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
     LogInfo("expected x slope = "<<expXZSlope);
     trackletX->print();
 #endif
@@ -4368,8 +4564,8 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
       int nValidXSlopes = 0;
       for(int t3 = 0; t3 < trackletX->possibleXLines.size(); t3++){
 	slopeDiffX = trackletX->possibleXLines.at(t3).slopeX - expXZSlope;
-#ifdef _DEBUG_ST1M
-	LogInfo("x slope diff = "<<slopeDiffX);
+#ifdef _DEBUG_ST1M2
+	LogInfo("x slope diff = "<<slopeDiffX<<" slopeComparisonSt1 = "<<slopeComparisonSt1<<" bestSlopeDiffX = "<<bestSlopeDiffX);
 #endif
 	if(std::abs(slopeDiffX)<slopeComparisonSt1) nValidXSlopes++;
 	if(std::abs(slopeDiffX)<slopeComparisonSt1 && std::abs(slopeDiffX)<std::abs(bestSlopeDiffX)){
@@ -4420,7 +4616,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
       
       if(trackletU->hits.size() < 2 && tight) continue;
       
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
       LogInfo("expected u slope = "<<testTU);
       trackletU->print();
 #endif
@@ -4434,7 +4630,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	int nValidUSlopes = 0;
 	for(int t3 = 0; t3 < trackletU->possibleULines.size(); t3++){
 	  slopeDiffU = trackletU->possibleULines.at(t3).slopeU - testTU;
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M2
 	  LogInfo("u slope diff = "<<slopeDiffU);
 #endif
 	  
@@ -4488,7 +4684,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	
 	if(trackletV->hits.size() < 2 && tight) continue;
 	
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
 	LogInfo("expected v slope = "<<testTV);
 	trackletV->print();
 #endif
@@ -4502,7 +4698,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	  int nValidVSlopes = 0;
 	  for(int t3 = 0; t3 < trackletV->possibleVLines.size(); t3++){
 	    slopeDiffV = trackletV->possibleVLines.at(t3).slopeV - testTV;
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_ST1M2
 	    LogInfo("v slope diff = "<<slopeDiffV);
 #endif
 	    
@@ -4569,7 +4765,11 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 #ifdef _DEBUG_RES
 	std::cout<<"station 1 chisq using no drift distance = "<<tracklet_new_Station1.calcChisq_noDrift()<<std::endl;
 	tracklet_new_Station1.print();
-#endif	
+#endif
+#ifdef _DEBUG_ST1M2
+	std::cout<<"station 1 chisq using no drift distance = "<<tracklet_new_Station1.calcChisq_noDrift()<<std::endl;
+	tracklet_new_Station1.print();
+#endif
 	
 	if(tracklet_new_Station1.calcChisq_noDrift() > 300 || isnan(tracklet_new_Station1.calcChisq_noDrift()) ) continue;
 	fitTracklet(tracklet_new_Station1);
@@ -4595,7 +4795,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
-#ifdef _DEBUG_ST1M
+#ifdef _DEBUG_ST1M2
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
@@ -5375,16 +5575,45 @@ int KalmanFastTracking_NEW_HODO_2::reduceTrackletList(std::list<Tracklet>& track
     tracklets.sort();
     while(!tracklets.empty())
     {
+#ifdef _DEBUG_RBH
+      LogInfo("not empty so in loop");
+#endif
+#ifdef _DEBUG_RBH
+      LogInfo("tracklets.size() = "<<tracklets.size());
+#endif
+#ifdef _DEBUG_RBH
+      LogInfo("print front");
+      tracklets.front().print();
+      LogInfo("nhits = "<<(tracklets.front().nXHits + tracklets.front().nUHits + tracklets.front().nVHits));
+#endif
+      if((tracklets.front().nXHits + tracklets.front().nUHits + tracklets.front().nVHits) < 14 && tracklets.front().stationID == nStations){
+	tracklets.pop_front();
+	continue;
+      } else{
         targetList.push_back(tracklets.front());
+      }
+#ifdef _DEBUG_RBH
+	LogInfo("pop front");
+#endif
         tracklets.pop_front();
-
+#ifdef _DEBUG_RBH
+	LogInfo("popped front");
+#endif
 #ifdef _DEBUG_ON_LEVEL_2
+        LogInfo("Current best tracklet in reduce");
+        targetList.back().print();
+#endif
+#ifdef _DEBUG_RBH
         LogInfo("Current best tracklet in reduce");
         targetList.back().print();
 #endif
 
         for(std::list<Tracklet>::iterator iter = tracklets.begin(); iter != tracklets.end(); )
         {
+#ifdef _DEBUG_RBH
+	  LogInfo("tracklet iter loop");
+	  iter->print();
+#endif
 	  //if(iter->similarity(targetList.back()))
 	  if(iter->stationID < nStations){
 	    if(iter->similarity(targetList.back()) && std::abs(targetList.back().st2X - iter->st2X) < 3. && std::abs(targetList.back().st2U - iter->st2U) < 3. && std::abs(targetList.back().st2V - iter->st2V) < 3. && std::abs(targetList.back().st3X - iter->st3X) < 3. && std::abs(targetList.back().st3U - iter->st3U) < 3. && std::abs(targetList.back().st3V - iter->st3V) < 3. && std::abs(targetList.back().tx - iter->tx) < 0.01 && std::abs(targetList.back().ty - iter->ty) < 0.01)
@@ -5403,25 +5632,59 @@ int KalmanFastTracking_NEW_HODO_2::reduceTrackletList(std::list<Tracklet>& track
 	  } else{
 	    //if(iter->similarity(targetList.back()) && std::abs(targetList.back().tx - iter->tx) < 0.01 && std::abs(targetList.back().ty - iter->ty) < 0.01 && std::abs(targetList.back().x0 - iter->x0) < 3 && std::abs(targetList.back().y0 - iter->y0) < 3)
 	    //if(iter->similarity(targetList.back()))
+#ifdef _DEBUG_RBH
+	    LogInfo("about to check else");
+#endif
+#ifdef _DEBUG_RBH
+	    LogInfo("is the problem in similarity? "<<iter->similarity(targetList.back()));
+#endif
+#ifdef _DEBUG_RBH
+	    LogInfo("is the problem in other if part? "<<(std::abs(targetList.back().tx - iter->tx) > 0.01 || std::abs(targetList.back().ty - iter->ty) > 0.01 ));
+	    LogInfo("how about? "<<(std::abs(targetList.back().x0 - iter->x0) > 10 || std::abs(targetList.back().y0 - iter->y0) > 10));
+#endif
+
 	    if(iter->similarity(targetList.back()) && !(std::abs(targetList.back().tx - iter->tx) > 0.01 || std::abs(targetList.back().ty - iter->ty) > 0.01 ) && !(std::abs(targetList.back().x0 - iter->x0) > 10 || std::abs(targetList.back().y0 - iter->y0) > 10))
 	      {
+#ifdef _DEBUG_RBH
+		LogInfo("past if in else");
+#endif
 #ifdef _DEBUG_ON_LEVEL_2
                 LogInfo("Removing this tracklet: ");
                 iter->print();
 #endif
                 iter = tracklets.erase(iter);
+#ifdef _DEBUG_RBH
+		LogInfo("erased?");
+#endif
                 continue;
 	      }
             else
 	      {
+#ifdef _DEBUG_RBH
+		LogInfo("did not pass if");
+#endif
                 ++iter;
 	      }
+#ifdef _DEBUG_RBH
+		LogInfo("mystery bracket");
+#endif
 	  }
-	  
+#ifdef _DEBUG_RBH
+		LogInfo("try next iterator");
+#endif	  
         }
+#ifdef _DEBUG_RBH
+	LogInfo("empty? "<<tracklets.empty());
+#endif
     }
 
+#ifdef _DEBUG_RBH
+    LogInfo("going to assign");
+#endif
     tracklets.assign(targetList.begin(), targetList.end());
+#ifdef _DEBUG_RBH
+    LogInfo("assigned");
+#endif
     return 0;
 }
 

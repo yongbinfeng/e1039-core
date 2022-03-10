@@ -44,7 +44,7 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 
-#define _DEBUG_ON
+//#define _DEBUG_ON
 
 #ifdef _DEBUG_ON
 #  define LogDebug(exp) std::cout << "DEBUG: " << __FUNCTION__ <<": "<< __LINE__ << ": " << exp << std::endl
@@ -301,6 +301,8 @@ int SQReco::process_event(PHCompositeNode* topNode)
 {
   LogDebug("Entering SQReco::process_event: " << _event);
 
+  temporarySTracks.clear();
+  
   if(is_eval_enabled()) ResetEvalVars();
   if(_input_type == SQReco::E1039)
   {
@@ -388,9 +390,10 @@ int SQReco::process_event(PHCompositeNode* topNode)
       //LogInfo("print a recTrack from SQReco");
       //recTrack.print();
       //}
-      recTrack.setKalmanStatus(-1);
       
-      fillRecTrack(recTrack);
+      //recTrack.setKalmanStatus(-1); //WPM
+      
+      //fillRecTrack(recTrack); //WPM
     }
     else
     {
@@ -400,6 +403,29 @@ int SQReco::process_event(PHCompositeNode* topNode)
     if(is_eval_enabled()) new((*_tracklets)[nTracklets]) Tracklet(*iter);
     if(is_eval_dst_enabled()) _tracklet_vector->push_back(&(*iter));
     ++nTracklets;
+  }
+
+  int bestInd = -1;
+  int secondInd = -1;
+  double bestChiSq = 1000;
+  double secondChiSq = 1001;
+  for(unsigned int st = 0; st<temporarySTracks.size(); st++){
+    if(temporarySTracks.at(st).getChisq() < bestChiSq){
+      secondChiSq = bestChiSq;
+      secondInd = bestInd;
+      
+      bestInd = st;
+      bestChiSq = temporarySTracks.at(st).getChisq();
+    } else if(temporarySTracks.at(st).getChisq() < secondChiSq){
+      secondChiSq = temporarySTracks.at(st).getChisq();
+      secondInd = st;
+    }
+  }
+  if(bestInd > -1){
+    fillRecTrack(temporarySTracks.at(bestInd));
+  }
+  if(secondInd > -1){
+    fillRecTrack(temporarySTracks.at(secondInd));
   }
   LogDebug("Leaving SQReco::process_event: " << _event << ", finder status " << finderstatus << ", " << nTracklets << " track candidates, " << nFittedTracks << " fitted tracks");
 
@@ -553,6 +579,8 @@ bool SQReco::fitSt3TrackletCand(Tracklet& tracklet, KalmanFitter* fitter)
 
 bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
 {
+  LogDebug("chisq of tracklet = "<<tracklet.chisq);
+  
   SQGenFit::GFTrack gftrk;
   gftrk.setTracklet(tracklet);
 
@@ -572,7 +600,37 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
   //TODO: A gtrack quality cut?
 
   SRecTrack strack = gftrk.getSRecTrack();
+  LogDebug("chisq of strack = "<<strack.getChisq());
 
+  
+  Tracklet& trackletTEST = tracklet;
+  bool RBH = _fastfinder->removeBadHits(trackletTEST);
+  if(!RBH) return false;
+  SQGenFit::GFTrack gftrkTEST;
+  gftrkTEST.setTracklet(trackletTEST);
+  
+  int fitOKTEST = _gfitter->processTrack(gftrkTEST);
+  if(fitOKTEST != 0)
+    {
+      LogDebug("gFitter failed to converge TEST.");
+      return false;
+    }
+  
+  SRecTrack strackTEST = gftrkTEST.getSRecTrack();
+  LogDebug("chisq of strackTEST = "<<strackTEST.getChisq());
+  
+  if( strackTEST.getChisq() < strack.getChisq() ){
+  //if( trackletTEST < tracklet ){
+    LogDebug("The RBH version was better");
+    tracklet = trackletTEST;
+    strack = strackTEST;
+  }
+
+  if(Verbosity() > Fun4AllBase::VERBOSITY_A_LOT)
+  {
+    tracklet.print();
+  }
+  
   //Set trigger road ID
   TriggerRoad road(tracklet);
   strack.setTriggerRoad(road.getRoadID());
@@ -581,9 +639,11 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
   strack.setNHitsInPT(tracklet.seg_x.getNHits(), tracklet.seg_y.getNHits());
   strack.setPTSlope(tracklet.seg_x.a, tracklet.seg_y.a);
 
-
+  
   LogDebug("turns out i'm dong gfitting?  about to fill rectrack.  chisq = "<<strack.getChisq());
-  fillRecTrack(strack);
+  temporarySTracks.push_back(strack);
+  //fillRecTrack(strack);
+  
   return true;
 }
 

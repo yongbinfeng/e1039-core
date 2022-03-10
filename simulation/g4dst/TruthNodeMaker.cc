@@ -223,15 +223,22 @@ int TruthNodeMaker::process_event(PHCompositeNode* topNode)
   //// extract the list of hitid for each rec track
   int n_rtrks = 0;
   map<int, vector<int> > rtrkid_hitidvec;
+  map<int, vector<double> > rtrkid_posvec;
   if(m_legacy_rec_container) {
     n_rtrks = m_rec_evt->getNTracks();
     for(int i = 0; i < n_rtrks; i++) {
       SRecTrack& recTrack = m_rec_evt->getTrack(i);
       rtrkid_hitidvec[i] = vector<int>();
+      rtrkid_posvec[i] = vector<double>();
+      rtrkid_posvec[i].push_back((recTrack.getPositionVecSt1()).X());
+      rtrkid_posvec[i].push_back((recTrack.getPositionVecSt1()).Y());
+      rtrkid_posvec[i].push_back((recTrack.getPositionVecSt3()).X());
+      rtrkid_posvec[i].push_back((recTrack.getPositionVecSt3()).Y());
+      rtrkid_posvec[i].push_back(recTrack.getNHits());
       
       int n_rhits = recTrack.getNHits();
       for(int j = 0; j < n_rhits; ++j) { 
-        rtrkid_hitidvec[i].push_back(recTrack.getHitIndex(j));
+        rtrkid_hitidvec[i].push_back(abs(recTrack.getHitIndex(j)));
       }
 
       sort(rtrkid_hitidvec[i].begin(), rtrkid_hitidvec[i].end());
@@ -269,15 +276,27 @@ int TruthNodeMaker::process_event(PHCompositeNode* topNode)
 
     int rtrkid = -1;
     unsigned int n_match = 0;
+    int trkindex = 0;
+    bool posMatch = false;
     for(auto it = rtrkid_hitidvec.begin(); it != rtrkid_hitidvec.end(); ++it) {
       int n_match_new = FindCommonHitIDs(ttrkid_hitidvec[ttrkid], it->second);
+      //std::cout<<"it->first = "<<it->first<<" n_match = "<<n_match<<" n_match_new = "<<n_match_new<<std::endl; //WPM
       if(n_match < n_match_new) {
         n_match = n_match_new;
         rtrkid = it->first;
+	//std::cout<<rtrkid_posvec[trkindex].at(0)<<" "<<(trk->get_pos_st1()).X()<<" "<<rtrkid_posvec[trkindex].at(1)<<" "<<(trk->get_pos_st1()).Y()<<" "<<rtrkid_posvec[trkindex].at(2)<<" "<<(trk->get_pos_st3()).X()<<" "<<rtrkid_posvec[trkindex].at(3)<<" "<<(trk->get_pos_st3()).Y()<<std::endl; //WPM
+	if( abs( rtrkid_posvec[trkindex].at(0) - (trk->get_pos_st1()).X()) < 3. && abs( rtrkid_posvec[trkindex].at(1) - (trk->get_pos_st1()).Y()) < 4. && abs( rtrkid_posvec[trkindex].at(2) - (trk->get_pos_st3()).X()) < 3. && abs( rtrkid_posvec[trkindex].at(3) - (trk->get_pos_st3()).Y()) < 4. ){
+	  posMatch = True;
+	}
       }
+      trkindex++;
     }
 
-    if(rtrkid >= 0 && double(n_match)/double(ttrkid_hitidvec[ttrkid].size()) > m_matching_threshold) {
+    if(rtrkid >= 0){
+      //std::cout<<"rtrkid = "<<rtrkid<<", n_match = "<<n_match<<", posMatch = "<<posMatch<<", rtrkid_posvec[rtrkid].at(4) = "<<rtrkid_posvec[rtrkid].at(4)<<", and ttrkid_hitidvec[ttrkid].size() = "<<ttrkid_hitidvec[ttrkid].size()<<std::endl; //WPM
+    }
+    //if(rtrkid >= 0 && double(n_match)/double(ttrkid_hitidvec[ttrkid].size()) > m_matching_threshold) {
+    if(rtrkid >= 0 && double(n_match)/double(rtrkid_posvec[rtrkid].at(4)) > 0.45 && posMatch) {
       trk->set_rec_track_id(rtrkid);
     }
   }
@@ -405,6 +424,7 @@ int TruthNodeMaker::FindCommonHitIDs(vector<int>& hitidvec1, vector<int>& hitidv
 
   int nCommon = 0;
   while(iter != hitidvec1.end() && jter != hitidvec2.end()) {
+    //std::cout<<"iter = "<<*iter<<" jiter = "<<*jter<<" nCommon = "<<nCommon<<std::endl; //WPM
     if(*iter < *jter) {
       ++iter;
     } else {
