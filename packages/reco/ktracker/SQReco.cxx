@@ -44,6 +44,9 @@
 #include <exception>
 #include <boost/lexical_cast.hpp>
 
+#include <algorithm>
+#include <vector>
+
 //#define _DEBUG_ON
 
 #ifdef _DEBUG_ON
@@ -51,6 +54,10 @@
 #else
 #  define LogDebug(exp)
 #endif
+
+namespace{
+  bool compRecTrack (SRecTrack t1, SRecTrack t2) { return (t1.getChisq()<t2.getChisq()); }
+}
 
 SQReco::SQReco(const std::string& name):
   SubsysReco(name),
@@ -405,7 +412,12 @@ int SQReco::process_event(PHCompositeNode* topNode)
     ++nTracklets;
   }
 
-  int bestInd = -1;
+  std::sort (temporarySTracks.begin(), temporarySTracks.end(), compRecTrack);
+  for(unsigned int st = 0; st<temporarySTracks.size(); st++){
+    fillRecTrack(temporarySTracks.at(st));
+  }
+  
+  /*int bestInd = -1;
   int secondInd = -1;
   double bestChiSq = 1000;
   double secondChiSq = 1001;
@@ -426,7 +438,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
   }
   if(secondInd > -1){
     fillRecTrack(temporarySTracks.at(secondInd));
-  }
+  }*/
   LogDebug("Leaving SQReco::process_event: " << _event << ", finder status " << finderstatus << ", " << nTracklets << " track candidates, " << nFittedTracks << " fitted tracks");
 
 
