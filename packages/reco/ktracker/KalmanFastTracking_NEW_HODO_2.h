@@ -103,12 +103,18 @@ public:
     void resolveLeftRight(Tracklet& tracklet, double threshold);
     void resolveSingleLeftRight(Tracklet& tracklet);
 
+  //void resolveStation1Hits(Tracklet tracklet1, Tracklet tracklet2);
+  bool resolveStation1Hits();
+  void checkIntercepts(Tracklet tracklet1, Tracklet tracklet2, double& xint, double& yint);
+  
     //Remove bad hit if needed
     bool removeBadHits(Tracklet& tracklet);
     void checkSigns(Tracklet& tracklet);
 
     //Reduce the list of tracklets, returns the number of elements reduced
     int reduceTrackletList(std::list<Tracklet>& tracklets);
+  int reduceTrackletList_st1(std::list<Tracklet> tracklets);
+  void WalkBackTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
 
     //Get exp postion and window using sagitta method in station 1
     void getSagittaWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID);
@@ -168,6 +174,8 @@ private:
 
   std::vector<Tracklet> globalTracklets;
 
+  std::vector<std::vector<Tracklet>> globalTracklets_resolveSt1;
+  
   long int num23XCombos;
   long int num23UCombos;
   long int num23VCombos;

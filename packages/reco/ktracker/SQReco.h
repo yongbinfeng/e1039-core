@@ -103,6 +103,8 @@ private:
 
   void fillRecTrack(SRecTrack& recTrack);
   void fillRecSt3Tracklet(SRecTrack& recTrack);
+
+  double WalkBackTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
   
   SQReco::INPUT_TYPE  _input_type;
   SQReco::FITTER_TYPE _fitter_type;

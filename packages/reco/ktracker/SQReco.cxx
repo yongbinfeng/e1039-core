@@ -371,6 +371,11 @@ int SQReco::process_event(PHCompositeNode* topNode)
   //_event_header->set_totalTime(_totalTime);
   
   if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) LogInfo("TOTAL TIME is: "<<_totalTime);
+
+  std::vector<double> x0_st1s;
+  std::vector<double> tx_st1s;
+  std::vector<double> y0_st1s;
+  std::vector<double> ty_st1s;
   
   int nTracklets = 0;
   int nFittedTracks = 0;
@@ -380,6 +385,26 @@ int SQReco::process_event(PHCompositeNode* topNode)
     iter->calcChisq();
     if(Verbosity() > Fun4AllBase::VERBOSITY_A_LOT) iter->print();
 
+    double tx_st1, x0_st1;
+    iter->getXZInfoInSt1(tx_st1, x0_st1);
+    x0_st1s.push_back(x0_st1);
+    tx_st1s.push_back(tx_st1);
+    y0_st1s.push_back(iter->y0);
+    ty_st1s.push_back(iter->ty);
+    if(Verbosity() > Fun4AllBase::VERBOSITY_A_LOT){
+      LogInfo("tx_st1 = "<<tx_st1<<" and x0_st1 = "<<x0_st1);
+      if(x0_st1s.size()==2){
+	LogInfo("Now for a very special test.  Speculative x int = "<<(x0_st1s.at(1) - x0_st1s.at(0))/(tx_st1s.at(0) - tx_st1s.at(1)));
+	LogInfo("Now for a very special test.  Speculative y int = "<<(y0_st1s.at(1) - y0_st1s.at(0))/(ty_st1s.at(0) - ty_st1s.at(1)));
+	iter->vtxHypos.push_back((x0_st1s.at(1) - x0_st1s.at(0))/(tx_st1s.at(0) - tx_st1s.at(1)));
+	iter->vtxHypos.push_back((y0_st1s.at(1) - y0_st1s.at(0))/(ty_st1s.at(0) - ty_st1s.at(1)));
+	double walkback = WalkBackTracklets((*rec_tracklets.begin()), *iter);
+	if(walkback < 600){
+	  iter->vtxHypos.push_back(walkback);
+	}
+      }
+    }
+    
     bool fitOK = false;
     if(_enable_KF)
     {
@@ -416,6 +441,8 @@ int SQReco::process_event(PHCompositeNode* topNode)
   for(unsigned int st = 0; st<temporarySTracks.size(); st++){
     fillRecTrack(temporarySTracks.at(st));
   }
+
+  std::cout<<"filled rectracks"<<std::endl;
   
   /*int bestInd = -1;
   int secondInd = -1;
@@ -496,6 +523,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
   if(is_eval_enabled() && nTracklets > 0) _eval_tree->Fill();
 
   ++_event;
+  std::cout<<"++evented"<<std::endl;
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
@@ -651,10 +679,20 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
   strack.setNHitsInPT(tracklet.seg_x.getNHits(), tracklet.seg_y.getNHits());
   strack.setPTSlope(tracklet.seg_x.a, tracklet.seg_y.a);
 
+  std::cout<<"where am i? "<<tracklet.vtxHypos.size()<<std::endl;
+  if(tracklet.vtxHypos.size()>0){
+    //strack.setVtxHypos(tracklet.vtxHypos);
+    for(unsigned int h = 0; h < tracklet.vtxHypos.size(); h++){
+      std::cout<<tracklet.vtxHypos.at(h)<<std::endl;
+      //strack.trackletVtxHypos.push_back(tracklet.vtxHypos.at(h));
+    }
+  }
   
   LogDebug("turns out i'm dong gfitting?  about to fill rectrack.  chisq = "<<strack.getChisq());
+  std::cout<<"pushback"<<std::endl;
   temporarySTracks.push_back(strack);
   //fillRecTrack(strack);
+  std::cout<<"pushedback"<<std::endl;
   
   return true;
 }
@@ -832,4 +870,49 @@ void SQReco::add_eval_list(int listID)
   {
     _eval_listIDs.push_back(listID);
   }
+}
+
+
+double SQReco::WalkBackTracklets(Tracklet& tracklet1, Tracklet& tracklet2) 
+{
+
+  double tx_st1_1, x0_st1_1, ty_st1_1, y0_st1_1;
+  tracklet1.getXZInfoInSt1(tx_st1_1, x0_st1_1);
+  ty_st1_1 = tracklet1.ty;
+  y0_st1_1 = tracklet1.y0;
+  double tx_st1_2, x0_st1_2, ty_st1_2, y0_st1_2;
+  tracklet2.getXZInfoInSt1(tx_st1_2, x0_st1_2);
+  ty_st1_2 = tracklet2.ty;
+  y0_st1_2 = tracklet2.y0;
+  
+  int NSteps_St1 = 100;
+  double step_st1 = 100.0/NSteps_St1;
+  
+  TVector3 pos1[NSteps_St1 + 1];
+  TVector3 pos2[NSteps_St1 + 1];
+  pos1[0] = TVector3(x0_st1_1 + tx_st1_1*600., y0_st1_1 + ty_st1_1*600., 600.);
+  pos2[0] = TVector3(x0_st1_2 + tx_st1_2*600, y0_st1_2 + ty_st1_2*600., 600.);
+  
+  for (int iStep = 1; iStep < NSteps_St1; ++iStep) {
+    TVector3 trajVec1(tx_st1_1*step_st1, ty_st1_1*step_st1, step_st1);
+    TVector3 trajVec2(tx_st1_2*step_st1, ty_st1_2*step_st1, step_st1);
+    
+    pos1[iStep] = pos1[iStep - 1] - trajVec1;
+    pos2[iStep] = pos2[iStep - 1] - trajVec2;
+  }
+  
+  int iStep_min = -1;
+  int dist_min = 1000000;
+  for (int iStep = 0; iStep < NSteps_St1; ++iStep) {
+    double dist = (pos1[iStep] - pos2[iStep]).Perp();
+    LogInfo("walkback iStep = "<<iStep<<" dist = "<<dist);
+    
+    if(dist < dist_min) {
+      iStep_min = iStep;
+      dist_min = dist;
+    }
+  }
+
+  LogInfo("walkback iStep_min = "<<iStep_min<<" dist_min = "<<dist_min);
+  return (600.-iStep_min);
 }

@@ -712,6 +712,94 @@ bool Tracklet::similarity(const Tracklet& elem) const
     return false;
 }
 
+double Tracklet::similarity_st1(const Tracklet& elem) const
+{
+    int nCommonHits = 0;
+    int n1st1 = 0;
+    int n2st1 = 0;
+    std::list<SignedHit>::const_iterator first = hits.begin();
+    std::list<SignedHit>::const_iterator second = elem.hits.begin();
+
+    while(first != hits.end() && second != elem.hits.end())
+    {
+      if((*first).hit.detectorID < 7) n1st1++;
+      if((*second).hit.detectorID < 7) n2st1++;
+      //if( (*first).hit.detectorID > 6 && (*second).hit.detectorID ) break;
+        if((*first) < (*second))
+        {
+            ++first;
+        }
+        else if((*second) < (*first))
+        {
+            ++second;
+        }
+        else
+        {
+            if((*first) == (*second) && (*first).hit.detectorID < 7) nCommonHits++;
+            ++first;
+            ++second;
+        }
+    }
+
+    //std::cout<<"nCommonHits = "<<nCommonHits<<", n1st1 = "<<n1st1<<", n2st1 = "<<n2st1<<" nCommonHits/double(n1st1) = "<<double(nCommonHits)/double(n1st1)<<" nCommonHits/double(n2st1) = "<<double(nCommonHits)/double(n2st1)<<" double(double(nCommonHits)/double(n1st1)) > 0.1 = "<<(double(double(nCommonHits)/double(n1st1)) > 0.1)<<std::endl;
+    if(n1st1<n2st1){
+      return double(double(nCommonHits)/double(n1st1));
+    } else{
+      return double(double(nCommonHits)/double(n2st1));
+    }
+    //if(double(double(nCommonHits)/double(n1st1)) > 0.17) return true;
+    //return false;
+}
+
+
+bool Tracklet::similarityAllowed(const Tracklet& elem) const
+{
+  bool allowed = true;
+
+  std::vector<bool> wiresMatch = {false, false, false, false, false, false};
+  
+    int nCommonHits = 0;
+    int n1st1 = 0;
+    int n2st1 = 0;
+    std::list<SignedHit>::const_iterator first = hits.begin();
+    std::list<SignedHit>::const_iterator second = elem.hits.begin();
+
+    while(first != hits.end() && second != elem.hits.end())
+    {
+      if((*first).hit.detectorID < 7) n1st1++;
+      if((*second).hit.detectorID < 7) n2st1++;
+      //if( (*first).hit.detectorID > 6 && (*second).hit.detectorID ) break;
+        if((*first) < (*second))
+        {
+            ++first;
+        }
+        else if((*second) < (*first))
+        {
+            ++second;
+        }
+        else
+        {
+	  if((*first) == (*second) && (*first).hit.detectorID < 7){
+	    nCommonHits++;
+	    wiresMatch.at((*first).hit.detectorID - 1) = true;
+	    //LogInfo("match in "<<(*first).hit.detectorID);
+	  }
+            ++first;
+            ++second;
+        }
+    }
+
+    if(wiresMatch.at(0) && wiresMatch.at(1)) allowed = false;
+    if(wiresMatch.at(2) && wiresMatch.at(3)) allowed = false;
+    if(wiresMatch.at(4) && wiresMatch.at(5)) allowed = false;
+    if(double(double(nCommonHits)/double(n1st1)) > .17 || double(double(nCommonHits)/double(n2st1)) > .17) allowed = false;
+
+    //std::cout<<"nCommonHits = "<<nCommonHits<<", n1st1 = "<<n1st1<<", n2st1 = "<<n2st1<<" nCommonHits/double(n1st1) = "<<double(nCommonHits)/double(n1st1)<<" nCommonHits/double(n2st1) = "<<double(nCommonHits)/double(n2st1)<<" double(double(nCommonHits)/double(n1st1)) > 0.1 = "<<(double(double(nCommonHits)/double(n1st1)) > 0.1)<<std::endl;
+    return allowed;
+    //if(double(double(nCommonHits)/double(n1st1)) > 0.17) return true;
+    //return false;
+}
+
 /*bool Tracklet::elementSimilarity(const Tracklet& elem) const
 {
 
@@ -1465,7 +1553,8 @@ void Tracklet::print(std::ostream& os)
         if(iter->sign < 0) os << "R: ";
         if(iter->sign == 0) os << "U: ";
 
-        os << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << "  " << residual[iter->hit.detectorID-1] << " = ";
+        //os << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << "  " << residual[iter->hit.detectorID-1] << " = ";
+	os << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << "  " << iter->hit.pos + iter->sign*iter->hit.driftDistance << " " << residual[iter->hit.detectorID-1] << " = ";
     }
     os << endl;
 
@@ -1489,6 +1578,42 @@ void Tracklet::print(std::ostream& os)
       possibleVLines.at(sl).print();
     }
 }
+
+double Tracklet::calcChisq_st1_squares()
+{
+  double sumSquares;
+  calcChisq();
+  for(std::list<SignedHit>::iterator iter = hits.begin(); iter != hits.end(); ++iter){
+    if(iter->hit.detectorID < 7){
+      sumSquares += residual[iter->hit.detectorID-1]*residual[iter->hit.detectorID-1];
+    }
+  }
+  sumSquares = sqrt(sumSquares);
+  return sumSquares;
+}
+double Tracklet::calcChisq_st1_sum()
+{
+  double sumSquares;
+  calcChisq();
+  for(std::list<SignedHit>::iterator iter = hits.begin(); iter != hits.end(); ++iter){
+    if(iter->hit.detectorID < 7){
+      sumSquares += residual[iter->hit.detectorID-1];
+    }
+  }
+  return sumSquares;
+}
+double Tracklet::calcChisq_st1_absSum()
+{
+  double sumSquares;
+  calcChisq();
+  for(std::list<SignedHit>::iterator iter = hits.begin(); iter != hits.end(); ++iter){
+    if(iter->hit.detectorID < 7){
+      sumSquares += std::abs(residual[iter->hit.detectorID-1]);
+    }
+  }
+  return sumSquares;
+}
+
 
 TrackletVector::TrackletVector(): trackletVec()
 {}

@@ -24,6 +24,9 @@ Created: 05-28-2013
 #include "KalmanFastTracking_NEW_HODO_2.h"
 #include "TriggerRoad.h"
 
+#define _DEBUG_HITPRINT
+#define _DEBUG_PRINT23
+//#define _DEBUG_BTS
 //#define _DEBUG_ON
 //#define _DEBUG_PATRICK
 //#define _DEBUG_PATRICK_EXTRA
@@ -34,9 +37,13 @@ Created: 05-28-2013
 //#define _DEBUG_FAST
 //#define _DEBUG_HODO
 //#define _DEBUG_HODO_2
+
 //#define _DEBUG_HODO_ST1
+
 //#define _DEBUG_HODO_QC
+
 //#define _DEBUG_ST1M
+
 //#define _DEBUG_ST32L
 //#define _DEBUG_GCLEAN
 //#define _DEBUG_MATCH
@@ -495,6 +502,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     trackletsInSt23SlimV.clear();
     LogInfo("globalTracklets.size() = "<<globalTracklets.size());
     globalTracklets.clear();
+    globalTracklets_resolveSt1.clear();
     
     //pre-tracking cuts
     rawEvent = event_input;
@@ -506,6 +514,9 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
 #endif
 #ifdef _DEBUG_GLOBAL
+    for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
+#endif
+#ifdef _DEBUG_HITPRINT
     for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
 #endif
 
@@ -860,7 +871,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     reduceTrackletList(trackletsInSt[3]);
 
     if(verbosity >= 2) LogInfo("NTracklets St2+St3 (2nd pass): " << trackletsInSt[3].size());
-#ifdef _DEBUG_23
+#ifdef _DEBUG_PRINT23
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
       tracklet23->print();
@@ -937,7 +948,48 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       }
     
     reduceTrackletList(trackletsInSt[4]);
-    
+    //reduceTrackletList_st1(trackletsInSt[4]);
+    if(resolveStation1Hits()){
+      reduceTrackletList(trackletsInSt[4]);
+    }
+    /*
+    std::vector<double> x0_st1s;
+    std::vector<double> tx_st1s;
+    std::vector<double> y0_st1s;
+    std::vector<double> ty_st1s;
+    for(auto iter = trackletsInSt[4].begin(); iter != trackletsInSt[4].end(); ++iter)
+      {
+	iter->calcChisq();
+	if(Verbosity() > Fun4AllBase::VERBOSITY_A_LOT) iter->print();
+	
+	double tx_st1, x0_st1;
+	iter->getXZInfoInSt1(tx_st1, x0_st1);
+	x0_st1s.push_back(x0_st1);
+	tx_st1s.push_back(tx_st1);
+	y0_st1s.push_back(iter->y0);
+	ty_st1s.push_back(iter->ty);
+	if(Verbosity() > Fun4AllBase::VERBOSITY_A_LOT){
+	  LogInfo("tx_st1 = "<<tx_st1<<" and x0_st1 = "<<x0_st1);
+	  if(x0_st1s.size()==2){
+	    LogInfo("Now for a very special test.  Speculative x int = "<<(x0_st1s.at(1) - x0_st1s.at(0))/(tx_st1s.at(0) - tx_st1s.at(1)));
+	    LogInfo("Now for a very special test.  Speculative y int = "<<(y0_st1s.at(1) - y0_st1s.at(0))/(ty_st1s.at(0) - ty_st1s.at(1)));
+	    //WalkBackTracklets((*rec_tracklets.begin()), *iter);
+	  }
+	}
+      }
+    */
+    /*
+    if(x0_st1s.size()==2){
+      resolveStation1Hits((*trackletsInSt[4].begin()), (*(++trackletsInSt[4].begin())));
+
+      trackletsInSt[0].clear();
+      if((x0_st1s.at(1) - x0_st1s.at(0))/(tx_st1s.at(0) - tx_st1s.at(1)) > 600 || (y0_st1s.at(1) - y0_st1s.at(0))/(ty_st1s.at(0) - ty_st1s.at(1)) > 600){
+	buildTrackletsInStation(1, 0);
+      }
+      LogInfo("after rebuild: trackletsInSt[0].size() = "<<trackletsInSt[0].size());
+      
+    }
+      */
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
     
@@ -3543,6 +3595,9 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
 
+      std::vector<Tracklet> possibleGlobalTracks;
+
+      
 #ifdef _DEBUG_ST1M
   LogInfo("in buildGlobalTracksDisplaced");
   tracklet23->print();
@@ -3576,9 +3631,9 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 
 	      bool hodoFound = false;
 	      for(std::list<int>::iterator iter = hitIDs_maskX[0].begin(); iter != hitIDs_maskX[0].end(); ++iter){
-#ifdef _DEBUG_HODO_ST1
-		LogInfo("hodo hit pos = "<<hitAll[*iter].pos<<" exp hodo pos ="<<((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]<<" diff = "<<std::abs( hitAll[*iter].pos - (((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]) ));
-#endif
+		//#ifdef _DEBUG_HODO_ST1
+		//LogInfo("hodo hit pos = "<<hitAll[*iter].pos<<" exp hodo pos ="<<((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]<<" diff = "<<std::abs( hitAll[*iter].pos - (((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]) ));
+		//#endif
 		if( std::abs( hitAll[*iter].pos - (((*tracklet23).tx - 0.002 * charges[ch]*pxSlices[pxs])*(p_geomSvc->getPlanePosition(hitAll[*iter].detectorID) - z_plane[3]) + posx+charges[ch]*pxSlices[pxs]) ) < 5. ){
 		  hodoFound = true;
 		}
@@ -3660,13 +3715,14 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 	      _timers["global_link"]->restart();
 	      int tracklet_counter = 0; //WPM
 	      
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_HODO_ST1
 	      LogInfo("the size of trackletsInSt[0] is "<<trackletsInSt[0].size());
 #endif
 #ifdef _DEBUG_GLOBAL
 	      LogInfo("pxs = "<<pxs<<" and ch = "<<ch);
 	      LogInfo("trackletsInSt[0].size() = "<<trackletsInSt[0].size());
 #endif
+	      
 	      int trackletCounter = 0;
 	      for(std::list<Tracklet>::iterator tracklet1 = trackletsInSt[0].begin(); tracklet1 != trackletsInSt[0].end(); ++tracklet1)
 		{ //loop over the potential station 1 tracklets that we found
@@ -3682,7 +3738,7 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 #endif
 		  
 		  tracklet_counter++; //WPM
-#ifdef _DEBUG_HODO
+#ifdef _DEBUG_HODO_ST1
 		  LogInfo("With this station 1 track:");
 		  tracklet1->print();
 #endif
@@ -3712,11 +3768,14 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 		  
 		  //Most basic cuts
 		  if(!acceptTracklet(tracklet_global)) continue;
-		  
+
+		  if(tracklet_global.chisq < 50. && tracklet_global.isValid()){
+		    possibleGlobalTracks.push_back(tracklet_global);
+		  }
 #ifdef _DEBUG_ON
 		  LogInfo("accepted tracklet global tracks displaced");
 #endif
-#ifdef _DEBUG_ST1M2
+#ifdef _DEBUG_HODO_ST1
 		  LogInfo("accepted tracklet global tracks displaced");
 		  tracklet_global.print();
 #endif
@@ -3841,14 +3900,37 @@ void KalmanFastTracking_NEW_HODO_2::buildGlobalTracksDisplaced()
 	    //std::cout<<"tracklet_best[1].chisq = "<<tracklet_best[1].chisq<<std::endl;
 	    globalTracklets.push_back(tracklet_best[1]);
 	  }
+
+#ifdef _DEBUG_HODO_ST1
+	LogInfo("For this 23 tracklet, there were "<<possibleGlobalTracks.size()<<" possible global tracklets");
+#endif
+	if(possibleGlobalTracks.size()>0) globalTracklets_resolveSt1.push_back(possibleGlobalTracks);
     }
     
     //trackletsInSt[4].sort();
     //globalTracklets.sort();
     
-#ifdef _DEBUG_PATRICK
+#ifdef _DEBUG_HODO_ST1
     LogInfo("end of buildGlobalTracksDisplaced");
+    LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
 #endif
+
+#ifdef _DEBUG_HODO_ST1
+    if(globalTracklets_resolveSt1.size()==2){
+      for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(0).size(); i++){
+	for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(1).size(); j++){
+	  double xintTest, yintTest;
+	  if(!(globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)))){
+	    checkIntercepts(globalTracklets_resolveSt1.at(0).at(i), globalTracklets_resolveSt1.at(1).at(j), xintTest, yintTest);
+	    if( xintTest < 600 && yintTest < 600 && xintTest > 500 && yintTest > 500 ){
+	      globalTracklets_resolveSt1.at(0).at(i).print();
+	      globalTracklets_resolveSt1.at(1).at(j).print();
+	    }
+	  }
+	}
+      }
+    }
+#endif    
     
     return;
 }
@@ -4346,6 +4428,9 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
 #ifdef _DEBUG_ON
     LogInfo("Building tracklets in station " << stationID);
 #endif
+#ifdef _DEBUG_BTS
+    LogInfo("Building tracklets in station " << stationID);
+#endif
 
     //actuall ID of the tracklet lists
     int sID = stationID - 1;
@@ -4372,12 +4457,21 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
     for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
     for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
 #endif
+#ifdef _DEBUG_BTS
+    LogInfo("Hit pairs in this event: ");
+    for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_X.begin(); iter != pairs_X.end(); ++iter) LogInfo("X :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+    for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_U.begin(); iter != pairs_U.end(); ++iter) LogInfo("U :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+    for(std::list<SRawEvent::hit_pair>::iterator iter = pairs_V.begin(); iter != pairs_V.end(); ++iter) LogInfo("V :" << iter->first << "  " << iter->second << "  " << hitAll[iter->first].index << " " << (iter->second < 0 ? -1 : hitAll[iter->second].index));
+#endif
 
     if(pairs_X.empty() || pairs_U.empty() || pairs_V.empty())
     {
 #ifdef _DEBUG_ON
         LogInfo("Not all view has hits in station " << stationID);
 #endif
+#ifdef _DEBUG_BTS
+        LogInfo("Not all view has hits in station " << stationID);
+#endif	
         return;
     }
 
@@ -4393,12 +4487,19 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
         LogInfo("Trying X hits " << xiter->first << "  " << xiter->second << "  " << hitAll[xiter->first].elementID << " at " << x_pos);
         LogInfo("U plane window:" << u_min << "  " << u_max);
 #endif
+#ifdef _DEBUG_BTS
+        LogInfo("Trying X hits " << xiter->first << "  " << xiter->second << "  " << hitAll[xiter->first].elementID << " at " << x_pos);
+        LogInfo("U plane window:" << u_min << "  " << u_max);
+#endif	
         for(std::list<SRawEvent::hit_pair>::iterator uiter = pairs_U.begin(); uiter != pairs_U.end(); ++uiter)
         {
             double u_pos = uiter->second >= 0 ? 0.5*(hitAll[uiter->first].pos + hitAll[uiter->second].pos) : hitAll[uiter->first].pos;
 #ifdef _DEBUG_ON
             LogInfo("Trying U hits " << uiter->first << "  " << uiter->second << "  " << hitAll[uiter->first].elementID << " at " << u_pos);
 #endif
+#ifdef _DEBUG_BTS
+            LogInfo("Trying U hits " << uiter->first << "  " << uiter->second << "  " << hitAll[uiter->first].elementID << " at " << u_pos);
+#endif	    
             if(u_pos < u_min || u_pos > u_max) continue;
 
             //V projections from X and U plane
@@ -4415,12 +4516,18 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
 #ifdef _DEBUG_ON
             LogInfo("V plane window:" << v_min << "  " << v_max);
 #endif
+#ifdef _DEBUG_BTS
+            LogInfo("V plane window:" << v_min << "  " << v_max);
+#endif	    
             for(std::list<SRawEvent::hit_pair>::iterator viter = pairs_V.begin(); viter != pairs_V.end(); ++viter)
             {
                 double v_pos = viter->second >= 0 ? 0.5*(hitAll[viter->first].pos + hitAll[viter->second].pos) : hitAll[viter->first].pos;
 #ifdef _DEBUG_ON
                 LogInfo("Trying V hits " << viter->first << "  " << viter->second << "  " << hitAll[viter->first].elementID << " at " << v_pos);
 #endif
+#ifdef _DEBUG_BTS
+                LogInfo("Trying V hits " << viter->first << "  " << viter->second << "  " << hitAll[viter->first].elementID << " at " << v_pos);
+#endif		
                 if(v_pos < v_min || v_pos > v_max) continue;
 
                 //Now add the tracklet
@@ -4486,6 +4593,9 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
 #ifdef _DEBUG_ON
                 tracklet_new.print();
 #endif
+#ifdef _DEBUG_BTS
+                tracklet_new.print();
+#endif		
                 if(acceptTracklet(tracklet_new))
                 {
                     trackletsInSt[listID].push_back(tracklet_new);
@@ -4496,6 +4606,12 @@ void KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation(int stationID, int l
                     LogInfo("Rejected!!!");
                 }
 #endif
+#ifdef _DEBUG_BTS
+                else
+                {
+                    LogInfo("Rejected!!!");
+                }
+#endif		
             }
         }
     }
@@ -4766,9 +4882,11 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	std::cout<<"station 1 chisq using no drift distance = "<<tracklet_new_Station1.calcChisq_noDrift()<<std::endl;
 	tracklet_new_Station1.print();
 #endif
-#ifdef _DEBUG_ST1M2
+#ifdef _DEBUG_HODO_ST1
 	std::cout<<"station 1 chisq using no drift distance = "<<tracklet_new_Station1.calcChisq_noDrift()<<std::endl;
-	tracklet_new_Station1.print();
+	if(tracklet_new_Station1.calcChisq_noDrift()<300){
+	  tracklet_new_Station1.print();
+	}
 #endif
 	
 	if(tracklet_new_Station1.calcChisq_noDrift() > 300 || isnan(tracklet_new_Station1.calcChisq_noDrift()) ) continue;
@@ -4795,7 +4913,7 @@ bool KalmanFastTracking_NEW_HODO_2::buildTrackletsInStation1_NEW(int stationID, 
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
-#ifdef _DEBUG_ST1M2
+#ifdef _DEBUG_HODO_ST1
 	LogInfo("FINAL station 1 fitting");
 	tracklet_new_Station1.print();
 #endif
@@ -5687,6 +5805,35 @@ int KalmanFastTracking_NEW_HODO_2::reduceTrackletList(std::list<Tracklet>& track
 #endif
     return 0;
 }
+
+
+int KalmanFastTracking_NEW_HODO_2::reduceTrackletList_st1(std::list<Tracklet> tracklets)
+{
+    std::list<Tracklet> targetList;
+    while(!tracklets.empty())
+    {
+      if((tracklets.front().nXHits + tracklets.front().nUHits + tracklets.front().nVHits) < 14 && tracklets.front().stationID == nStations){
+	tracklets.pop_front();
+	continue;
+      } else{
+        targetList.push_back(tracklets.front());
+      }
+        tracklets.pop_front();
+
+        for(std::list<Tracklet>::iterator iter = tracklets.begin(); iter != tracklets.end(); )
+        {
+
+	  std::cout<<"similarity_st1 = "<< iter->similarity_st1(targetList.back())<<std::endl;
+	  ++iter;
+	  
+
+        }
+    }
+
+    //tracklets.assign(targetList.begin(), targetList.end());
+    return 0;
+}
+
 
 void KalmanFastTracking_NEW_HODO_2::getExtrapoWindowsInSt1(Tracklet& tracklet, double* pos_exp, double* window, int st1ID)
 {
@@ -7175,4 +7322,253 @@ void KalmanFastTracking_NEW_HODO_2::cutAdjuster(int numCombos, int pass)
 
   
   
+}
+
+
+void KalmanFastTracking_NEW_HODO_2::WalkBackTracklets(Tracklet& tracklet1, Tracklet& tracklet2)
+{
+
+  double tx_st1_1, x0_st1_1, ty_st1_1, y0_st1_1;
+  tracklet1.getXZInfoInSt1(tx_st1_1, x0_st1_1);
+  ty_st1_1 = tracklet1.ty;
+  y0_st1_1 = tracklet1.y0;
+  double tx_st1_2, x0_st1_2, ty_st1_2, y0_st1_2;
+  tracklet2.getXZInfoInSt1(tx_st1_2, x0_st1_2);
+  ty_st1_2 = tracklet2.ty;
+  y0_st1_2 = tracklet2.y0;
+
+  int NSteps_St1 = 100;
+  double step_st1 = 100.0/NSteps_St1;
+
+  TVector3 pos1[NSteps_St1 + 1];
+  TVector3 pos2[NSteps_St1 + 1];
+  pos1[0] = TVector3(x0_st1_1 + tx_st1_1*600., y0_st1_1 + ty_st1_1*600., 600.);
+  pos2[0] = TVector3(x0_st1_2 + tx_st1_2*600, y0_st1_2 + ty_st1_2*600., 600.);
+
+  for (int iStep = 1; iStep < NSteps_St1; ++iStep) {
+    TVector3 trajVec1(tx_st1_1*step_st1, ty_st1_1*step_st1, step_st1);
+    TVector3 trajVec2(tx_st1_2*step_st1, ty_st1_2*step_st1, step_st1);
+
+    pos1[iStep] = pos1[iStep - 1] - trajVec1;
+    pos2[iStep] = pos2[iStep - 1] - trajVec2;
+  }
+
+  int iStep_min = -1;
+  int dist_min = 1E6;
+  for (int iStep = 0; iStep < NSteps_St1; ++iStep) {
+    double dist = (pos1[iStep] - pos2[iStep]).Perp();
+    LogInfo("walkback iStep = "<<iStep<<" dist = "<<dist);
+
+    if(dist < dist_min) {
+      iStep_min = iStep;
+      dist_min = dist;
+    }
+  }
+
+  return;
+}
+
+
+
+//void KalmanFastTracking_NEW_HODO_2::resolveStation1Hits(Tracklet tracklet1, Tracklet tracklet2)
+bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
+{
+
+  
+  
+  //if(trackletsInSt[4].size() != 2) return false;
+  if(trackletsInSt[4].size() < 2) return false;
+  double similarity = (*trackletsInSt[4].begin()).similarity_st1((*(++trackletsInSt[4].begin())));
+  double xint, yint;
+  checkIntercepts((*trackletsInSt[4].begin()), (*(++trackletsInSt[4].begin())), xint, yint);
+  LogInfo("similarity = "<<similarity<<" xint = "<<xint<<" yint = "<<yint);
+
+  //if(!(similarity > 0.2 && xint > 600)) return false;
+  if(!(similarity > 0.2)) return false;
+
+  LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
+  
+  //if(globalTracklets_resolveSt1.size() != 2) return false;
+  if(globalTracklets_resolveSt1.size() < 2) return false;
+  //trackletsInSt[4].clear();
+
+  double bestChiSqCombo = 10000;
+  Tracklet best1, best2;
+  bool validTracks = false;
+
+  LogInfo("globalTracklets_resolveSt1.at(0).size() = "<<globalTracklets_resolveSt1.at(0).size());
+  LogInfo("globalTracklets_resolveSt1.at(1).size() = "<<globalTracklets_resolveSt1.at(1).size());
+  
+  for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(0).size(); i++){
+    for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(1).size(); j++){
+      double xintTest, yintTest;
+      checkIntercepts(globalTracklets_resolveSt1.at(0).at(i), globalTracklets_resolveSt1.at(1).at(j), xintTest, yintTest);
+      //if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2 && xintTest < 600 && std::abs(xintTest - yintTest) < 40. ){
+      if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2){
+	//LogInfo("sim = "<<globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j))<<" xintTest = "<<xintTest<<" yintTest = "<<yintTest);
+	//LogInfo("tracklet1 squares = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_absSum());
+	//LogInfo("tracklet2 squares = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_absSum());
+	//globalTracklets_resolveSt1.at(0).at(i).print();
+	//globalTracklets_resolveSt1.at(1).at(j).print();
+	//if( sqrt(globalTracklets_resolveSt1.at(0).at(i).chisq*globalTracklets_resolveSt1.at(0).at(i).chisq + globalTracklets_resolveSt1.at(1).at(j).chisq*globalTracklets_resolveSt1.at(1).at(j).chisq) < bestChiSqCombo ){
+	if( sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()) < bestChiSqCombo && (xintTest < 610 || yintTest < 610) && std::abs(xintTest - yintTest) < 100 ){
+	  //LogInfo("found a better combo");
+	  best1 = globalTracklets_resolveSt1.at(0).at(i);
+	  best2 = globalTracklets_resolveSt1.at(1).at(j);
+	  validTracks = true;
+	  bestChiSqCombo = sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares());
+	}
+      }
+    }
+  }
+
+
+
+  if(validTracks){
+    LogInfo("the best resolved tracks");
+    if(!(best1.similarityAllowed(best2))){
+      trackletsInSt[4].clear();
+      return false;
+    }
+    best1.addDummyHits();
+    best2.addDummyHits();
+
+    double testChisq1 = best1.chisq;
+    bool gettingBetter1 = true;
+    int passes1 = 0;
+    while(testChisq1 > 20. &&  gettingBetter1 && passes1<5){
+      checkSigns(best1);
+      if(best1.chisq < testChisq1){
+	testChisq1 = best1.chisq;
+      } else{
+	gettingBetter1 = false;
+      }
+      passes1++;
+    }
+    double testChisq2 = best2.chisq;
+    bool gettingBetter2 = true;
+    int passes2 = 0;
+    while(testChisq2 > 20. &&  gettingBetter2 && passes2<5){
+      checkSigns(best2);
+      if(best2.chisq < testChisq2){
+	testChisq2 = best2.chisq;
+      } else{
+	gettingBetter2 = false;
+      }
+      passes2++;
+    }
+
+    best1.print();
+    best2.print();
+    trackletsInSt[4].clear();
+    trackletsInSt[4].push_back(best1);
+    trackletsInSt[4].push_back(best2);
+  } else{
+    trackletsInSt[4].clear(); 
+  }
+  
+  return validTracks;
+  
+  /*
+  double tx_st1_1, x0_st1_1, ty_st1_1, y0_st1_1;
+  tracklet1.getXZInfoInSt1(tx_st1_1, x0_st1_1);
+  ty_st1_1 = tracklet1.ty;
+  y0_st1_1 = tracklet1.y0;
+  double tx_st1_2, x0_st1_2, ty_st1_2, y0_st1_2;
+  tracklet2.getXZInfoInSt1(tx_st1_2, x0_st1_2);
+  ty_st1_2 = tracklet2.ty;
+  y0_st1_2 = tracklet2.y0;
+
+  double xint = (x0_st1_1 - x0_st1_2)/(tx_st1_2 - tx_st1_1);
+  double yint = (y0_st1_1 - y0_st1_2)/(ty_st1_2 - y0_st1_1);
+
+  Tracklet tracklet1_23, tracklet1_1;
+  for(std::list<SignedHit>::iterator iter = tracklet1.hits.begin(); iter != tracklet1.hits.end(); ++iter){
+    if(iter->hit.detectorID > 6){
+      tracklet1_23.hits.push_back((*iter));
+      tracklet1_23.x0 = tracklet1.x0;
+      tracklet1_23.tx = tracklet1.tx;
+      tracklet1_23.y0 = tracklet1.y0;
+      tracklet1_23.ty = tracklet1.ty;
+      tracklet1_23.invP = tracklet1.invP;
+    } else{
+      tracklet1_1.hits.push_back((*iter));
+      tracklet1_1.x0 = tracklet1.x0;
+      tracklet1_1.tx = tracklet1.tx;
+      tracklet1_1.y0 = tracklet1.y0;
+      tracklet1_1.ty = tracklet1.ty;
+      tracklet1_1.invP = tracklet1.invP;
+    }
+  }
+  Tracklet tracklet2_23, tracklet2_1;
+  for(std::list<SignedHit>::iterator iter = tracklet2.hits.begin(); iter != tracklet2.hits.end(); ++iter){
+    if(iter->hit.detectorID > 6){
+      tracklet2_23.hits.push_back((*iter));
+      tracklet2_23.x0 = tracklet2.x0;
+      tracklet2_23.tx = tracklet2.tx;
+      tracklet2_23.y0 = tracklet2.y0;
+      tracklet2_23.ty = tracklet2.ty;
+      tracklet2_23.invP = tracklet2.invP;
+    } else{
+      tracklet2_1.hits.push_back((*iter));
+      tracklet2_1.x0 = tracklet2.x0;
+      tracklet2_1.tx = tracklet2.tx;
+      tracklet2_1.y0 = tracklet2.y0;
+      tracklet2_1.ty = tracklet2.ty;
+      tracklet2_1.invP = tracklet2.invP;
+    }
+  }
+
+
+  trackletsInSt[0].clear();
+  buildTrackletsInStation(1, 0);
+  LogInfo("after rebuild: trackletsInSt[0].size() = "<<trackletsInSt[0].size());
+
+  for(std::list<Tracklet>::iterator i = trackletsInSt[0].begin(); i != trackletsInSt[0].end(); ++i){
+    for(std::list<Tracklet>::iterator j = trackletsInSt[0].begin(); j != trackletsInSt[0].end(); ++j){
+      if(i==j) continue;
+      Tracklet trackletTest1 = (tracklet1_23)*(*i);
+      fitTracklet(trackletTest1);
+      resolveLeftRight(trackletTest1, 75.);
+      resolveLeftRight(trackletTest1, 150.);
+      resolveSingleLeftRight(trackletTest1);
+      Tracklet trackletTest2 = (tracklet2_23)*(*j);
+      fitTracklet(trackletTest2);
+      resolveLeftRight(trackletTest2, 75.);
+      resolveLeftRight(trackletTest2, 150.);
+      resolveSingleLeftRight(trackletTest2);
+      double xintTest, yintTest;
+      checkIntercepts(trackletTest1, trackletTest2, xintTest, yintTest);
+      //if(xintTest > 505 && xintTest < 525 && trackletTest1.chisq < 20 && trackletTest2.chisq<20){
+      //if(trackletTest1.chisq < 10 && trackletTest2.chisq<10 && !(trackletTest1.similarity_st1(trackletTest2))){
+      //LogInfo("ok location based on intercepts?");
+      //trackletTest1.print();
+      //trackletTest2.print();
+      //}
+    }
+  }
+  
+  
+  return;
+  */
+}
+
+void KalmanFastTracking_NEW_HODO_2::checkIntercepts(Tracklet tracklet1, Tracklet tracklet2, double& xint, double& yint)
+{
+  
+  double tx_st1_1, x0_st1_1, ty_st1_1, y0_st1_1;
+  tracklet1.getXZInfoInSt1(tx_st1_1, x0_st1_1);
+  ty_st1_1 = tracklet1.ty;
+  y0_st1_1 = tracklet1.y0;
+  double tx_st1_2, x0_st1_2, ty_st1_2, y0_st1_2;
+  tracklet2.getXZInfoInSt1(tx_st1_2, x0_st1_2);
+  ty_st1_2 = tracklet2.ty;
+  y0_st1_2 = tracklet2.y0;
+
+  xint = (x0_st1_1 - x0_st1_2)/(tx_st1_2 - tx_st1_1);
+  yint = (y0_st1_1 - y0_st1_2)/(ty_st1_2 - ty_st1_1);
+
+  //LogInfo("xint = "<<xint<<" and yint = "<<yint);
+  
+  return;
 }

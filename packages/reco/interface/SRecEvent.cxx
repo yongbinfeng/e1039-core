@@ -373,10 +373,12 @@ void SRecTrack::adjustKMag(double kmagStr)
 int SRecTrack::isValid() const
 {
     //Vertex valid
+  /* //WPM
   if(!isVertexValid()){
     std::cout<<"isVertexValid was false"<<std::endl;
     return false;
   }
+  */
     //Number of hits cut
     Int_t nHits = getNHits();
     if(nHits < 14) return false;

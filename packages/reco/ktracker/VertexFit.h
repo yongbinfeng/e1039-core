@@ -106,6 +106,8 @@ public:
     double findSingleMuonVertex(Node& _node_start);
     double findSingleMuonVertex(TrkPar& _trkpar_start);
 
+  TVector3 Interpolator(SRecTrack& track1, SRecTrack& track2, double zval);
+  
     ///Gets
     double getVertexZ0() { return _vtxpar_curr._r[2][0]; }
     double getVXChisq() { return _chisq_vertex; }
@@ -215,6 +217,8 @@ private:
     double s_chisq_kf_eval;
     double m_z_vertex_eval;
     double s_z_vertex_eval;
+
+  bool m_displaced;
 };
 
 #endif

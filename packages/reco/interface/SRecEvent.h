@@ -237,9 +237,24 @@ public:
 
     ///Debugging output
     void print(std::ostream& os = std::cout) const;
-
+  /*
+  void setVtxHypos(std::vector<double> hypos){
+    for(int h = 0; h < hypos.size(); h++){
+      trackletVtxHypos.push_back(hypos.at(h));
+    }
+  }
+  int getVtxHyposNum(){ return trackletVtxHypos.size();}
+  void appendVtxHypos(std::vector<double>& posZs){
+    for(int h = 0; h < trackletVtxHypos.size(); h++){
+      posZs.push_back(trackletVtxHypos.at(h));
+    }
+  }*/
+  
 private:
-    ///Total Chisq
+  
+  //std::vector<double> trackletVtxHypos;
+
+  ///Total Chisq
     Double_t fChisq;
 
     ///Hit list and associated track parameters
@@ -292,6 +307,7 @@ private:
     std::vector<TVectorD> fGFStateVec;
     std::vector<TMatrixDSym> fGFCov;
 
+  
     ClassDef(SRecTrack, 11)
 };
 

@@ -178,6 +178,9 @@ public:
     double calcChisq();
     double calcChisq_noDrift();
     double calcChisq_verbose();
+  double calcChisq_st1_squares();
+  double calcChisq_st1_sum();
+    double calcChisq_st1_absSum();
 
     //Add dummy hits
     void addDummyHits();
@@ -199,6 +202,8 @@ public:
 
     //For reducing similar tracklets
     bool similarity(const Tracklet& elem) const;
+  double similarity_st1(const Tracklet& elem) const;
+  bool similarityAllowed(const Tracklet& elem) const;
     bool elementSimilarity(const Tracklet& elem) const;
 
     //Merge the hit list from two tracklets
@@ -360,6 +365,8 @@ public:
     int _charge = 0;
     void setCharge(int chrg);
 
+  std::vector<double> vtxHypos;
+  
     ClassDef(Tracklet, 4)
 };
 
