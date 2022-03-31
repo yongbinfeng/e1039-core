@@ -26,6 +26,7 @@ Created: 05-28-2013
 
 #define _DEBUG_HITPRINT
 #define _DEBUG_PRINT23
+
 //#define _DEBUG_BTS
 //#define _DEBUG_ON
 //#define _DEBUG_PATRICK
@@ -7378,96 +7379,264 @@ bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
   
   //if(trackletsInSt[4].size() != 2) return false;
   if(trackletsInSt[4].size() < 2) return false;
-  double similarity = (*trackletsInSt[4].begin()).similarity_st1((*(++trackletsInSt[4].begin())));
-  double xint, yint;
-  checkIntercepts((*trackletsInSt[4].begin()), (*(++trackletsInSt[4].begin())), xint, yint);
-  LogInfo("similarity = "<<similarity<<" xint = "<<xint<<" yint = "<<yint);
-
-  //if(!(similarity > 0.2 && xint > 600)) return false;
-  if(!(similarity > 0.2)) return false;
-
-  LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
   
-  //if(globalTracklets_resolveSt1.size() != 2) return false;
-  if(globalTracklets_resolveSt1.size() < 2) return false;
-  //trackletsInSt[4].clear();
-
-  double bestChiSqCombo = 10000;
-  Tracklet best1, best2;
-  bool validTracks = false;
-
-  LogInfo("globalTracklets_resolveSt1.at(0).size() = "<<globalTracklets_resolveSt1.at(0).size());
-  LogInfo("globalTracklets_resolveSt1.at(1).size() = "<<globalTracklets_resolveSt1.at(1).size());
-  
-  for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(0).size(); i++){
-    for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(1).size(); j++){
-      double xintTest, yintTest;
-      checkIntercepts(globalTracklets_resolveSt1.at(0).at(i), globalTracklets_resolveSt1.at(1).at(j), xintTest, yintTest);
-      //if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2 && xintTest < 600 && std::abs(xintTest - yintTest) < 40. ){
-      if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2){
-	//LogInfo("sim = "<<globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j))<<" xintTest = "<<xintTest<<" yintTest = "<<yintTest);
-	//LogInfo("tracklet1 squares = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_absSum());
-	//LogInfo("tracklet2 squares = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_absSum());
-	//globalTracklets_resolveSt1.at(0).at(i).print();
-	//globalTracklets_resolveSt1.at(1).at(j).print();
-	//if( sqrt(globalTracklets_resolveSt1.at(0).at(i).chisq*globalTracklets_resolveSt1.at(0).at(i).chisq + globalTracklets_resolveSt1.at(1).at(j).chisq*globalTracklets_resolveSt1.at(1).at(j).chisq) < bestChiSqCombo ){
-	if( sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()) < bestChiSqCombo && (xintTest < 610 || yintTest < 610) && std::abs(xintTest - yintTest) < 100 ){
-	  //LogInfo("found a better combo");
-	  best1 = globalTracklets_resolveSt1.at(0).at(i);
-	  best2 = globalTracklets_resolveSt1.at(1).at(j);
-	  validTracks = true;
-	  bestChiSqCombo = sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares());
+  if(trackletsInSt[4].size()==2){
+    double similarity = (*trackletsInSt[4].begin()).similarity_st1((*(++trackletsInSt[4].begin())));
+    double xint, yint;
+    checkIntercepts((*trackletsInSt[4].begin()), (*(++trackletsInSt[4].begin())), xint, yint);
+    //LogInfo("similarity = "<<similarity<<" xint = "<<xint<<" yint = "<<yint);
+    
+    //if(!(similarity > 0.2 && xint > 600)) return false;
+    if(!(similarity > 0.2)) return false;
+    
+    LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
+    
+    //if(globalTracklets_resolveSt1.size() != 2) return false;
+    if(globalTracklets_resolveSt1.size() < 2) return false;
+    //trackletsInSt[4].clear();
+    
+    double bestChiSqCombo = 10000;
+    Tracklet best1, best2;
+    bool validTracks = false;
+    
+    LogInfo("globalTracklets_resolveSt1.at(0).size() = "<<globalTracklets_resolveSt1.at(0).size());
+    LogInfo("globalTracklets_resolveSt1.at(1).size() = "<<globalTracklets_resolveSt1.at(1).size());
+    
+    for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(0).size(); i++){
+      for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(1).size(); j++){
+	double xintTest, yintTest;
+	checkIntercepts(globalTracklets_resolveSt1.at(0).at(i), globalTracklets_resolveSt1.at(1).at(j), xintTest, yintTest);
+	//if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2 && xintTest < 600 && std::abs(xintTest - yintTest) < 40. ){
+	if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2){
+	  //LogInfo("sim = "<<globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j))<<" xintTest = "<<xintTest<<" yintTest = "<<yintTest);
+	  //LogInfo("tracklet1 squares = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_absSum());
+	  //LogInfo("tracklet2 squares = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_absSum());
+	  //globalTracklets_resolveSt1.at(0).at(i).print();
+	  //globalTracklets_resolveSt1.at(1).at(j).print();
+	  //if( sqrt(globalTracklets_resolveSt1.at(0).at(i).chisq*globalTracklets_resolveSt1.at(0).at(i).chisq + globalTracklets_resolveSt1.at(1).at(j).chisq*globalTracklets_resolveSt1.at(1).at(j).chisq) < bestChiSqCombo ){
+	  if( sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()) < bestChiSqCombo && (xintTest < 610 || yintTest < 610) && std::abs(xintTest - yintTest) < 100 ){
+	    //LogInfo("found a better combo");
+	    best1 = globalTracklets_resolveSt1.at(0).at(i);
+	    best2 = globalTracklets_resolveSt1.at(1).at(j);
+	    validTracks = true;
+	    bestChiSqCombo = sqrt(globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares());
+	  }
 	}
       }
     }
-  }
-
-
-
-  if(validTracks){
-    LogInfo("the best resolved tracks");
-    if(!(best1.similarityAllowed(best2))){
+    
+    
+    
+    if(validTracks){
+      LogInfo("the best resolved tracks");
+      if(!(best1.similarityAllowed(best2))){
+	trackletsInSt[4].clear();
+	return false;
+      }
+      best1.addDummyHits();
+      best2.addDummyHits();
+      
+      double testChisq1 = best1.chisq;
+      bool gettingBetter1 = true;
+      int passes1 = 0;
+      while(testChisq1 > 20. &&  gettingBetter1 && passes1<5){
+	checkSigns(best1);
+	if(best1.chisq < testChisq1){
+	  testChisq1 = best1.chisq;
+	} else{
+	  gettingBetter1 = false;
+	}
+	passes1++;
+      }
+      double testChisq2 = best2.chisq;
+      bool gettingBetter2 = true;
+      int passes2 = 0;
+      while(testChisq2 > 20. &&  gettingBetter2 && passes2<5){
+	checkSigns(best2);
+	if(best2.chisq < testChisq2){
+	  testChisq2 = best2.chisq;
+	} else{
+	  gettingBetter2 = false;
+	}
+	passes2++;
+      }
+      
+      best1.print();
+      best2.print();
       trackletsInSt[4].clear();
-      return false;
+      trackletsInSt[4].push_back(best1);
+      trackletsInSt[4].push_back(best2);
+    } else{
+      trackletsInSt[4].clear(); 
     }
-    best1.addDummyHits();
-    best2.addDummyHits();
-
-    double testChisq1 = best1.chisq;
-    bool gettingBetter1 = true;
-    int passes1 = 0;
-    while(testChisq1 > 20. &&  gettingBetter1 && passes1<5){
-      checkSigns(best1);
-      if(best1.chisq < testChisq1){
-	testChisq1 = best1.chisq;
-      } else{
-	gettingBetter1 = false;
-      }
-      passes1++;
-    }
-    double testChisq2 = best2.chisq;
-    bool gettingBetter2 = true;
-    int passes2 = 0;
-    while(testChisq2 > 20. &&  gettingBetter2 && passes2<5){
-      checkSigns(best2);
-      if(best2.chisq < testChisq2){
-	testChisq2 = best2.chisq;
-      } else{
-	gettingBetter2 = false;
-      }
-      passes2++;
-    }
-
-    best1.print();
-    best2.print();
-    trackletsInSt[4].clear();
-    trackletsInSt[4].push_back(best1);
-    trackletsInSt[4].push_back(best2);
-  } else{
-    trackletsInSt[4].clear(); 
+    
+    return validTracks;
   }
-  
-  return validTracks;
+  else{
+
+    bool noSimilarities = true;
+    std::vector<std::pair<int, int>> similarIndices;
+    
+    std::vector<Tracklet> st1_tracklets;
+    for(std::list<Tracklet>::iterator tr = trackletsInSt[4].begin(); tr != trackletsInSt[4].end(); ++tr){
+      st1_tracklets.push_back((*tr));
+    }
+
+    std::vector<Tracklet> goodTracklets;
+    std::vector<Tracklet> badTracklets;
+    
+    for(int i = 0; i < st1_tracklets.size(); i++){
+      for(int j = 0; j < st1_tracklets.size(); j++){
+	if(i==j) continue;
+	double similarity = st1_tracklets.at(i).similarity_st1(st1_tracklets.at(j));
+	if(similarity > 0.2) noSimilarities = false;
+	similarIndices.push_back(std::make_pair(i,j));
+      } 
+    }
+    
+    if(noSimilarities) return false;
+    
+    
+    
+    //goodTracklets.push_back(st1_tracklets.at(0));
+
+
+
+
+
+    int numTries = 0;
+    while(!noSimilarities && numTries < 10){
+
+      noSimilarities=true;
+      int ii, jj;
+      for(int ii = 0; ii < st1_tracklets.size(); ii++){
+	bool unique = true;
+	for(int jj = 0; jj < st1_tracklets.size(); jj++){
+	  if(ii==jj) continue;
+	  double similarity = st1_tracklets.at(ii).similarity_st1(st1_tracklets.at(jj));
+	  if(similarity > 0.2){
+	    noSimilarities = false;
+	    unique = false;
+	    break;
+	  }
+	}
+	if(!unique) break;
+      }
+
+      int ind1 = ii;
+      int ind2 = jj;
+
+
+      double bestChiSqCombo = 10000;
+      Tracklet best1, best2;
+      bool validTracks = false;
+      
+      if(globalTracklets_resolveSt1.size() < ind1 || globalTracklets_resolveSt1.size() < ind2){
+	//something went wrong here... clear all tracks just in case
+	trackletsInSt[4].clear();
+	return false;
+      }
+
+
+      LogInfo("globalTracklets_resolveSt1.at(ind1).size() = "<<globalTracklets_resolveSt1.at(ind1).size());
+      LogInfo("globalTracklets_resolveSt1.at(ind2).size() = "<<globalTracklets_resolveSt1.at(ind2).size());
+      
+      for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(ind1).size(); i++){
+	for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(ind2).size(); j++){
+	  double xintTest, yintTest;
+	  checkIntercepts(globalTracklets_resolveSt1.at(ind1).at(i), globalTracklets_resolveSt1.at(ind2).at(j), xintTest, yintTest);
+	  //if( globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j)) < 0.2 && xintTest < 600 && std::abs(xintTest - yintTest) < 40. ){
+	  if( globalTracklets_resolveSt1.at(ind1).at(i).similarity_st1(globalTracklets_resolveSt1.at(ind2).at(j)) < 0.2){
+	    //LogInfo("sim = "<<globalTracklets_resolveSt1.at(0).at(i).similarity_st1(globalTracklets_resolveSt1.at(1).at(j))<<" xintTest = "<<xintTest<<" yintTest = "<<yintTest);
+	    //LogInfo("tracklet1 squares = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(0).at(i).calcChisq_st1_absSum());
+	    //LogInfo("tracklet2 squares = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_squares()<<" sums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_sum()<<" absSums = "<<globalTracklets_resolveSt1.at(1).at(j).calcChisq_st1_absSum());
+	    //globalTracklets_resolveSt1.at(0).at(i).print();
+	    //globalTracklets_resolveSt1.at(1).at(j).print();
+	    //if( sqrt(globalTracklets_resolveSt1.at(0).at(i).chisq*globalTracklets_resolveSt1.at(0).at(i).chisq + globalTracklets_resolveSt1.at(1).at(j).chisq*globalTracklets_resolveSt1.at(1).at(j).chisq) < bestChiSqCombo ){
+	    if( sqrt(globalTracklets_resolveSt1.at(ind1).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(ind1).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(ind2).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(ind2).at(j).calcChisq_st1_squares()) < bestChiSqCombo && (xintTest < 610 || yintTest < 610) && std::abs(xintTest - yintTest) < 100 && globalTracklets_resolveSt1.at(ind1).at(i).similarityAllowed(globalTracklets_resolveSt1.at(ind2).at(j))){
+	      //LogInfo("found a better combo");
+	      best1 = globalTracklets_resolveSt1.at(ind1).at(i);
+	      best2 = globalTracklets_resolveSt1.at(ind2).at(j);
+	      validTracks = true;
+	      bestChiSqCombo = sqrt(globalTracklets_resolveSt1.at(ind1).at(i).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(ind1).at(i).calcChisq_st1_squares() + globalTracklets_resolveSt1.at(ind2).at(j).calcChisq_st1_squares()*globalTracklets_resolveSt1.at(ind2).at(j).calcChisq_st1_squares());
+	    }
+	  }
+	}
+      }
+
+      
+      if(validTracks){
+	
+	best1.addDummyHits();
+	best2.addDummyHits();
+	
+	double testChisq1 = best1.chisq;
+	bool gettingBetter1 = true;
+	int passes1 = 0;
+	while(testChisq1 > 20. &&  gettingBetter1 && passes1<5){
+	  checkSigns(best1);
+	  if(best1.chisq < testChisq1){
+	    testChisq1 = best1.chisq;
+	  } else{
+	    gettingBetter1 = false;
+	  }
+	  passes1++;
+	}
+	double testChisq2 = best2.chisq;
+	bool gettingBetter2 = true;
+	int passes2 = 0;
+	while(testChisq2 > 20. &&  gettingBetter2 && passes2<5){
+	  checkSigns(best2);
+	  if(best2.chisq < testChisq2){
+	    testChisq2 = best2.chisq;
+	  } else{
+	    gettingBetter2 = false;
+	  }
+	  passes2++;
+	}
+
+	st1_tracklets.at(ind1) = best1;
+	st1_tracklets.at(ind2) = best2;
+	
+      } else if(numTries == 9){
+
+	trackletsInSt[4].clear();
+	return false;
+
+      } else{
+
+	std::vector<Tracklet> tempVec;
+	for(int i = 0; i < st1_tracklets.size(); i++){
+	  if(i != ind2){
+	    tempVec.push_back(st1_tracklets.at(i));
+	  }
+	}
+	st1_tracklets.clear();
+	for(int i = 0; i < tempVec.size(); i++){
+	    st1_tracklets.push_back(tempVec.at(i));
+	}
+	tempVec.clear();
+	
+      }
+
+      numTries++;
+    }
+
+    
+    trackletsInSt[4].clear();
+    for(int i = 0; i < st1_tracklets.size(); i++){
+      trackletsInSt[4].push_back(st1_tracklets.at(i));
+      if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT){
+	st1_tracklets.at(i).print();
+      }
+    }
+
+
+
+    
+    
+  }
+
   
   /*
   double tx_st1_1, x0_st1_1, ty_st1_1, y0_st1_1;

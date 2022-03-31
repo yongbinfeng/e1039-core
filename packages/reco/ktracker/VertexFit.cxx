@@ -261,7 +261,7 @@ int VertexFit::InitGeom(PHCompositeNode *topNode)
 
 int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
 {
-  std::cout<<"in vertex fit?"<<std::endl;
+  //std::cout<<"in vertex fit?"<<std::endl;
   
   std::vector<int> idx_pos = recEvent->getChargedTrackIDs(sign1);
   std::vector<int> idx_neg = recEvent->getChargedTrackIDs(sign2);
@@ -279,8 +279,8 @@ int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
   }
 
   //Loop over all possible combinations
-  //for(int i = 0; i < nPos; ++i) //WPM
-  for(int i = 0; i < 1; ++i)
+  for(int i = 0; i < nPos; ++i) //WPM
+    //for(int i = 0; i < 1; ++i)
     {
       if(!recEvent->getTrack(idx_pos[i]).isValid()) continue;
       if(Verbosity()>Fun4AllBase::VERBOSITY_A_LOT) {
@@ -288,8 +288,8 @@ int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
       }
 
       int j = sign1 + sign2 == 0 ? 0 : i + 1;      // this is to avoid using same track twice in like-sign mode
-      //for(; j < nNeg; ++j) //WPM
-      for(; j < 1; ++j)
+      for(; j < nNeg; ++j) //WPM
+	//for(; j < 1; ++j)
       {
           //Only needed for like-sign muons
           if(idx_pos[i] == idx_neg[j]) continue;
@@ -329,7 +329,7 @@ int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
           // check if it decays between 500 and 600 cm first
 
 
-	  std::cout<<"test position"<<std::endl;
+	  //std::cout<<"test position"<<std::endl;
 	  /*std::vector<double> possibleZs;
 	  if(track_neg.getVtxHyposNum()>0){
 	    track_neg.appendVtxHypos(possibleZs);
@@ -388,10 +388,11 @@ int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
 #endif
     
 	  m_displaced = false;
+	  if(!(std::abs(zintX - zintY)>500) && !(zintX > 800 && zintY > 800) && !(zintX > 850)){
           TVector3 posSt1 = findVertexDumpSt1(track_pos, track_neg);
 	  if(posSt1.Z() < 594 && posSt1.Z() > 480){
 	    m_displaced = true;
-	    LogInfo("posSt1.X() = "<<posSt1.X()<<" posSt1.Y() = "<<posSt1.Y()<<" posSt1.Z() = "<<posSt1.Z());
+	    //LogInfo("posSt1.X() = "<<posSt1.X()<<" posSt1.Y() = "<<posSt1.Y()<<" posSt1.Z() = "<<posSt1.Z());
 	    //addHypothesis(0,0,550,10,10,10);
 	    addHypothesis(posSt1.X(), posSt1.Y(), posSt1.Z(), 10.0, 10.0, 10.0);
 	  }
@@ -406,6 +407,11 @@ int VertexFit::setRecEvent(SRecEvent* recEvent, int sign1, int sign2)
 		addHypothesis(posSt1.X(), posSt1.Y(), posSt1.Z(), 10.0, 10.0, 10.0);
 	      }  
 	    }
+	  }
+	  if(posSt1.Z()<490){
+	    addHypothesis(xintY, yintY, zintY, 10.0, 10.0, 10.0);
+	    addHypothesis(xintX, yintX, zintX, 10.0, 10.0, 10.0);
+	  }
 	  }
 
 
@@ -987,7 +993,7 @@ void VertexFit::updateVertex()
     double px = _node_vertex.getFiltered()._state_kf[1][0];
     double py = _node_vertex.getFiltered()._state_kf[2][0];
     double pz = sqrt(p*p - px*px - py*py);
-    LogInfo("p = "<<p<<" px = "<<px<<"  py = "<<py<<" pz = "<<pz);
+    //LogInfo("p = "<<p<<" px = "<<px<<"  py = "<<py<<" pz = "<<pz);
     
     ///Set the projector matrix from track state vector to the coordinate
     TMatrixD H(2, 3);

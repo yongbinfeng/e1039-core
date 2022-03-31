@@ -355,6 +355,7 @@ public:
     virtual double get_xf()   const { return xF; }
 
     virtual double get_chisq() const { return chisq_kf; }
+    virtual double get_chisq_vx() const { return chisq_vx; }
 
     //Get the total momentum of the virtual photon
     TLorentzVector getVPhoton() { return p_pos + p_neg; }
