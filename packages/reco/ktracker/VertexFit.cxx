@@ -30,8 +30,8 @@ Created: 2-8-2012
 #include <memory>
 #include <fstream>
 
-#define _DEBUG_ON
-#define _DEBUG_ST1
+//#define _DEBUG_ON
+//#define _DEBUG_ST1
 
 using namespace std;
 

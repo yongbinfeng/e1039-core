@@ -363,8 +363,8 @@ int SQReco::process_event(PHCompositeNode* topNode)
     _recEvent->setRawEvent(_rawEvent);
     _recEvent->setRecStatus(finderstatus);
   }
-  //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers(); //WPM
-  _fastfinder->printTimers(); //WPM
+  if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers(); //WPM
+  //_fastfinder->printTimers(); //WPM
 
   _totalTime = _fastfinder->getTotalTime();
   //_rawEvent->setTotalTime(_totalTime);
@@ -442,7 +442,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
     fillRecTrack(temporarySTracks.at(st));
   }
 
-  std::cout<<"filled rectracks"<<std::endl;
+  //std::cout<<"filled rectracks"<<std::endl;
   
   /*int bestInd = -1;
   int secondInd = -1;
@@ -523,7 +523,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
   if(is_eval_enabled() && nTracklets > 0) _eval_tree->Fill();
 
   ++_event;
-  std::cout<<"++evented"<<std::endl;
+  //std::cout<<"++evented"<<std::endl;
   return Fun4AllReturnCodes::EVENT_OK;
 }
 

@@ -24,8 +24,8 @@ Created: 05-28-2013
 #include "KalmanFastTracking_NEW_HODO_2.h"
 #include "TriggerRoad.h"
 
-#define _DEBUG_HITPRINT
-#define _DEBUG_PRINT23
+//#define _DEBUG_HITPRINT
+//#define _DEBUG_PRINT23
 
 //#define _DEBUG_BTS
 //#define _DEBUG_ON
@@ -501,7 +501,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     trackletsInSt23SlimX.clear();
     trackletsInSt23SlimU.clear();
     trackletsInSt23SlimV.clear();
-    LogInfo("globalTracklets.size() = "<<globalTracklets.size());
+    //LogInfo("globalTracklets.size() = "<<globalTracklets.size());
     globalTracklets.clear();
     globalTracklets_resolveSt1.clear();
     
@@ -616,7 +616,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
       numHodoValidUXCombos += trackletsInSt23SlimX.at(tx).allowedUXCombos.size();
     }
-    std::cout<<"numHodoValidUXCombos = "<<numHodoValidUXCombos<<std::endl;
+    //std::cout<<"numHodoValidUXCombos = "<<numHodoValidUXCombos<<std::endl;
     if(numHodoValidUXCombos == 0) return TFEXIT_FAIL_BACKPARTIAL;
 
     if(numHodoValidUXCombos > 10000 && !highPU){
@@ -631,7 +631,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
 	numHodoValidUXCombos += trackletsInSt23SlimX.at(tx).allowedUXCombos.size();
       }
-      std::cout<<"numHodoValidUXCombos 2 = "<<numHodoValidUXCombos<<std::endl;
+      //std::cout<<"numHodoValidUXCombos 2 = "<<numHodoValidUXCombos<<std::endl;
     } else if(numHodoValidUXCombos > 50000 && highPU){
       return TFEXIT_FAIL_BACKPARTIAL;
     }
@@ -654,7 +654,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
       numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
     }
-    std::cout<<"numHodoValidCombos = "<<numHodoValidCombos<<std::endl;
+    //std::cout<<"numHodoValidCombos = "<<numHodoValidCombos<<std::endl;
     if(numHodoValidCombos == 0) return TFEXIT_FAIL_BACKPARTIAL;
 
     if(numHodoValidCombos > 50000 && !highPU){
@@ -670,7 +670,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
 	numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
       }
-      std::cout<<"numHodoValidCombos 2 = "<<numHodoValidCombos<<std::endl;
+      //std::cout<<"numHodoValidCombos 2 = "<<numHodoValidCombos<<std::endl;
     } else if(highPU && numHodoValidCombos > 500000){
       return TFEXIT_FAIL_BACKPARTIAL;
     }
@@ -5824,7 +5824,7 @@ int KalmanFastTracking_NEW_HODO_2::reduceTrackletList_st1(std::list<Tracklet> tr
         for(std::list<Tracklet>::iterator iter = tracklets.begin(); iter != tracklets.end(); )
         {
 
-	  std::cout<<"similarity_st1 = "<< iter->similarity_st1(targetList.back())<<std::endl;
+	  //std::cout<<"similarity_st1 = "<< iter->similarity_st1(targetList.back())<<std::endl;
 	  ++iter;
 	  
 
@@ -7358,7 +7358,7 @@ void KalmanFastTracking_NEW_HODO_2::WalkBackTracklets(Tracklet& tracklet1, Track
   int dist_min = 1E6;
   for (int iStep = 0; iStep < NSteps_St1; ++iStep) {
     double dist = (pos1[iStep] - pos2[iStep]).Perp();
-    LogInfo("walkback iStep = "<<iStep<<" dist = "<<dist);
+    //LogInfo("walkback iStep = "<<iStep<<" dist = "<<dist);
 
     if(dist < dist_min) {
       iStep_min = iStep;
@@ -7389,7 +7389,7 @@ bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
     //if(!(similarity > 0.2 && xint > 600)) return false;
     if(!(similarity > 0.2)) return false;
     
-    LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
+    //LogInfo("globalTracklets_resolveSt1.size() = "<<globalTracklets_resolveSt1.size());
     
     //if(globalTracklets_resolveSt1.size() != 2) return false;
     if(globalTracklets_resolveSt1.size() < 2) return false;
@@ -7399,8 +7399,8 @@ bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
     Tracklet best1, best2;
     bool validTracks = false;
     
-    LogInfo("globalTracklets_resolveSt1.at(0).size() = "<<globalTracklets_resolveSt1.at(0).size());
-    LogInfo("globalTracklets_resolveSt1.at(1).size() = "<<globalTracklets_resolveSt1.at(1).size());
+    //LogInfo("globalTracklets_resolveSt1.at(0).size() = "<<globalTracklets_resolveSt1.at(0).size());
+    //LogInfo("globalTracklets_resolveSt1.at(1).size() = "<<globalTracklets_resolveSt1.at(1).size());
     
     for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(0).size(); i++){
       for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(1).size(); j++){
@@ -7428,7 +7428,7 @@ bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
     
     
     if(validTracks){
-      LogInfo("the best resolved tracks");
+      //LogInfo("the best resolved tracks");
       if(!(best1.similarityAllowed(best2))){
 	trackletsInSt[4].clear();
 	return false;
@@ -7538,8 +7538,8 @@ bool KalmanFastTracking_NEW_HODO_2::resolveStation1Hits()
       }
 
 
-      LogInfo("globalTracklets_resolveSt1.at(ind1).size() = "<<globalTracklets_resolveSt1.at(ind1).size());
-      LogInfo("globalTracklets_resolveSt1.at(ind2).size() = "<<globalTracklets_resolveSt1.at(ind2).size());
+      //LogInfo("globalTracklets_resolveSt1.at(ind1).size() = "<<globalTracklets_resolveSt1.at(ind1).size());
+      //LogInfo("globalTracklets_resolveSt1.at(ind2).size() = "<<globalTracklets_resolveSt1.at(ind2).size());
       
       for(unsigned int i = 0; i < globalTracklets_resolveSt1.at(ind1).size(); i++){
 	for(unsigned int j = 0; j < globalTracklets_resolveSt1.at(ind2).size(); j++){
