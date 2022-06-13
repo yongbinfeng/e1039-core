@@ -96,6 +96,9 @@ public:
 
     inline TLorentzVector getlvec(const TVector3& vec) const { TLorentzVector lvec; lvec.SetVectM(vec, M_MU); return lvec; }
 
+    virtual int get_particleID() const {return particleID; }
+    virtual void set_particleID(Int_t id){particleID = id;}
+
     ///Gets
     Int_t getCharge() const { return (fState[0])[0][0] > 0 ? 1 : -1; }
     Int_t getNHits() const { return fHitIndex.size(); }
@@ -300,6 +303,9 @@ private:
     Double_t fChisqTarget;
     Double_t fChisqDump;
     Double_t fChisqUpstream;
+
+    //Particle ID
+    Int_t particleID;
 
     //GenFit track info - only available if the track comes from GF fitter
     std::vector<TVector3> fGFDetPlaneVec[3];
