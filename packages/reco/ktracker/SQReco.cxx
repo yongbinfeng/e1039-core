@@ -439,16 +439,14 @@ int SQReco::process_event(PHCompositeNode* topNode)
     if(is_eval_dst_enabled()) _tracklet_vector->push_back(&(*iter));
     ++nTracklets;
   }
-  // Pick up conversation
+  
   std::sort (temporarySTracks.begin(), temporarySTracks.end(), compRecTrack);
   for(unsigned int st = 0; st<temporarySTracks.size(); st++){
     fillRecTrack(temporarySTracks.at(st));
   }
 
   //>>>>>>>>>>>>>>>>>PARITCLE ID
-  std::cout << "Here 1" << std::endl;
   ParticleID();
-  std::cout << "Here 2" << std::endl;
   //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   //Loop over hit vector
@@ -632,11 +630,9 @@ void SQReco::ParticleID(){
     Double_t E_p_ratio = (ClusterEnergy/sfc)/track_pz_st3;
 
     if ((E_p_ratio <= 1.8) && (E_p_ratio >= 0.9)){
-      std::cout<<"ELECTRON"<<std::endl;
       recTrack->set_particleID(11);
     }
     else{
-      std::cout<<"MUON"<<std::endl;
       recTrack->set_particleID(13);
     }
   }
