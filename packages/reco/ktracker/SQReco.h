@@ -96,6 +96,7 @@ private:
   SRawEvent* BuildSRawEvent();
   int updateHitInfo(SRawEvent* sraw_event);
 
+  void ParticleID();
   bool fitTrackCand(Tracklet& tracklet, KalmanFitter* fitter);
   bool fitSt3TrackletCand(Tracklet& tracklet, KalmanFitter* fitter);
   bool fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter);
