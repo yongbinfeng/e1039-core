@@ -30,7 +30,7 @@ void SetupInsensitiveVolumes(
   const int enable_fmag_filter = 0,      /*should set this to 1 after being extensively tested*/
   const double filter_max_slope = 0.25,
   const double filter_min_energy = 5.,
-  const bool toggle_shielding_afterFMag = true)
+  const bool toggle_shielding_afterFMag = false)
 {
   if(toggle_shielding) {
     const double inch = 2.54;
