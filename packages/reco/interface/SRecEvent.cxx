@@ -340,12 +340,21 @@ Double_t SRecTrack::getPosition(const TMatrixD& state, Double_t& x, Double_t& y)
 }
 
 TLorentzVector SRecTrack::getMomentumVertex()
-{
-    Double_t mmu = 0.10566;
+{   
+    int part_id = get_particleID();
+    Double_t part_mass;
+
+    if(part_id == 13){
+        part_mass = 0.10566; // muon
+    }
+    else if (part_id == 11){
+        part_mass = 0.000510998; //electron
+    }
+
     Double_t px, py, pz, E;
 
     getMomentumVertex(px, py, pz);
-    E = sqrt(px*px + py*py + pz*pz + mmu*mmu);
+    E = sqrt(px*px + py*py + pz*pz + part_mass*part_mass);
 
     return TLorentzVector(px, py, pz, E);
 }
