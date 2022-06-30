@@ -380,6 +380,8 @@ int SQReco::process_event(PHCompositeNode* topNode)
   int nTracklets = 0;
   int nFittedTracks = 0;
   std::list<Tracklet>& rec_tracklets = _fastfinder->getFinalTracklets();
+
+  // Looping over the DC only tracks
   for(auto iter = rec_tracklets.begin(); iter != rec_tracklets.end(); ++iter)
   {
     iter->calcChisq();
@@ -411,9 +413,10 @@ int SQReco::process_event(PHCompositeNode* topNode)
       if(_fitter_type == SQReco::LEGACY)
         fitOK = fitTrackCand(*iter, _kfitter);
       else
-        fitOK = fitTrackCand(*iter, _gfitter);
+        fitOK = fitTrackCand(*iter, _gfitter); // convert DC only tracklets to fitted tracklets, putting it into temporary stracks
     }
 
+    //fit is ok most of the time
     if(!fitOK)
     {
       LogDebug("fit wasnt ok?");
@@ -436,11 +439,28 @@ int SQReco::process_event(PHCompositeNode* topNode)
     if(is_eval_dst_enabled()) _tracklet_vector->push_back(&(*iter));
     ++nTracklets;
   }
-
+  
   std::sort (temporarySTracks.begin(), temporarySTracks.end(), compRecTrack);
   for(unsigned int st = 0; st<temporarySTracks.size(); st++){
     fillRecTrack(temporarySTracks.at(st));
   }
+
+  //>>>>>>>>>>>>>>>>>PARITCLE ID
+  ParticleID();
+  //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  //Loop over hit vector
+  // for (int ihit = 0; ihit < _hit_vector->size(); ++ihit) {
+  //   SQHit* hit = _hit_vector->at(ihit);
+
+  //   std::cout<<"DETECTOR ID HIT: " << hit->get_detector_id() << std::endl;
+  //   if (hit->get_detector_id() == 100){ //100 is EMCAL ID
+    
+  //     int hit_elemID =  hit->get_element_id();
+  //     std::cout << "EMCAL HIT ELEM ID: " << hit_elemID << std::endl;
+
+  //   }
+  // }
 
   //std::cout<<"filled rectracks"<<std::endl;
   
@@ -540,6 +560,82 @@ int SQReco::End(PHCompositeNode* topNode)
   if(_gfitter != nullptr) delete _gfitter;
 
   return Fun4AllReturnCodes::EVENT_OK;
+}
+
+//PARTICLE ID ALGORITHM
+void SQReco::ParticleID(){
+  /*
+  Loop over each track and assign the particle ID for that track.
+  Particle IDs are assigned according to its pdg id. i.e:
+
+  e-: 11
+  mu-: 13
+  */
+
+  //Define some varibale to use within this algorithm
+  int ntowersx=72;
+  int ntowersy=36;
+  Double_t sizex=5.53; // in cm
+  Double_t sizey=5.53; // in cm
+  int ecal_size_x[] = {-200,200}; //cm
+  int ecal_size_y[] = {-100,100}; //cm
+  Double_t sfc = 0.1146337964120158; //Sampling fraction
+
+  int n_recTracks = _legacy_rec_container ? _recEvent->getNTracks() : _recTrackVec->size();
+
+  //Loop for reconstructed tracks
+  for(int itrk = 0; itrk < n_recTracks; ++itrk){
+
+    SRecTrack* recTrack = _legacy_rec_container ? &(_recEvent->getTrack(itrk)) : dynamic_cast<SRecTrack*>(_recTrackVec->at(itrk));
+
+    //Do the extrapolation
+    Double_t track_x_st3 = (recTrack->getPositionVecSt3()).X();
+    Double_t track_y_st3 = (recTrack->getPositionVecSt3()).Y();
+    Double_t track_z_st3 = (recTrack->getPositionVecSt3()).Z();
+
+    Double_t track_px_st3 = (recTrack->getMomentumVecSt3()).Px();
+    Double_t track_py_st3 = (recTrack->getMomentumVecSt3()).Py();
+    Double_t track_pz_st3 = (recTrack->getMomentumVecSt3()).Pz();
+
+    Double_t track_x_CAL = track_x_st3 + (track_px_st3 / track_pz_st3) * (1930. - track_z_st3);
+    Double_t track_y_CAL = track_y_st3 + (track_py_st3 / track_pz_st3) * (1930. - track_z_st3);
+
+    std::cout<< "track_x_CAL: " << track_x_CAL << std::endl;
+    std::cout<< "track_y_CAL: " << track_y_CAL << std::endl;
+
+    //Loop over hit vector to determine the energy
+    Double_t ClusterEnergy = 0.;
+
+    for (int ihit = 0; ihit < _hit_vector->size(); ++ihit) {
+      SQHit* hit = _hit_vector->at(ihit);
+
+      if (hit->get_detector_id() == 100){ //100 is EMCAL ID
+
+        short elemID =  hit->get_element_id();
+        float hit_e = hit->get_edep();
+
+        int emcal_towerx = floor(elemID/ntowersy);
+        int emcal_towery = elemID%ntowersy;
+
+        //Calculate emcal position
+        Double_t emcal_x = ecal_size_x[0]+emcal_towerx*sizex;
+        Double_t emcal_y = ecal_size_y[0]+emcal_towery*sizey;
+
+        // If hit is within the extrapolated window then add in the energy
+        if ((std::abs(emcal_x - track_x_CAL) <= 20) && (std::abs(emcal_y - track_y_CAL))){
+          ClusterEnergy += hit_e;
+        }
+      }
+    }
+    Double_t E_p_ratio = (ClusterEnergy/sfc)/track_pz_st3;
+
+    if ((E_p_ratio <= 1.8) && (E_p_ratio >= 0.9)){
+      recTrack->set_particleID(11);
+    }
+    else{
+      recTrack->set_particleID(13);
+    }
+  }
 }
 
 bool SQReco::fitTrackCand(Tracklet& tracklet, KalmanFitter* fitter)
