@@ -138,6 +138,7 @@ public:
     Int_t getNHitsInDetector(Short_t detectorID) { return fNHits[detectorID]; }
     Int_t getNHitsInSuperDetector(Short_t detectorID) { return fNHits[2*detectorID-1] + fNHits[2*detectorID]; }
     Int_t getNHitsInDetectors(std::vector<Int_t>& detectorIDs);
+    Int_t getNUniqueHitsInDetectors(std::vector<Int_t>& detectorIDs);
 
     std::vector<Hit>& getAllHits() { return fAllHits; }
     std::vector<Hit>& getTriggerHits() { return fTriggerHits; }

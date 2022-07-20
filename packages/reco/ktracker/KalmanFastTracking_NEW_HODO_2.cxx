@@ -508,6 +508,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     //pre-tracking cuts
     rawEvent = event_input;
     if(!acceptEvent(rawEvent)) return TFEXIT_FAIL_MULTIPLICITY;
+    
     hitAll = event_input->getAllHits();
     
     //#ifdef _DEBUG_ON
@@ -569,6 +570,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
         }
     }
 
+    
     //Get hit combinations in station 2
     _timers["st2"]->restart();
     buildTrackletsInStationSlim(3, 1);   //3 for station-2, 1 for list position 1
@@ -580,6 +582,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     _timers["st2"]->stop();
 
     totalTime += _timers["st2"]->get_accumulated_time()/1000.;
+
     
     //Get hit combinations in station 3+ and 3-
     _timers["st3"]->restart();
@@ -595,7 +598,8 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     _timers["st3"]->stop();
 
     totalTime += _timers["st3"]->get_accumulated_time()/1000.;
-    
+
+
     //Matching of station 2 and station 3 hits separately for the three wire tilts
     _timers["connect"]->restart();
     buildBackPartialTracksSlimX(reqHits, slopeComp, windowSize);
@@ -619,6 +623,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     //std::cout<<"numHodoValidUXCombos = "<<numHodoValidUXCombos<<std::endl;
     if(numHodoValidUXCombos == 0) return TFEXIT_FAIL_BACKPARTIAL;
 
+    
     if(numHodoValidUXCombos > 10000 && !highPU){
       trackletsInSt23SlimX.clear();
       trackletsInSt23SlimU.clear();
@@ -650,6 +655,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     //std::cout<<"Station 2+3 v combos = "<<trackletsInSt23SlimV.size()<<std::endl;
     //}
 
+
     int numHodoValidCombos = 0;
     for(unsigned int tx = 0; tx < trackletsInSt23SlimX.size(); tx++){
       numHodoValidCombos += trackletsInSt23SlimX.at(tx).allowedVUXCombos.size();
@@ -674,7 +680,6 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     } else if(highPU && numHodoValidCombos > 500000){
       return TFEXIT_FAIL_BACKPARTIAL;
     }
-
     
     
     /*
@@ -837,8 +842,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 #endif
         return TFEXIT_FAIL_BACKPARTIAL;
     }
-
-
+    
     //LogInfo("About to print all the st2+st3 full tracklets");
     for(std::list<Tracklet>::iterator tracklet23 = trackletsInSt[3].begin(); tracklet23 != trackletsInSt[3].end(); ++tracklet23)
     {
@@ -884,7 +888,6 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 
     totalTime += _timers["st23"]->get_accumulated_time()/1000.;
 
-    
     //Connect tracklets in station 2/3 and station 1 to form global tracks
     _timers["global"]->restart();
     if(!TRACK_DISPLACED){
@@ -892,8 +895,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
     } else{
       buildGlobalTracksDisplaced();
     }
-
-
+    
     //for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
     //for(std::list<Tracklet>::iterator trackletG = globalTracklets.begin(); trackletG != globalTracklets.end(); ++trackletG)
     for(unsigned int gt = 0; gt < globalTracklets.size(); gt++)
@@ -925,6 +927,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 	passes++;
       }
     }
+
 
     //for(std::list<Tracklet>::iterator trackletG = trackletsInSt[4].begin(); trackletG != trackletsInSt[4].end(); ++trackletG)
     //for(std::list<Tracklet>::iterator trackletG = globalTracklets.begin(); trackletG != globalTracklets.end(); ++trackletG)
@@ -993,7 +996,7 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
       */
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
-    
+
     //#ifdef _DEBUG_ON
 #ifdef _DEBUG_HODO
     for(int i = 0; i < 2; ++i)
@@ -1080,10 +1083,10 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
     if(rawEvent->getNHitsInD2() > MaxHitsDC2) return false; 
     if(rawEvent->getNHitsInD3p() > MaxHitsDC3p) return false;
     if(rawEvent->getNHitsInD3m() > MaxHitsDC3m) return false;
-
-    if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) > 50 ) return false;
-    if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) < 1 || rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) > 50 ) return false;
-
+    
+    if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[1]) < 1 || rawEvent->getNUniqueHitsInDetectors(detectorIDs_maskX[1]) > 50 ) return false;
+    if( rawEvent->getNHitsInDetectors(detectorIDs_maskX[2]) < 1 || rawEvent->getNUniqueHitsInDetectors(detectorIDs_maskX[2]) > 50 ) return false;
+    
     highPU = false;
     adjusted = false;
     /*
@@ -1276,7 +1279,6 @@ bool KalmanFastTracking_NEW_HODO_2::acceptEvent(SRawEvent* rawEvent)
     if(rawEvent->getNRoadsPos() > 5) return false;
     if(rawEvent->getNRoadsNeg() > 5) return false;
     */
-
     return true;
 }
 

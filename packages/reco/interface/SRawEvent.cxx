@@ -469,6 +469,35 @@ Int_t SRawEvent::getNHitsInDetectors(std::vector<Int_t>& detectorIDs)
     return nHits;
 }
 
+Int_t SRawEvent::getNUniqueHitsInDetectors(std::vector<Int_t>& detectorIDs) //mostly for hodoscopes, where there are indistinguishable hits in the same detID + elementID
+{
+    Int_t nHits = 0;
+    UInt_t nDetectors = detectorIDs.size();
+    for(UInt_t i = 0; i < nDetectors; i++)
+    {
+      std::vector<int> unique_elements;
+        for(UInt_t h = 0; h < fAllHits.size(); h++)
+        {
+            if(detectorIDs[i] == fAllHits[h].detectorID)
+            {
+	      bool elementSeenBefore = false;
+	      for(unsigned int e = 0; e<unique_elements.size(); e++){
+		if(fAllHits[h].elementID == unique_elements.at(e)){
+		  elementSeenBefore = true;
+		}
+	      }
+	      if(!(elementSeenBefore)){
+		nHits++;
+		unique_elements.push_back(fAllHits[h].elementID);
+	      }
+            }
+        }
+    }
+
+    return nHits;
+}
+
+
 Int_t SRawEvent::getNHitsInD0()
 {
     Int_t nHits = 0;
