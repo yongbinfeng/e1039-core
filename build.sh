@@ -141,7 +141,7 @@ for package in "${packages[@]}" ; do
   fi
   
   cd $build/$package
-  make -j4 install
+  make -j10 install
 
   ret=$?
   if [ $ret -ne 0 ] ; then
