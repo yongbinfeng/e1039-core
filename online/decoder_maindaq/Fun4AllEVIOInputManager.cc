@@ -8,10 +8,13 @@
 #include <interface_main/SQParamDeco_v1.h>
 #include <interface_main/SQHit_v1.h>
 #include <interface_main/SQHitVector_v1.h>
-#include <interface_main/SQEvent_v1.h>
+#include <interface_main/SQEvent_v2.h>
+#include <interface_main/SQHardEvent_v1.h>
 #include <interface_main/SQRun_v1.h>
 #include <interface_main/SQSpill_v2.h>
 #include <interface_main/SQSpillMap_v1.h>
+#include <interface_main/SQHardSpill_v1.h>
+#include <interface_main/SQIntMap_v1.h>
 #include <interface_main/SQStringMap.h>
 #include <interface_main/SQScaler_v1.h>
 #include <interface_main/SQSlowCont_v1.h>
@@ -28,7 +31,9 @@
 #include <phool/PHCompositeNode.h>
 #include <phool/PHDataNode.h>
 #include <phool/recoConsts.h>
+#include <phool/PHTimer2.h>
 #include <cstdlib>
+#include <iomanip>
 #include <memory>
 
 //#include <boost/tokenizer.hpp>
@@ -36,6 +41,17 @@
 //#include <boost/lexical_cast.hpp>
 
 using namespace std;
+
+const std::vector<std::string> Fun4AllEVIOInputManager::LIST_TIMERS = {
+  "run_open"          , 
+  "run_get_node"      , 
+  "run_get_event"     , 
+  "run_set_param"     , 
+  "run_set_run_data"  , 
+  "run_set_spill_data", 
+  "run_set_event_data", 
+  "run_set_hit_data"
+};
 
 Fun4AllEVIOInputManager::Fun4AllEVIOInputManager(const string &name, const string &topnodename) :
  Fun4AllInputManager(name, ""),
@@ -66,6 +82,9 @@ Fun4AllEVIOInputManager::Fun4AllEVIOInputManager(const string &name, const strin
   PHIODataNode<PHObject>* spillNode = new PHIODataNode<PHObject>(new SQSpillMap_v1(), "SQSpillMap", "PHObject");
   runNode->addNode(spillNode);
 
+  PHIODataNode<PHObject>* hardSpillNode = new PHIODataNode<PHObject>(new SQIntMap_v1(), "SQHardSpillMap", "PHObject");
+  runNode->addNode(hardSpillNode);
+
   PHIODataNode<PHObject>* paramDecoNode = new PHIODataNode<PHObject>(new SQParamDeco_v1(), "SQParamDeco", "PHObject");
   runNode->addNode(paramDecoNode);
 
@@ -76,8 +95,11 @@ Fun4AllEVIOInputManager::Fun4AllEVIOInputManager(const string &name, const strin
     topNode->addNode(eventNode);
   }
   
-  PHIODataNode<PHObject>* eventHeaderNode = new PHIODataNode<PHObject>(new SQEvent_v1(),"SQEvent", "PHObject");
+  PHIODataNode<PHObject>* eventHeaderNode = new PHIODataNode<PHObject>(new SQEvent_v2(),"SQEvent", "PHObject");
   eventNode->addNode(eventHeaderNode);
+
+  PHIODataNode<PHObject>* hardEventNode = new PHIODataNode<PHObject>(new SQHardEvent_v1(),"SQHardEvent", "PHObject");
+  eventNode->addNode(hardEventNode);
 
   PHIODataNode<PHObject>* hitNode = new PHIODataNode<PHObject>(new SQHitVector_v1(), "SQHitVector", "PHObject");
   eventNode->addNode(hitNode);
@@ -92,6 +114,12 @@ Fun4AllEVIOInputManager::Fun4AllEVIOInputManager(const string &name, const strin
   //    topNode->addNode(newNode);
   //  }
   syncobject = new SyncObjectv2();
+
+  for (auto it = LIST_TIMERS.begin(); it != LIST_TIMERS.end(); it++) {
+    string name = *it;
+    m_timers[name] = new PHTimer2(name);
+  }
+
   return ;
 }
 
@@ -103,6 +131,7 @@ Fun4AllEVIOInputManager::~Fun4AllEVIOInputManager()
     }
   if (parser) delete parser;
   delete syncobject;
+  for (auto it = m_timers.begin(); it != m_timers.end(); it++) delete it->second;
 }
 
 int Fun4AllEVIOInputManager::fileopen(const string &filenam)
@@ -124,7 +153,7 @@ int Fun4AllEVIOInputManager::fileopen(const string &filenam)
     }
 
   events_thisfile = 0;
-  parser->dec_par.verbose = Verbosity();
+  parser->dec_par.verb = Verbosity();
   int status = parser->OpenCodaFile(fname);
   if (status!=0) {
     cout << PHWHERE << ThisName << ": could not open file " << fname << " with status = " << status << "." << endl;
@@ -142,6 +171,8 @@ int Fun4AllEVIOInputManager::run(const int nevents)
 {
   //cout << "Fun4AllEVIOInputManager::run(): " << nevents << endl;
   readagain:
+
+  m_timers["run_open"]->restart();
   if (!isopen)
     {
       if (filelist.empty())
@@ -162,10 +193,10 @@ int Fun4AllEVIOInputManager::run(const int nevents)
             }
         }
     }
-  if (verbosity > 3)
-    {
-      cout << "Getting Event from " << Name() << endl;
-    }
+  m_timers["run_open"]->stop();
+
+  m_timers["run_get_node"]->restart();
+  if (verbosity > 3) cout << "Getting Event from " << Name() << endl;
   //  cout << "running event " << nevents << endl;
   //PHNodeIterator iter(topNode);
   SQRun* run_header = findNode::getClass<SQRun>(topNode, "SQRun");
@@ -176,10 +207,18 @@ int Fun4AllEVIOInputManager::run(const int nevents)
   if (!spill_map) {
     return Fun4AllReturnCodes::ABORTEVENT;
   }
+  SQIntMap* hard_spill_map = findNode::getClass<SQIntMap>(topNode, "SQHardSpillMap");
+  if (!hard_spill_map) {
+    return Fun4AllReturnCodes::ABORTEVENT;
+  }
+
   SQEvent* event_header = findNode::getClass<SQEvent>(topNode, "SQEvent");
   if (!event_header) {
     return Fun4AllReturnCodes::ABORTEVENT;
   }
+
+  SQHardEvent* hard_evt = findNode::getClass<SQHardEvent>(topNode, "SQHardEvent");
+  if (!hard_evt) return Fun4AllReturnCodes::ABORTEVENT;
 
   SQHitVector* hit_vec = findNode::getClass<SQHitVector>(topNode, "SQHitVector");
   if (!hit_vec) {
@@ -190,7 +229,9 @@ int Fun4AllEVIOInputManager::run(const int nevents)
   if (!trig_hit_vec) {
     return Fun4AllReturnCodes::ABORTEVENT;
   }
-  
+  m_timers["run_get_node"]->stop();
+
+  m_timers["run_get_event"]->restart();
   //PHDataNode<Event> *PrdfNode = dynamic_cast<PHDataNode<Event> *>(iter.findFirst("PHDataNode","EVIO"));
   EventData* ed = 0;
   SpillData* sd = 0;
@@ -211,27 +252,30 @@ int Fun4AllEVIOInputManager::run(const int nevents)
       //  evt = new EVIO_Event(data_ptr);
       parser->NextPhysicsEvent(ed, sd, rd);
     }
+  m_timers["run_get_event"]->stop();
+
   if (!ed)
     {
       fileclose();
       goto readagain;
     }
-  if (verbosity > 3)
-    {
-      cout << ThisName << ":  run " << rd->run_id << ", spill " << sd->spill_id << ", event " << ed->event.eventID << endl;
-    }
+  if (verbosity > 3) cout << ThisName << ":  run " << rd->run_id << ", spill " << sd->spill_id << ", event " << ed->event.eventID << endl;
 
   if (events_total == 0) {
+    m_timers["run_set_param"]->restart();
     SQParamDeco* sqpd = findNode::getClass<SQParamDeco>(topNode, "SQParamDeco");
     if (!sqpd) return Fun4AllReturnCodes::ABORTEVENT;
     DecoParam* dp = &parser->dec_par;
     sqpd->set_variable(dp->chan_map_taiwan.GetParamID(), dp->chan_map_taiwan.GetMapID());
     sqpd->set_variable(dp->chan_map_v1495 .GetParamID(), dp->chan_map_v1495 .GetMapID());
     sqpd->set_variable(dp->chan_map_scaler.GetParamID(), dp->chan_map_scaler.GetMapID());
+    m_timers["run_set_param"]->stop();
   }
 
   events_total++;
   events_thisfile++;
+
+  m_timers["run_set_run_data"]->restart();
 
   SetRunNumber                (rd->run_id);
   mySyncManager->PrdfEvents   (events_thisfile);
@@ -272,17 +316,15 @@ int Fun4AllEVIOInputManager::run(const int nevents)
   run_header->set_n_v1495_d1ad   (rd->n_v1495_d1ad);
   run_header->set_n_v1495_d2ad   (rd->n_v1495_d2ad);
   run_header->set_n_v1495_d3ad   (rd->n_v1495_d3ad);
+  m_timers["run_set_run_data"]->stop();
 
+  m_timers["run_set_spill_data"]->restart();
   SQSpill* spill = spill_map->get(sd->spill_id);
   if (! spill) {
     spill = new SQSpill_v2();
     spill->set_spill_id    (sd->spill_id);
     spill->set_run_id      (sd->run_id  );
     spill->set_target_pos  (sd->targ_pos);
-    spill->set_bos_coda_id (sd->bos_coda_id );
-    spill->set_bos_vme_time(sd->bos_vme_time);
-    spill->set_eos_coda_id (sd->eos_coda_id );
-    spill->set_eos_vme_time(sd->eos_vme_time);
     for (ScalerDataList::iterator it = sd->list_scaler.begin(); it != sd->list_scaler.end(); it++) {
       SQScaler_v1 obj;
       obj.set_name (it->name );
@@ -305,13 +347,32 @@ int Fun4AllEVIOInputManager::run(const int nevents)
     }
     spill_map->insert(spill);
   }
+  SQHardSpill* hard_spill = (SQHardSpill*)hard_spill_map->get(sd->spill_id);
+  if (! hard_spill) {
+    SQHardSpill_v1 obj;
+    obj.set_bos_coda_id (sd->bos_coda_id );
+    obj.set_bos_vme_time(sd->bos_vme_time);
+    obj.set_eos_coda_id (sd->eos_coda_id );
+    obj.set_eos_vme_time(sd->eos_vme_time);
+    obj.set_time_input  (sd->time_input   );
+    obj.set_time_decode (sd->time_decode  );
+    obj.set_time_map    (sd->time_map     );
+    hard_spill = (SQHardSpill*)hard_spill_map->insert(sd->spill_id, &obj);
 
+    Fun4AllServer::instance()->ResetSpillTimer();
+  }
+  double time_subsys, time_output;
+  Fun4AllServer::instance()->ReadSpillTimer(time_subsys, time_output);
+  hard_spill->set_time_subsys(time_subsys);
+  hard_spill->set_time_output(time_output);
+
+  m_timers["run_set_spill_data"]->stop();
+
+  m_timers["run_set_event_data"]->restart();
   event_header->set_run_id       (ed->event.runID  );
   event_header->set_spill_id     (ed->event.spillID);
   event_header->set_event_id     (ed->event.eventID);
-  event_header->set_coda_event_id(ed->event.codaEventID);
   event_header->set_data_quality (ed->event.dataQuality);
-  event_header->set_vme_time     (ed->event.vmeTime);
   event_header->set_trigger      (SQEvent::MATRIX1, ed->event.MATRIX[0]);
   event_header->set_trigger      (SQEvent::MATRIX2, ed->event.MATRIX[1]);
   event_header->set_trigger      (SQEvent::MATRIX3, ed->event.MATRIX[2]);
@@ -322,22 +383,27 @@ int Fun4AllEVIOInputManager::run(const int nevents)
   event_header->set_trigger      (SQEvent::NIM3   , ed->event.NIM   [2]);
   event_header->set_trigger      (SQEvent::NIM4   , ed->event.NIM   [3]);
   event_header->set_trigger      (SQEvent::NIM5   , ed->event.NIM   [4]);
-  for (int ii=0; ii<5; ii++) {
-    event_header->set_raw_matrix      (ii, ed->event.RawMATRIX     [ii]);
-    event_header->set_after_inh_matrix(ii, ed->event.AfterInhMATRIX[ii]);
-  }
   for (int ii=0; ii<4; ii++) event_header->set_qie_presum(ii, ed->event.sums[ii]);
   event_header->set_qie_trigger_count(ed->event.triggerCount);
   event_header->set_qie_turn_id      (ed->event.turnOnset);
   event_header->set_qie_rf_id        (ed->event.rfOnset);
   for (int ii=0; ii<33; ii++) event_header->set_qie_rf_intensity(ii-16, ed->event.rf[ii]);
-  event_header->set_flag_v1495        (ed->event.flag_v1495);
-  event_header->set_n_board_qie       (ed->n_qie   );
-  event_header->set_n_board_v1495     (ed->n_v1495 );
-  event_header->set_n_board_taiwan    (ed->n_tdc   );
-  event_header->set_n_board_trig_bit  (ed->n_trig_b);
-  event_header->set_n_board_trig_count(ed->n_trig_c);
 
+  hard_evt->set_coda_event_id(ed->event.codaEventID);
+  hard_evt->set_vme_time     (ed->event.vmeTime);
+  for (int ii=0; ii<5; ii++) {
+    hard_evt->set_raw_matrix      (ii, ed->event.RawMATRIX     [ii]);
+    hard_evt->set_after_inh_matrix(ii, ed->event.AfterInhMATRIX[ii]);
+  }
+  hard_evt->set_flag_v1495        (ed->event.flag_v1495);
+  hard_evt->set_n_board_qie       (ed->n_qie   );
+  hard_evt->set_n_board_v1495     (ed->n_v1495 );
+  hard_evt->set_n_board_taiwan    (ed->n_tdc   );
+  hard_evt->set_n_board_trig_bit  (ed->n_trig_b);
+  hard_evt->set_n_board_trig_count(ed->n_trig_c);
+  m_timers["run_set_event_data"]->stop();
+
+  m_timers["run_set_hit_data"]->restart();
   for (HitDataList::iterator it = ed->list_hit.begin(); it != ed->list_hit.end(); it++) {
     HitData* hd = &*it;
     SQHit* hit = new SQHit_v1();
@@ -365,6 +431,7 @@ int Fun4AllEVIOInputManager::run(const int nevents)
     trig_hit_vec->push_back(hit);
     delete hit;
   }
+  m_timers["run_set_hit_data"]->stop();
 
   // check if the local SubsysReco discards this event
   if (RejectEvent() != Fun4AllReturnCodes::EVENT_OK)
@@ -383,9 +450,18 @@ int Fun4AllEVIOInputManager::fileclose()
       return -1;
     }
 
+  SQRun* sqrun = findNode::getClass<SQRun>(topNode, "SQRun");
+  if (sqrun) {
+    RunData* rd = parser->GetRunData();
+    sqrun->set_unix_time_end(rd->utime_e);
+  }
+
   parser->End();
-  //delete parser;
-  //parser = NULL;
+  cout << "Fun4AllEVIOInputManager: Timer:\n";
+  for (auto it = LIST_TIMERS.begin(); it != LIST_TIMERS.end(); it++) {
+    m_timers[*it]->print_stat();
+  }
+
   isopen = 0;
   // if we have a file list, move next entry to top of the list
   // or repeat the same entry again

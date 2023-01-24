@@ -21,7 +21,7 @@ install=$MY_INSTALL
 mode=all
 OPTIND=1
 cmake_args=""
-while getopts ":s:r:i:c:b:B" OPT ; do
+while getopts ":s:r:i:c:b:" OPT ; do
     case $OPT in
         s ) mode='single'
             package=$OPTARG
@@ -38,7 +38,7 @@ while getopts ":s:r:i:c:b:B" OPT ; do
         c ) cmake_args=$OPTARG
             echo " - pass additional args $cmake_args to cmake"
             ;;
-        b ) build=$(readlink -e $OPTARG)
+        b ) build=$(readlink -m $OPTARG)
             echo "Build directory = $build"
             ;;
         * ) echo 'Unsupported option.  Abort.'
@@ -88,6 +88,7 @@ else # 'all' or 'resume'
     packages/reco/SQGenFit
     packages/reco/kfitter
     packages/reco/ktracker
+    packages/kTThreads
     packages/embedding
     simulation/g4dst
     online/onlmonserver
@@ -103,6 +104,14 @@ else # 'all' or 'resume'
 	  unset packages[$II]
       done
   fi
+fi
+
+## Clean up $build when $mode = 'all'.  Otherwise the file deletion via
+## 'install_manifest.txt' causes a problem when you changed 
+## "$install" (via "setup-install.sh") but didn't clean up "$install".
+if [ $mode = 'all' -a -e $build ] ; then
+    echo "Clean up the build directory."
+    rm -rf $build
 fi
 
 for package in "${packages[@]}" ; do
@@ -122,7 +131,7 @@ for package in "${packages[@]}" ; do
       continue
   fi
 
-  echo $src/$package
+  echo "Package: $package"
   if [ -f $build/$package/install_manifest.txt ]; then
     cat $build/$package/install_manifest.txt | xargs rm -f
   fi

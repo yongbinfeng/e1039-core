@@ -1,11 +1,9 @@
 /// Fun4MainDaq.C:  Fun4all macro to decode the MainDAQ data.
-#if ROOT_VERSION_CODE >= ROOT_VERSION(6,00,0)
 R__LOAD_LIBRARY(libinterface_main)
 R__LOAD_LIBRARY(libdecoder_maindaq)
 R__LOAD_LIBRARY(libonlmonserver)
 R__LOAD_LIBRARY(libpheve_modules)
 R__LOAD_LIBRARY(libktracker)
-#endif
 
 int Fun4MainDaq(const int run=46, const int nevent=0, const bool is_online=false)
 {
@@ -32,12 +30,15 @@ int Fun4MainDaq(const int run=46, const int nevent=0, const bool is_online=false
   string fn_out = oss.str();
   gSystem->mkdir(UtilOnline::GetDstFileDir().c_str(), true);
 
+  recoConsts* rc = recoConsts::instance();
+  rc->set_IntFlag("RUNNUMBER", run);
+
   OnlMonServer* se = OnlMonServer::instance();
   //se->Verbosity(1);
   se->SetOnline(is_online);
 
   Fun4AllEVIOInputManager *in = new Fun4AllEVIOInputManager("MainDaq");
-  in->Verbosity(2);
+  in->Verbosity(3);
   in->SetOnline(is_online);
   //if (is_online) in->PretendSpillInterval(20);
   in->fileopen(fn_in);
@@ -51,6 +52,7 @@ int Fun4MainDaq(const int run=46, const int nevent=0, const bool is_online=false
 
   if (use_onlmon) { // Register the online-monitoring clients
     if (is_online) se->StartServer();
+    //OnlMonComm::instance()->SetMaxNumSelSpills(600); // default = 600
     se->registerSubsystem(new OnlMonMainDaq());
     se->registerSubsystem(new OnlMonTrigSig());
     se->registerSubsystem(new OnlMonTrigNim());
@@ -90,6 +92,7 @@ int Fun4MainDaq(const int run=46, const int nevent=0, const bool is_online=false
 
   Fun4AllSpillDstOutputManager *om_spdst = new Fun4AllSpillDstOutputManager(UtilOnline::GetDstFileDir(), "SPILLDSTOUT");
   om_spdst->SetSpillStep(100);
+  om_spdst->EnableDB();
   se->registerOutputManager(om_spdst);
 
   if (use_evt_disp) {
@@ -105,12 +108,15 @@ int Fun4MainDaq(const int run=46, const int nevent=0, const bool is_online=false
     se->registerOutputManager(om_eddst);
   }
 
-  Fun4AllSRawEventOutputManager *om_sraw = new Fun4AllSRawEventOutputManager("/data2/e1039/online");
-  om_sraw->Verbosity(10);
-  se->registerOutputManager(om_sraw);
+  if (is_online) {
+    Fun4AllSRawEventOutputManager *om_sraw = new Fun4AllSRawEventOutputManager("/data2/e1039/online");
+    om_sraw->Verbosity(10);
+    se->registerOutputManager(om_sraw);
+  }
 
   se->run(nevent);
   se->End();
+  se->PrintTimer();
   deco_stat.RunFinished(run, 0); // always "result = 0" for now.
   
   delete se;

@@ -152,6 +152,10 @@ struct SpillData {
   unsigned int n_slow;
   unsigned int n_scaler;
 
+  double time_input;  ///< In msec.
+  double time_decode; ///< In msec.
+  double time_map;    ///< In msec.
+
   SlowControlDataList list_slow_cont;
   ScalerDataList list_scaler;
 

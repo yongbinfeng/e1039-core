@@ -52,10 +52,10 @@ public:
   SQReco(const std::string& name = "SQReco");
   virtual ~SQReco();
 
-  int Init(PHCompositeNode* topNode);
-  int InitRun(PHCompositeNode* topNode);
-  int process_event(PHCompositeNode* topNode);
-  int End(PHCompositeNode* topNode);
+  virtual int Init(PHCompositeNode* topNode);
+  virtual int InitRun(PHCompositeNode* topNode);
+  virtual int process_event(PHCompositeNode* topNode);
+  virtual int End(PHCompositeNode* topNode);
 
   void setInputTy(SQReco::INPUT_TYPE input_ty) { _input_type = input_ty; }
   void setFitterTy(SQReco::FITTER_TYPE fitter_ty) { _fitter_type = fitter_ty; }
@@ -72,6 +72,9 @@ public:
   bool is_KF_enabled() const { return _enable_KF; }
   void set_enable_KF(bool enable) { _enable_KF = enable; }
 
+  /// See `KalmanFastTracking::setOutputListID()`.
+  void set_output_list_index(const int idx) { _output_list_idx = idx; }
+
   bool is_eval_enabled() const { return _enable_eval; }
   void set_enable_eval(bool enable) { _enable_eval = enable; }
   bool is_eval_dst_enabled() const { return _enable_eval_dst; }
@@ -82,17 +85,20 @@ public:
   void set_evt_reducer_opt(const TString& opt) { _evt_reducer_opt = opt; }
 
   void set_legacy_rec_container(const bool b = true) { _legacy_rec_container = b; } 
-  
-private:
 
-  int InitField(PHCompositeNode* topNode);
-  int InitGeom(PHCompositeNode* topNode);
-  int MakeNodes(PHCompositeNode* topNode);
-  int GetNodes(PHCompositeNode* topNode);
+protected:
+
+  virtual int InitField(PHCompositeNode* topNode);
+  virtual int InitGeom(PHCompositeNode* topNode);
+  virtual int InitFastTracking();
+  virtual int MakeNodes(PHCompositeNode* topNode);
+  virtual int GetNodes(PHCompositeNode* topNode);
 
   int InitEvalTree();
   int ResetEvalVars();
 
+  void ProcessEventPrep();
+  void ProcessEventFinish();
   SRawEvent* BuildSRawEvent();
   int updateHitInfo(SRawEvent* sraw_event);
 
@@ -109,6 +115,8 @@ private:
   
   SQReco::INPUT_TYPE  _input_type;
   SQReco::FITTER_TYPE _fitter_type;
+
+  int _output_list_idx;
 
   bool _enable_eval;
   TString _eval_file_name;

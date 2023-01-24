@@ -10,18 +10,20 @@
 #include <phool/getClass.h>
 #include <geom_svc/GeomSvc.h>
 #include <geom_svc/CalibParamXT.h>
-#include <geom_svc/CalibParamInTimeTaiwan.h>
 #include "CalibDriftDist.h"
 using namespace std;
 
 CalibDriftDist::CalibDriftDist(const std::string& name)
   : SubsysReco(name)
   , m_manual_map_selection(false)
-  , m_fn_int("")
   , m_fn_xt("")
   , m_vec_hit(0)
   , m_cal_xt (0)
-  , m_cal_int(0)
+  , m_reso_d0 (0)
+  , m_reso_d1 (0)
+  , m_reso_d2 (0)
+  , m_reso_d3p(0)
+  , m_reso_d3m(0)
 {
   ;
 }
@@ -29,7 +31,6 @@ CalibDriftDist::CalibDriftDist(const std::string& name)
 CalibDriftDist::~CalibDriftDist()
 {
   if (m_cal_xt ) delete m_cal_xt ;
-  if (m_cal_int) delete m_cal_int;
 }
 
 int CalibDriftDist::Init(PHCompositeNode* topNode)
@@ -38,43 +39,53 @@ int CalibDriftDist::Init(PHCompositeNode* topNode)
     m_cal_xt = new CalibParamXT();
     m_cal_xt->SetMapID(m_fn_xt);
     m_cal_xt->ReadFromLocalFile(m_fn_xt);
-    
-    m_cal_int = new CalibParamInTimeTaiwan();
-    m_cal_int->SetMapID(m_fn_int);
-    m_cal_int->ReadFromLocalFile(m_fn_int);
   }
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
 int CalibDriftDist::InitRun(PHCompositeNode* topNode)
 {
-  SQRun* run_header = findNode::getClass<SQRun      >(topNode, "SQRun");
-  m_vec_hit         = findNode::getClass<SQHitVector>(topNode, "SQHitVector");
-  if (!run_header || !m_vec_hit) return Fun4AllReturnCodes::ABORTEVENT;
+  //SQRun* run_header = findNode::getClass<SQRun>(topNode, "SQRun");
+  //if (!run_header) return Fun4AllReturnCodes::ABORTEVENT;
+  m_vec_hit = findNode::getClass<SQHitVector>(topNode, "SQHitVector");
+  if (!m_vec_hit) return Fun4AllReturnCodes::ABORTEVENT;
+
+  recoConsts* rc = recoConsts::instance();
 
   if (! m_manual_map_selection) {
+    int run_id = rc->get_IntFlag("RUNNUMBER");
     m_cal_xt = new CalibParamXT();
-    m_cal_xt->SetMapIDbyDB(run_header->get_run_id());
+    m_cal_xt->SetMapIDbyDB(run_id); // (run_header->get_run_id());
     m_cal_xt->ReadFromDB();
-    
-    m_cal_int = new CalibParamInTimeTaiwan();
-    m_cal_int->SetMapIDbyDB(run_header->get_run_id());
-    m_cal_int->ReadFromDB();
   }
 
   SQParamDeco* param_deco = findNode::getClass<SQParamDeco>(topNode, "SQParamDeco");
   if (param_deco) {
-    param_deco->set_variable(m_cal_xt ->GetParamID(), m_cal_xt ->GetMapID());
-    param_deco->set_variable(m_cal_int->GetParamID(), m_cal_int->GetMapID());
+    param_deco->set_variable(m_cal_xt->GetParamID(), m_cal_xt->GetMapID());
   }
 
-  recoConsts* rc = recoConsts::instance();
-  rc->set_CharFlag(m_cal_xt ->GetParamID(), m_cal_xt ->GetMapID());
-  rc->set_CharFlag(m_cal_int->GetParamID(), m_cal_int->GetMapID());
-
+  rc->set_CharFlag(m_cal_xt->GetParamID(), m_cal_xt->GetMapID());
   if (Verbosity() > 0) {
-    cout << Name() << ": " << m_cal_xt ->GetParamID() << " = " << m_cal_xt ->GetMapID() << "\n"
-         << Name() << ": " << m_cal_int->GetParamID() << " = " << m_cal_int->GetMapID() << "\n";
+    cout << Name() << ": " << m_cal_xt->GetParamID() << " = " << m_cal_xt->GetMapID() << "\n";
+  }
+
+  if (m_reso_d0 > 0) {
+    if (Verbosity() > 0) cout << "CalibDriftDist: Set the plane resolution.\n";
+    GeomSvc* geom = GeomSvc::instance();
+    for (int ii = 1; ii <= nChamberPlanes; ii++) {
+      Plane* plane = geom->getPlanePtr(ii);
+      string name = plane->detectorName;
+      double reso = -1;
+      if      (name.substr(0, 2) == "D0" ) reso = m_reso_d0;
+      else if (name.substr(0, 2) == "D1" ) reso = m_reso_d1;
+      else if (name.substr(0, 2) == "D2" ) reso = m_reso_d2;
+      else if (name.substr(0, 3) == "D3p") reso = m_reso_d3p;
+      else if (name.substr(0, 3) == "D3m") reso = m_reso_d3m;
+      if (reso > 0) {
+        plane->resolution = reso;
+        if (Verbosity() > 0) cout << "  " << setw(2) << ii << ":" << setw(5) << name << " = " << reso << endl;
+      }
+    }
   }
 
   return Fun4AllReturnCodes::EVENT_OK;
@@ -88,6 +99,7 @@ int CalibDriftDist::process_event(PHCompositeNode* topNode)
     int det = hit->get_detector_id();
     if (!geom->isChamber(det) && !geom->isPropTube(det)) continue;
 
+    /*
     int ele = hit->get_element_id();
     TGraphErrors* gr_t2x;
     TGraphErrors* gr_t2dx;
@@ -97,19 +109,21 @@ int CalibDriftDist::process_event(PHCompositeNode* topNode)
     if (! m_cal_xt ->Find(det, gr_t2x, gr_t2dx) || 
         ! m_cal_int->Find(det, ele, center, width) ) {
       cerr << "  WARNING:  Cannot find the in-time parameter for det=" << det << " ele=" << ele << " in CalibDriftDist.\n";
+    */  
+    CalibParamXT::Set* xt = m_cal_xt->GetParam(det);
+    if (! det) {
+      cerr << "  WARNING:  Cannot find the in-time parameter for det=" << det << " in CalibDriftDist.\n";
       continue;
       //return Fun4AllReturnCodes::ABORTEVENT;
     }
-    float t1 = center - width / 2;
-    float t0 = center + width / 2;
     float   tdc_time = hit->get_tdc_time();
-    float drift_time = t0 - tdc_time;
-    float drift_dist = gr_t2x->Eval(drift_time);
+    float drift_dist = xt->t2x.Eval(tdc_time);
     if (drift_dist < 0) drift_dist = 0;
-    hit->set_in_time(t1 <= tdc_time && tdc_time <= t0);
     hit->set_drift_distance(drift_dist);
+    hit->set_in_time(xt->T1 <= tdc_time && tdc_time <= xt->T0);
     /// No field for resolution in SQHit now.
 
+    int ele = hit->get_element_id();
     hit->set_pos(geom->getMeasurement(det, ele));
     std::cout<<"still still in CalibDriftDist process_event.  index = "<<hit->get_hit_id()<<", detID = "<<hit->get_detector_id()<<", elementID = "<<hit->get_element_id()<<", tdcTime = "<<hit->get_tdc_time()<<", driftDistance = "<<fabs(hit->get_drift_distance())<<", pos = "<<hit->get_pos()<<", is_in_time = "<<hit->is_in_time()<<", get_tdc_time = "<<hit->get_tdc_time()<<", t1 = "<<t1<<", t0 = "<<t0<<std::endl; //WPM
   }
@@ -121,9 +135,21 @@ int CalibDriftDist::End(PHCompositeNode* topNode)
   return Fun4AllReturnCodes::EVENT_OK;
 }
 
-void CalibDriftDist::ReadParamFromFile(const char* fn_in_time, const char* fn_xt_curve)
+/**
+ * The resolution values are passed to `GeomSvc` in `InitRun()` later.
+ * They will be used in `Tracklet::calcChisq()` of `FastTracklet.cxx` for example.
+ */
+void CalibDriftDist::SetResolution(const double reso_d0, const double reso_d1, const double reso_d2, const double reso_d3p, const double reso_d3m)
+{
+  m_reso_d0  = reso_d0 ;
+  m_reso_d1  = reso_d1 ;
+  m_reso_d2  = reso_d2 ;
+  m_reso_d3p = reso_d3p;
+  m_reso_d3m = reso_d3m;
+}
+
+void CalibDriftDist::ReadParamFromFile(const char* fn_xt_curve)
 {
   m_manual_map_selection = true;
-  m_fn_int = fn_in_time;
   m_fn_xt  = fn_xt_curve;
 }

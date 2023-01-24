@@ -442,9 +442,9 @@ void KalmanFastTracking::setRawEventDebug(SRawEvent* event_input)
     hitAll = event_input->getAllHits();
 }
 
-int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
+int KalmanFastTracking::setRawEventPrep(SRawEvent* event_input)
 {
-	//reset timer
+    //reset timer
     for(auto iter=_timers.begin(); iter != _timers.end(); ++iter) 
     {
         iter->second->reset();
@@ -463,9 +463,9 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     rawEvent = event_input;
     if(!acceptEvent(rawEvent)) return TFEXIT_FAIL_MULTIPLICITY;
     hitAll = event_input->getAllHits();
-#ifdef _DEBUG_ON
-    for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
-#endif
+    if(verbosity >= 3) {
+      for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
+    }
 
     //Initialize hodo and masking IDs
     for(int i = 0; i < 4; i++)
@@ -502,12 +502,19 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
         buildPropSegments();
         if(propSegs[0].empty() || propSegs[1].empty())
         {
-#ifdef _DEBUG_ON
+          if(verbosity >= 3) {
             LogInfo("Failed in prop tube segment building: " << propSegs[0].size() << ", " << propSegs[1].size());
-#endif
+          }
             //return TFEXIT_FAIL_ROUGH_MUONID;
         }
     }
+    return 0;
+}
+
+int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
+{
+  int ret = setRawEventPrep(event_input);
+  if (ret != 0) return ret;
 
     //Build tracklets in station 2, 3+, 3-
     _timers["st2"]->restart();
@@ -538,10 +545,10 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     
     if(outputListIdx > 1 && trackletsInSt[1].empty())
     {
-#ifdef _DEBUG_ON
+      if(verbosity >= 3) {
         LogInfo("Failed in tracklet build at station 2");
-#endif
-        //return TFEXIT_FAIL_ST2_TRACKLET;
+      }
+        return TFEXIT_FAIL_ST2_TRACKLET;
     }
 
     _timers["st3"]->restart();
@@ -561,10 +568,10 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     
     if(outputListIdx > 2 && trackletsInSt[2].empty())
     {
-#ifdef _DEBUG_ON
+      if(verbosity >= 3) {
         LogInfo("Failed in tracklet build at station 3");
-#endif
-        //return TFEXIT_FAIL_ST3_TRACKLET;
+      }
+        return TFEXIT_FAIL_ST3_TRACKLET;
     }
 
     //Build back partial tracks in station 2, 3+ and 3-
@@ -611,9 +618,9 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
 
     if(outputListIdx > 3 && trackletsInSt[3].empty())
     {
-#ifdef _DEBUG_ON
+      if(verbosity >= 3) {
         LogInfo("Failed in connecting station-2 and 3 tracks");
-#endif
+      }
         return TFEXIT_FAIL_BACKPARTIAL;
     }
 
@@ -627,7 +634,7 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     _timers["global"]->stop();
     if(verbosity >= 2) LogInfo("NTracklets Global: " << trackletsInSt[4].size());
     
-#ifdef _DEBUG_ON
+    if(verbosity >= 3) {
     for(int i = 0; i < 2; ++i)
     {
         std::cout << "=======================================================================================" << std::endl;
@@ -649,7 +656,7 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
         }
         std::cout << "=======================================================================================" << std::endl;
     }
-#endif
+    }
 
     if(outputListIdx == 4 && trackletsInSt[4].empty()) return TFEXIT_FAIL_GLOABL;
     if(!enable_KF) return TFEXIT_SUCCESS;
@@ -663,13 +670,13 @@ int KalmanFastTracking::setRawEvent(SRawEvent* event_input)
     }
     _timers["kalman"]->stop();
 
-#ifdef _DEBUG_ON
+    if(verbosity >= 3) {
     LogInfo(stracks.size() << " final tracks:");
     for(std::list<SRecTrack>::iterator strack = stracks.begin(); strack != stracks.end(); ++strack)
     {
         strack->print();
     }
-#endif
+    }
 
     return TFEXIT_SUCCESS;
 }

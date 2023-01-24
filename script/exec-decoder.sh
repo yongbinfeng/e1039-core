@@ -17,9 +17,11 @@ fi
 E1039_CORE_VERSION=default
 IS_ONLINE=false
 DECO_MODE=devel
+LAUNCHER=no
+N_EVT=0
 
 OPTIND=1
-while getopts ":v:osd" OPT ; do
+while getopts ":v:osdle:" OPT ; do
     case $OPT in
         v ) E1039_CORE_VERSION=$OPTARG
             echo "  E1039_CORE version: $E1039_CORE_VERSION"
@@ -33,14 +35,15 @@ while getopts ":v:osd" OPT ; do
         d ) DECO_MODE=devel
             echo "  Decoder mode: $DECO_MODE"
             ;;
+        l ) LAUNCHER=yes
+            echo "  Launcher mode: $LAUNCHER"
+            ;;
+	e ) N_EVT=$OPTARG
+            echo "  N of events: $N_EVT"
+            ;;
     esac
 done
 shift $((OPTIND - 1))
-
-if [ -z "$1" ] ; then
-    echo "!!ERROR!!  The 1st argument must be run number or 'daemon'.  Abort."
-    exit
-fi
 
 DIR_SCRIPT=$(dirname $(readlink -f $0))
 if [ $DIR_SCRIPT = '/data2/e1039/script' ] ; then
@@ -53,17 +56,33 @@ fi
 umask 0002
 export E1039_DECODER_MODE=$DECO_MODE
 
-if [ $1 = 'daemon' ] ; then
+if [ $LAUNCHER = yes ] ; then
     FN_LOG=/dev/shm/log-decoder-daemon.txt
     echo "Launch a daemon process."
     echo "  Log file = $FN_LOG"
-    root.exe -b -q "$E1039_CORE/macros/online/Daemon4MainDaq.C" &>$FN_LOG &
+    root.exe -b -q "$E1039_CORE/macros/online/Daemon4MainDaq.C" &>$FN_LOG
 else
+    if [ -z "$1" ] ; then
+	echo "The 1st argument must be a run number.  Abort."
+	exit
+    fi
     RUN=$1
-    N_EVT=0
-    echo "Single-run decoding."
-    root.exe -b -l <<-EOF
-	.L $E1039_CORE/macros/online/Daemon4MainDaq.C
-	StartDecoder($RUN, $N_EVT, $IS_ONLINE);
-	EOF
+    echo "Single-run decoding for run = $RUN."
+    mkdir -p /dev/shm/decoder_maindaq
+    FN_LOG=$(printf '/dev/shm/decoder_maindaq/log_%06d.txt' $RUN)
+    if [ -e $FN_LOG ] ; then
+	for (( II = 1 ;  ; II++ )) ; do
+	    test ! -e $FN_LOG.$II && mv $FN_LOG $FN_LOG.$II && break
+	done
+    fi
+    echo "  Log file = $FN_LOG"
+    root.exe -b -l -q "$E1039_CORE/macros/online/Fun4MainDaq.C($RUN, $N_EVT, $IS_ONLINE)" &>$FN_LOG
+    RET=$?
+    SQMS_SEND=/data2/users/kenichi/local/SQMS/SQMS-sender.py
+    if [ $RET -ne 0 -a $IS_ONLINE = true -a -e $SQMS_SEND ] ; then
+	MSG="RUN: $RUN"$'\n'
+	MSG+="RET: $RET"$'\n'
+	MSG+="LOG: $FN_LOG"
+	$SQMS_SEND -t 'exec-decoder.sh' -p 'E' -A 'Online Software Alarm,bhy7tf@virginia.edu' -m "$MSG"
+    fi
 fi

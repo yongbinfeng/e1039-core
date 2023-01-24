@@ -1,19 +1,50 @@
 #include <iomanip>
 #include <sstream>
+#include <TSystem.h>
+#include <TDatime.h>
+#include <phool/PHTimer2.h>
 #include "CodaInputManager.h"
 #include "MainDaqParser.h"
 using namespace std;
 
 // In the current design, all event-word handlers (i.e. functions) should print out all error messages needed, so that their caller should print nothing but just check the returned value.
 
+const std::vector<std::string> MainDaqParser::LIST_TIMERS = {
+  "open_file"            ,
+  "open_to_end"          ,
+  "parse_one_spill"      , 
+  "next_coda_event"      , 
+  "process_coda_physics" , 
+  "process_coda_prestart",
+  "process_coda_end"     ,
+  "process_coda_fee"     ,
+  "process_phys_flush"   ,
+  "process_phys_slow"    ,
+  "process_phys_prestart",
+  "process_phys_bos"     ,
+  "process_phys_eos"     , 
+  "pack_one_spill_data"  , 
+  "map_chan"
+};
+
 MainDaqParser::MainDaqParser()
-  : m_file_size_min(32768), m_sec_wait(15), m_n_wait(40)
+  : m_file_size_min(32768)
+  , m_sec_wait(15)
+  , m_n_wait(40)
+  , m_timer_sp_input (new PHTimer2("timer_sp_input"))
+  , m_timer_sp_decode(new PHTimer2("timer_sp_decode"))
+  , m_timer_sp_map   (new PHTimer2("timer_sp_map"))
 {
   coda = new CodaInputManager();
   list_sd = new SpillDataMap();
   list_ed = new EventDataMap();
   sd_now  = 0; // Will be just a pointer to one object in "list_sd"
   list_ed_now = new EventDataMap();
+
+  for (auto it = LIST_TIMERS.begin(); it != LIST_TIMERS.end(); it++) {
+    string name = *it;
+    m_timers[name] = new PHTimer2(name);
+  }
 }
 
 MainDaqParser::~MainDaqParser()
@@ -22,6 +53,10 @@ MainDaqParser::~MainDaqParser()
   if (list_sd    ) delete list_sd;
   if (list_ed    ) delete list_ed;
   if (list_ed_now) delete list_ed_now;
+  for (auto it = m_timers.begin(); it != m_timers.end(); it++) delete it->second;
+  if (m_timer_sp_input ) delete m_timer_sp_input;
+  if (m_timer_sp_decode) delete m_timer_sp_decode;
+  if (m_timer_sp_map   ) delete m_timer_sp_map;
 }
 
 int MainDaqParser::OpenCodaFile(const std::string fname, const long file_size_min, const int sec_wait, const int n_wait)
@@ -31,26 +66,33 @@ int MainDaqParser::OpenCodaFile(const std::string fname, const long file_size_mi
   m_n_wait        = n_wait;
   dec_par.timeStart = time(NULL);
   dec_par.fn_in = fname;
-  return coda->OpenFile(fname, file_size_min, sec_wait, n_wait);
+
+  m_timers["open_file"]->restart();
+  int ret = coda->OpenFile(fname, file_size_min, sec_wait, n_wait);
+  m_timers["open_file"]->stop();
+  m_timers["open_to_end"]->restart();
+  return ret;
 }
 
 bool MainDaqParser::NextPhysicsEvent(EventData*& ed, SpillData*& sd, RunData*& rd)
 {
   static EventDataMap::iterator it = list_ed_now->begin();
-  if (it == list_ed_now->end()) { // No event in the event buffer
+  if (it == list_ed_now->end()) { // No event in the event buffer.  Try to find new ones.
     list_ed_now->clear();
     while (list_ed_now->size() == 0 && ! coda->IsEnded()) {
+      m_timers["parse_one_spill"]->restart();
       ParseOneSpill();
+      m_timers["parse_one_spill"]->stop();
     }
     it = list_ed_now->begin();
   }
-  if (it != list_ed_now->end()) {
+  if (it != list_ed_now->end()) { // Event available.  Return it.
     rd = &run_data;
     sd = sd_now;
     ed = &it->second;
     it++;
     return true;
-  } else {
+  } else { // No event available.  End.
     rd = 0;
     sd = 0;
     ed = 0;
@@ -68,29 +110,58 @@ int MainDaqParser::ParseOneSpill()
     cout << "...done." << endl;
   }
 
+  if (dec_par.verb>=1) {
+    cout << "MainDaqParser::ParseOneSpill():";
+    ProcInfo_t info;
+    int ret = gSystem->GetProcInfo(&info);
+    if (ret != 0) {
+      cout << " ret=" << ret;
+    } else {
+      TDatime dati;
+      cout << " " << dati.AsSQLString() << " CpuSys=" << info.fCpuSys << " CpuUser=" << info.fCpuUser << " MemResident=" << info.fMemResident << " MemVirtual=" << info.fMemVirtual;
+    }
+    cout << endl;
+  }
+
   dec_par.at_bos = false;
   int* event_words = 0;
-  while (coda->NextCodaEvent(dec_par.codaID, event_words)) {
-    //cout << "NextCodaEvent(): " << dec_par.codaID << " 0x" << hex <<  event_words[1] << dec << endl;
-    int ret = 0;
+  while (true) {
+    m_timers["next_coda_event"]->restart();
+    m_timer_sp_input->restart();
+    bool found_event = coda->NextCodaEvent(dec_par.event_count, event_words);
+    m_timers["next_coda_event"]->stop();
+    m_timer_sp_input->stop();
+    if (! found_event) break;
+
+    m_timer_sp_decode->restart();
+
     int evt_type_id = event_words[1];
+    if (dec_par.verb>3) cout << "NextCodaEvent(): " << dec_par.event_count << " 0x" << hex <<  evt_type_id << dec << endl;
     
     // The last 4 hex digits will be 0x01cc for Prestart, Go Event,
     //		and End Event, and 0x10cc for Physics Events
+    int ret = 0;
     switch (evt_type_id & 0xFFFF) {
     case PHYSICS_EVENT:
+      m_timers["process_coda_physics"]->restart();
       ret = ProcessCodaPhysics(event_words);
+      m_timers["process_coda_physics"]->stop();
       break;
     case CODA_EVENT:
       switch (evt_type_id) {
       case PRESTART_EVENT:
+        m_timers["process_coda_prestart"]->restart();
         ret = ProcessCodaPrestart(event_words);
+        m_timers["process_coda_prestart"]->stop();
         break;
       case GO_EVENT: // do nothing
         break;
       case END_EVENT:
+        m_timers["process_coda_end"]->restart();
         ret = ProcessCodaEnd(event_words);
-        coda->ForceEnd(); //if (dec_par.verbose) printf ("End Event Processed\n");
+        m_timers["process_coda_end"]->stop();
+        coda->ForceEnd();
+        if (dec_par.verb>3) cout << "END_EVENT." << endl;
         break;
       default:
         cerr << "!!ERROR!! Uncovered Coda event type: " << evt_type_id << ".  Exit." << endl;
@@ -98,19 +169,22 @@ int MainDaqParser::ParseOneSpill()
       }
       break;
     case FEE_PREFIX:
+      m_timers["process_coda_fee"]->restart();
       ret = ProcessCodaFee(event_words);
+      m_timers["process_coda_fee"]->stop();
       break;
     case 0: // Special case which requires waiting and retrying.  Purpose??  Still needed??
-      cout << "Case '0' @ coda " << dec_par.codaID << "." << endl;
+      cout << "Case '0' @ event count " << dec_par.event_count << "." << endl;
       ret = coda->OpenFile(dec_par.fn_in, m_file_size_min, m_sec_wait, m_n_wait);
       if (ret == 0) {
-        ret = coda->JumpCodaEvent(dec_par.codaID, event_words, dec_par.codaID - 1) ? 0 : 2;
+        ret = coda->JumpCodaEvent(dec_par.event_count, event_words, dec_par.event_count - 1) ? 0 : 2;
       }
       break;
     default: // If no match to any given case, print it and exit.
       cerr << "!!ERROR!!  Uncovered Coda event type: " << evt_type_id << ".  Exit." << endl;
       return false;
     }
+    m_timer_sp_decode->stop();
     if (ret != 0) {
       cout << "WARNING:  ParseOneSpill():  ret = " << ret << endl;
       break;
@@ -125,10 +199,11 @@ int MainDaqParser::ParseOneSpill()
  */
 int MainDaqParser::End()
 {
+  m_timers["open_to_end"]->stop();
   coda->CloseFile();
   dec_par.timeEnd = time(NULL);
-  if (dec_par.verbose) {
-    cout << "\nStatistics in MainDaqParser:\n"
+  if (dec_par.verb>0) {
+    cout << "\nMainDaqParser: Statistics:\n"
          << "  Phys  events:  all = " << run_data.n_phys_evt << "\n"
          << "  Flush events:  all = " << run_data.n_flush_evt << "\n"
          << "  v1495 events:  all = " << run_data.n_v1495 << ", 0xd1ad = " << run_data.n_v1495_d1ad << ", 0xd2ad = " << run_data.n_v1495_d2ad << ", 0xd3ad = " << run_data.n_v1495_d3ad << "\n"
@@ -136,11 +211,17 @@ int MainDaqParser::End()
          << "  TDC   hits: total = " << run_data.n_hit   << ", bad = " << run_data.n_hit_bad << "\n"
          << "  v1495 hits: total = " << run_data.n_t_hit << ", bad = " << run_data.n_t_hit_bad << "\n"
          << "  Real decoding time: " << (dec_par.timeEnd - dec_par.timeStart) << endl;
+
+    cout << "MainDaqParser: Timer:\n";
+    for (auto it = LIST_TIMERS.begin(); it != LIST_TIMERS.end(); it++) {
+      m_timers[*it]->print_stat();
+    }
   }
   if (dec_par.is_online) {
     dec_err.PrintData();
     dec_err.InitData();
   }
+
   return 0;
 }
 
@@ -155,9 +236,11 @@ int MainDaqParser::ProcessCodaPrestart(int* words)
     // int prestartCode = words[1];
     run_data.utime_b = words[2];
     dec_par.runID = run_data.run_id = words[3];
-    // int runType = words[4];
+    int run_type = words[4];
 
-    cout << "  ProcessCodaPrestart " << dec_par.runID << " " << run_data.utime_b << " " << dec_par.sampling << endl;
+    if (dec_par.verb>0) {
+      cout << "ProcessCodaPrestart: run " << dec_par.runID << ", utime " << run_data.utime_b << ", type " << run_type << ", sampling " << dec_par.sampling << endl;
+    }
 
     dec_par.InitMapper();
     coda->SetRunNumber(dec_par.runID);
@@ -173,7 +256,7 @@ int MainDaqParser::ProcessCodaPrestart(int* words)
 int MainDaqParser::ProcessCodaEnd(int* words)
 {
   run_data.utime_e = words[2];
-  cout << "  ProcessCodaEnd " << run_data.utime_e << endl;
+  if (dec_par.verb>0) cout << "  ProcessCodaEnd " << run_data.utime_e << endl;
   return 0;
 }
 
@@ -187,7 +270,7 @@ int MainDaqParser::ProcessCodaFee(int* words)
     if (words[3] == (int)0xe906f011) {
       return ProcessCodaFeeBoard(words);
     } else if (words[3] == (int)0xe906f012) {
-      if (dec_par.verbose) cout << "feePrescale: codaEventID = " << dec_par.codaID << endl;
+      if (dec_par.verb) cout << "feePrescale: event " << dec_par.event_count << endl;
       return ProcessCodaFeePrescale(words);
     }
   }
@@ -196,7 +279,7 @@ int MainDaqParser::ProcessCodaFee(int* words)
 
 int MainDaqParser::ProcessCodaFeeBoard(int* words)
 {
-  if (dec_par.verbose > 1) cout << "CodaFeeBoard: coda = " << dec_par.codaID << endl;
+  if (dec_par.verb > 1) cout << "CodaFeeBoard: event " << dec_par.event_count << endl;
 
     FeeData data;
     int size = words[0];
@@ -235,7 +318,7 @@ int MainDaqParser::ProcessCodaFeeBoard(int* words)
         i_wd++;
 
 	run_data.fee.push_back(data);
-	if (dec_par.verbose > 1) {
+	if (dec_par.verb > 1) {
 	  cout << "  feeE " << data.roc << " " << data.board << " " << data.hard 
 	       << " " << data.falling_enabled << " " << data.segmentation
 	       << " " << data.multihit_elim_enabled << " " << data.updating_enabled
@@ -250,7 +333,7 @@ int MainDaqParser::ProcessCodaFeeBoard(int* words)
 
 int MainDaqParser::ProcessCodaFeePrescale(int* words)
 {
-  if (dec_par.verbose > 1) cout << "CodaFeePrescale: coda = " << dec_par.codaID << endl;
+  if (dec_par.verb > 1) cout << "CodaFeePrescale: event " << dec_par.event_count << endl;
   int feeTriggerBits = words[4];
   /// 10 bits = FPGA1, ..., FPGA5, NIM1, ..., NIM5
   for (int ii = 0; ii < 10; ii++) {
@@ -267,7 +350,7 @@ int MainDaqParser::ProcessCodaFeePrescale(int* words)
   for (int ii = 0; ii < 3; ii++) run_data. nim_prescale[ii] = words[ii + 10];
 
   run_data.n_fee_prescale++;
-  if (dec_par.verbose > 1) {
+  if (dec_par.verb > 1) {
     cout << "  feeP ";
     for (int ii = 0; ii < 10; ii++) cout << " " << run_data.trig_bit[ii];
     cout << "\n  feeP ";
@@ -280,7 +363,7 @@ int MainDaqParser::ProcessCodaFeePrescale(int* words)
 /** Process one Coda STANDARD_PHYSICS event.
  *
  *  Format of words:
- *    { 0:evLength, 1:eventCode, 2:headerLength, 3:headerCode, 4:codaEventID-4, 5:eventType, 6:"0", {roc data #1}, {roc data #2},,, {roc data #n} }
+ *    { 0:evLength, 1:eventCode, 2:headerLength, 3:headerCode, 4:codaEventID, 5:eventType, 6:"0", {roc data #1}, {roc data #2},,, {roc data #n} }
  *
  *   - {roc data #*} = { rocEvLength, rocID, X, X, vmeTime, {board data #1}...{board data #n}, [e906c0da] }
  *   - rocEvLength = N of words on this ROC, excluding the word "rocEvLength" itself.
@@ -291,6 +374,7 @@ int MainDaqParser::ProcessCodaPhysics(int* words)
 {
   run_data.n_phys_evt++;
   int eventCode = words[1];
+  dec_par.codaID = words[4];
   int ret = 0;
   switch (get_hex_bits(eventCode, 7, 4) ) {
   case FLUSH_EVENTS:
@@ -299,21 +383,26 @@ int MainDaqParser::ProcessCodaPhysics(int* words)
     //PrintCodaEventSummary(words);
     if (! dec_par.has_1st_bos) break;
     run_data.n_flush_evt++;
-    ret = ProcessPhysFlush(words);
+    m_timers["process_phys_flush"]->restart();
+    ret = ProcessPhysStdAndFlush(words, FLUSH_EVENTS);
+    m_timers["process_phys_flush"]->stop();
     if (dec_err.GetFlushError()) run_data.n_flush_evt_bad++;
     break;
   case SLOW_CONTROL:
+    m_timers["process_phys_slow"]->restart();
     ret = ProcessPhysSlow(words);
+    m_timers["process_phys_slow"]->stop();
     break;
   case PRESTART_INFO:
+    m_timers["process_phys_prestart"]->restart();
     ret = ProcessPhysPrestart(words);
+    m_timers["process_phys_prestart"]->stop();
     break;
-  case STANDARD_PHYSICS:
-    /// Ignore this for now; on 2019-05-30 by Kenichi
+  case STANDARD_PHYSICS: /// Ignore as of 2022-01-28
     //if (! dec_par.has_1st_bos) break;
     //dec_par.eventIDstd++;
     //SetEventInfo(&(*list_ed)[dec_par.eventIDstd].event, dec_par.eventIDstd);
-    //ret = ProcessPhysFlush(words); // This function handles STANDARD_PHYSICS as well.
+    //ret = ProcessPhysStdAndFlush(words, STANDARD_PHYSICS);
     break;
   case SPILL_COUNTER:
     ret = ProcessPhysSpillCounter(words);
@@ -322,10 +411,14 @@ int MainDaqParser::ProcessCodaPhysics(int* words)
     ret = ProcessPhysRunDesc(words);
     break;
   case BEGIN_SPILL:
-    ret = ProcessPhysBOSEOS(words, TYPE_BOS);
+    m_timers["process_phys_bos"]->restart();
+    ret = ProcessPhysBOSEOS(words, BEGIN_SPILL);
+    m_timers["process_phys_bos"]->stop();
     break;
   case END_SPILL:
-    ret = ProcessPhysBOSEOS(words, TYPE_EOS);
+    m_timers["process_phys_eos"]->restart();
+    ret = ProcessPhysBOSEOS(words, END_SPILL);
+    m_timers["process_phys_eos"]->stop();
     break;
   default: // Awaiting further event types
     ret = -1;
@@ -352,7 +445,7 @@ int MainDaqParser::ProcessPhysRunDesc(int* words)
   }
   run_data.run_desc = desc;
   run_data.n_run_desc++;
-  cout << "  run desc: " << desc.length() << " chars." << endl;
+  if (dec_par.verb) cout << "  run desc: " << desc.length() << " chars." << endl;
   return 0;
 }
 
@@ -401,7 +494,7 @@ int MainDaqParser::ProcessPhysPrestart(int* words)
  */
 int MainDaqParser::ProcessPhysSlow(int* words)
 {
-  if (dec_par.verbose) cout << "Slow Cont @ coda " << dec_par.codaID << ": ";
+  if (dec_par.verb) cout << "Slow Cont @ coda " << dec_par.codaID << ": ";
   int evLength = words[0];
   dec_par.targPos_slow = 0;
   
@@ -429,7 +522,7 @@ int MainDaqParser::ProcessPhysSlow(int* words)
     iss >> ts >> name >> value >> type;
     if      (name == "TARGPOS_CONTROL" ) dec_par.targPos_slow = atoi(value.c_str());
     else if (name == "local_spillcount") dec_par.spillID_slow = atoi(value.c_str()) + 1;
-    //if (dec_par.verbose) cout << "  slow [" << ts << "] [" << name << "] [" << value << "] [" << type <<"]\n";
+    //if (dec_par.verb) cout << "  slow [" << ts << "] [" << name << "] [" << value << "] [" << type <<"]\n";
     SlowControlData data;
     data.ts       = ts;
     data.name     = name;
@@ -454,7 +547,7 @@ int MainDaqParser::ProcessPhysSlow(int* words)
     spill_data->list_slow_cont.push_back(*data); // put into the global list
     spill_data->n_slow++;
   }
-  if (dec_par.verbose) cout << "  spill " << dec_par.spillID_slow << ", target " << (short)dec_par.targPos_slow << endl;
+  if (dec_par.verb) cout << "  spill " << dec_par.spillID_slow << ", target " << (short)dec_par.targPos_slow << endl;
   // In the past decoder, almost all variables obtained here are inserted into
   // the Beam, HV, Environment and Target tables according to "type".
   return 0;
@@ -484,21 +577,22 @@ int MainDaqParser::ProcessPhysSpillCounter(int* words)
   /// since flush events can come after spill counter.
   /// Replace spillID with spillID_cntr at BOS.
   dec_par.spillID_cntr = atoi(spillNum) + 1;
-  if (dec_par.verbose) {
+  if (dec_par.verb) {
     cout << "Spill Counter @ coda = " << dec_par.codaID << ":  spill = " << dec_par.spillID_cntr << endl;
   }
   run_data.n_spill++;
   return 0;
 }
 
-int MainDaqParser::ProcessPhysBOSEOS(int* words, const int type)
+int MainDaqParser::ProcessPhysBOSEOS(int* words, const int event_type)
 {
-  string type_str = (type == TYPE_BOS ? "BOS" : "EOS");
-  if (type == TYPE_BOS) {
+  int    spill_type     = (event_type == BEGIN_SPILL ? TYPE_BOS : TYPE_EOS);
+  string spill_type_str = (event_type == BEGIN_SPILL ? "BOS"    : "EOS"   );
+  if (spill_type == TYPE_BOS) {
     dec_par.has_1st_bos = true;
     dec_par.at_bos      = true;
-    if (PackOneSpillData() != 0) { // if (SubmitEventData() != 0) {
-      cout << "Error submitting data.  Exiting..." << endl;
+    if (PackOneSpillData() != 0) {
+      cout << "Error in PackOneSpillData.  Exiting..." << endl;
       return 1;
     }
 
@@ -520,12 +614,15 @@ int MainDaqParser::ProcessPhysBOSEOS(int* words, const int type)
     /// initialize
     dec_par.spillID_cntr = dec_par.spillID_slow = 0; 
     dec_par.turn_id_max  = 0;
+  } else { // EOS
+    m_timer_sp_input ->reset();
+    m_timer_sp_decode->reset();
   }
 
-  if (dec_par.verbose) {
-    cout << type_str << " @ coda " << dec_par.codaID << ": spill " << dec_par.spillID << "." << endl;
+  if (dec_par.verb) {
+    cout << spill_type_str << " @ coda " << dec_par.codaID << ": spill " << dec_par.spillID << "." << endl;
   }
-  dec_par.spillType = type;
+  dec_par.spillType = spill_type;
 
   int idx = 7;
   int evLength = words[0];
@@ -544,7 +641,7 @@ int MainDaqParser::ProcessPhysBOSEOS(int* words, const int type)
     idx++;
     if (rocID == 2) {
       SpillData* data = &(*list_sd)[dec_par.spillID];
-      if (type == TYPE_BOS) {
+      if (spill_type == TYPE_BOS) {
 	data->bos_coda_id  = dec_par.codaID;
 	data->bos_vme_time = codaEvVmeTime;
 	data->n_bos_spill++;
@@ -553,10 +650,10 @@ int MainDaqParser::ProcessPhysBOSEOS(int* words, const int type)
 	data->eos_vme_time = codaEvVmeTime;
 	data->n_eos_spill++;
       }
-      if (dec_par.verbose > 2) cout << "  " << type_str << " spill: " << dec_par.spillID << " " << dec_par.runID << " " << dec_par.codaID << " " << (short)dec_par.targPos << " " << codaEvVmeTime << endl;
+      if (dec_par.verb > 2) cout << "  " << spill_type_str << " spill: " << dec_par.spillID << " " << dec_par.runID << " " << dec_par.codaID << " " << (short)dec_par.targPos << " " << codaEvVmeTime << endl;
     }
     /// Skip ROC 25 in END_SPILL since unknown words are placed for debug by Xinkun(?).
-    if (type != TYPE_BOS && rocID == 25) idx = idx_roc_end + 1;
+    if (spill_type != TYPE_BOS && rocID == 25) idx = idx_roc_end + 1;
 
     /// Skip this ROC without looking at board data since it's too small (was "< 5")
     /// (as also done in "case FLUSH_EVENTS").
@@ -564,22 +661,23 @@ int MainDaqParser::ProcessPhysBOSEOS(int* words, const int type)
 
     while (idx <= idx_roc_end) {
       int e906flag = words[idx];
-      //cout << "  " << type_str << " " << idx << " 0x" << hex << e906flag << dec << endl;
+      //cout << "  " << spill_type_str << " " << idx << " 0x" << hex << e906flag << dec << endl;
       idx++;
-      idx = ProcessBoardData (words, idx, idx_roc_end, e906flag);
+      idx = ProcessBoardData (words, idx, idx_roc_end, e906flag, event_type);
       if (idx == -1) return 0;
     }
   }
   return 0;
 }
 
-/** Process one FLUSH_EVENTS event.
+/** Process one FLUSH_EVENTS or STANDARD_PHYSICS event.
  *
  * @param[in] words  The word array of one Coda event.
+ * @param[in] event_type  FLUSH_EVENTS or STANDARD_PHYSICS
  * @return  "0" if OK.  "-1" if NG.
  *
  */
-int MainDaqParser::ProcessPhysFlush(int* words)
+int MainDaqParser::ProcessPhysStdAndFlush(int* words, const int event_type)
 {
   const bool print_event = false; ///< If "true", print out ROCs & boards found.
   int evLength = words[0];
@@ -621,10 +719,7 @@ int MainDaqParser::ProcessPhysFlush(int* words)
     
     idx++; // go to next position to get ROCID
     int rocID = get_hex_bits (words[idx], 5, 2);
-    if (rocID == 25) { // Skip this ROC temporarily, during development of CRL code
-      idx = idx_roc_end;
-      continue; // Move to next ROC
-    } else if (rocID > 32) {
+    if (rocID > 32) {
       dec_err.SetFlushError(true);
       cerr << "ERROR: rocID > 32." << endl;
       ret = -1;
@@ -640,10 +735,9 @@ int MainDaqParser::ProcessPhysFlush(int* words)
     idx++; // move to the 1st word of board data
     while (idx < idx_roc_end) { // Loop over boards
       int e906flag = words[idx];
-      //cout << "  board " << idx << " " << e906flag << endl;
       if (get_hex_bits(e906flag, 7, 4) != (int)0xe906) {
-	cerr << "Seems not e906flag (0x" << hex << e906flag << dec << ")" << endl;
-        if (dec_par.verbose > 1) {
+	cerr << "ERROR: Not e906flag (0x" << hex << e906flag << dec << ") " << event_type << endl;
+        if (dec_par.verb > 1) {
           cout << "  At idx = " << idx << " / " << evLength << ".\n";
           PrintWords(words, 0, idx + 20);
         }
@@ -658,13 +752,16 @@ int MainDaqParser::ProcessPhysFlush(int* words)
       int board_id = get_hex_bits(words[idx], 6, 1);
       int n_wd_bd  = get_hex_bits(words[idx], 3, 4);
       if (print_event) cout << hex << " " << (e906flag&0xFFFF) << "@" << board_id << dec << "(" << n_wd_bd << ")";
-      idx = ProcessBoardData(words, idx, idx_roc_end, e906flag);
+      idx = ProcessBoardData(words, idx, idx_roc_end, e906flag, event_type);
       if (idx == -1) {
-        if (dec_par.verbose > 1) cout << "  ProcessBoardData() returned -1:  0x" << hex  << e906flag << dec << " " << board_id << " " << rocID << " " << dec_par.codaID << endl;
+        if (dec_par.verb > 1) cout << "ERROR: ProcessBoardData() returned -1 @ 0x" << hex << e906flag << dec << ", board " << board_id << ",roc " << rocID << ", coda " << dec_par.codaID << endl;
         return 0;
       }
     }
-    if (idx != idx_roc_end) Abort("idx != idx_roc_end");
+    if (idx != idx_roc_end) {
+      cout << "ERROR: idx(" << idx << ") != idx_roc_end(" << idx_roc_end << ") @ roc " << rocID << ", coda " << dec_par.codaID << endl;
+      return 0;
+    }
   }
   if (print_event) cout << endl;
 
@@ -676,6 +773,7 @@ int MainDaqParser::ProcessPhysFlush(int* words)
 /** Process the word set of one board.
  * @param[in] idx  The 1st index of the target board (i.e. next to the e906flag).
  * @param[in] idx_roc_end  The last index of the current ROC (not board).  This index itself is not included in the word set of the current ROC, i.e. excluded endpoint.
+ * @param[in] event_type  FLUSH_EVENTS or STANDARD_PHYSICS
  * @return  The index that points to the e906flag of the next board (not the last word of the current board).  Or "-1" in case of word overflow (i.e. N of words/board > N of words/ROC).
  *
  * The sub-functions called by this function (like "ProcessBoardJyTDC2()") must return
@@ -686,26 +784,25 @@ int MainDaqParser::ProcessPhysFlush(int* words)
  *
  *
  */
-int MainDaqParser::ProcessBoardData (int* words, int idx, int idx_roc_end, int e906flag)
+int MainDaqParser::ProcessBoardData (int* words, int idx, int idx_roc_end, int e906flag, const int event_type)
 {
-  if      ( e906flag == (int)0xE906F003 ) idx = ProcessBoardScaler  (words, idx);
-  else if ( e906flag == (int)0xE906F005 ) idx = ProcessBoardV1495TDC(words, idx);
-  else if ( e906flag == (int)0xE906F018 ) idx = ProcessBoardJyTDC2  (words, idx, idx_roc_end);
-  else if ( e906flag == (int)0xE906F019 ) return -1;
-  else if ( e906flag == (int)0xe906f01b ) idx = ProcessBoardFeeQIE      (words, idx);
-  else if ( e906flag == (int)0xE906F014 ) idx = ProcessBoardTriggerCount(words, idx);
-  else if ( e906flag == (int)0xE906F00F ) idx = ProcessBoardTriggerBit  (words, idx);
-
-  // todo: "0xE906F999" below must be changed together with the hardware setting.
-  else if ( e906flag == (int)0xE906F999 ) idx = ProcessBoardStdV1495TDC(words, idx);
-  else if ( e906flag == (int)0xE906F010 ) idx = ProcessBoardStdJyTDC2  (words, idx, idx_roc_end);
-  else if ( e906flag == (int)0xe906f013 ) idx = ProcessBoardStdFeeQIE      (words, idx);
-  else if ( e906flag == (int)0xE906F999 ) idx = ProcessBoardStdTriggerCount(words, idx);
-  else if ( e906flag == (int)0xE906F999 ) idx = ProcessBoardStdTriggerBit  (words, idx);
-
-  else {
-    cerr << "Unexpected board flag in CODA Event " << dec_par.codaID << " ROC " << (int)dec_par.rocID 
-	 << ": e906flag = " << e906flag << " @ " << idx-1 << "\n";
+  if        (e906flag == (int)0xE906F003) { idx = ProcessBoardScaler  (words, idx);
+  } else if (e906flag == (int)0xE906F005) {
+    if (event_type == FLUSH_EVENTS)         idx = ProcessBoardV1495TDC   (words, idx);
+    else                                    idx = ProcessBoardStdV1495TDC(words, idx);
+  } else if (e906flag == (int)0xE906F018) { idx = ProcessBoardJyTDC2     (words, idx, idx_roc_end);
+  } else if (e906flag == (int)0xE906F019) { return -1;
+  } else if (e906flag == (int)0xe906f01b) { idx = ProcessBoardFeeQIE      (words, idx);
+  } else if (e906flag == (int)0xE906F014) { 
+    if (event_type == FLUSH_EVENTS)         idx = ProcessBoardTriggerCount   (words, idx);
+    else                                    idx = ProcessBoardStdTriggerCount(words, idx);
+  } else if (e906flag == (int)0xE906F00F) { 
+    if (event_type == FLUSH_EVENTS)         idx = ProcessBoardTriggerBit   (words, idx, idx_roc_end);
+    else                                    idx = ProcessBoardStdTriggerBit(words, idx);
+  } else if (e906flag == (int)0xE906F010) { idx = ProcessBoardStdJyTDC2    (words, idx, idx_roc_end);
+  } else if (e906flag == (int)0xe906f013) { idx = ProcessBoardStdFeeQIE    (words, idx);
+  } else {
+    cerr << "ERROR: Unknown board flag (0x" << hex << e906flag << dec << ") at coda " << dec_par.codaID << ", roc " << (int)dec_par.rocID << ", idx " << idx << endl;
     PrintWords(words, idx-10, idx+40);
     return -1; // Temporary solution.  Skip all boards and move to the next ROC.
     Abort("Unexpected board type.");
@@ -733,17 +830,17 @@ int MainDaqParser::ProcessBoardScaler (int* words, int idx)
       data.value = value;
       //if (! dec_par.map_scaler.Find(data.roc, data.board, data.chan, data.name)) {
       if (! dec_par.chan_map_scaler.Find(data.roc, data.board, data.chan, data.name)) {
-	if (dec_par.verbose > 2) cout << "  Unmapped Scaler: " << data.roc << " " << data.board << " " << data.chan << "\n";
+	if (dec_par.verb > 3) cout << "  Unmapped Scaler: " << data.roc << " " << data.board << " " << data.chan << "\n";
 	continue;
       }
-      if (dec_par.verbose > 2) cout << "  scaler " << dec_par.spillID << " " << data.type << " " << data.name << " " << data.value << "\n";
+      if (dec_par.verb > 2) cout << "  scaler " << dec_par.spillID << " " << data.type << " " << data.name << " " << data.value << "\n";
       spill_data->list_scaler.push_back(data);
     }
 
     return idx;
 }
 
-int MainDaqParser::ProcessBoardTriggerBit (int* words, int j)
+int MainDaqParser::ProcessBoardTriggerBit (int* words, int j, int idx_roc_end)
 {
    int n_words = words[j]; // N of words including this word itself (with an exception).
    if (n_words == 0) return j+1; // Exception: n_words = 0 (not 1) in case of no event.
@@ -778,9 +875,6 @@ int MainDaqParser::ProcessBoardTriggerBit (int* words, int j)
 
 int MainDaqParser::ProcessBoardTriggerCount (int* words, int j)
 {
-  // KN: Do we need to check this as done in the previous version???  14 means STANDARD_PHYSICS
-  //if (get_hex_bits (words[1], 7, 4) == 14)
-
    int n_words = words[j]; // N of words including this word itself (with an exception).
    if (n_words == 0) return j+1; // Exception: n_words = 0 (not 1) in case of no event.
    j++; // Move to the 1st event word.
@@ -918,11 +1012,19 @@ int MainDaqParser::ProcessBoardFeeQIE (int* words, int idx)
  */
 int MainDaqParser::ProcessBoardV1495TDC (int* words, int idx)
 {
+  int idx_begin = idx;
+    if (dec_par.verb>3) {
+      cout << "ProcessBoardV1495TDC(): idx = " << idx << endl;
+      PrintWords(words, idx-5, idx+20);
+    }
     int boardID   = words[idx++]; // was get_hex_bits (words[idx], 3, 4);
     int n_wd_fpga = words[idx++]; // N of words taken from FPGA buffer.
     if (n_wd_fpga == 0) return idx; // No event data.  Just finish.
+    if (words[idx] == (int)0xe9060bad) {
+      dec_err.AddTdcError(dec_par.codaID, dec_par.rocID, DecoError::V1495_0BAD);
+      return idx+1;
+    }
     int idx_end = idx + n_wd_fpga; // Exclusive endpoint.  To be incremented in the while loop.
-    //PrintWords(words, idx-5, idx_end+20);
 
     int i_evt = 0;
     vector<int> list_chan;
@@ -934,11 +1036,10 @@ int MainDaqParser::ProcessBoardV1495TDC (int* words, int idx)
 	int evt_id      =  words[idx+2]; ///< Stored in CPU
 	/// The two words (idx+3 & idx+4) mean event ID stored in FPGA, but
 	/// is temporarily fixed to "0" as of 2017-Jan-11.  Thus not checked for now.
-	//int evt_id_fpga = (words[idx+3]<<15) + words[idx+4];
-	//if (evt_id != evt_id_fpga) {
-	//  list_event[i_evt]->dataQuality |= EVT_ERR_V1495;
-	//  cerr << "!! EventID mismatch @ v1495: " << evt_id << "@CPU vs " << evt_id_fpga << "@FPGA in " << dec_par.codaID << ":" << i_evt << endl;
-	//}
+	int evt_id_fpga = (words[idx+3]<<15) + words[idx+4];
+	if (evt_id != evt_id_fpga) {
+	  cerr << "!! EventID mismatch @ v1495: " << evt_id << "@CPU vs " << evt_id_fpga << "@FPGA at event " << dec_par.codaID << ":" << i_evt << " board 0x" << hex << boardID << dec << endl;
+	}
 	
 	EventData* ed = &(*list_ed)[evt_id];
 	ed->n_v1495++;
@@ -973,13 +1074,19 @@ int MainDaqParser::ProcessBoardV1495TDC (int* words, int idx)
 	idx += 5;
 	i_evt++;
       } else { // start signal
-	/// 0xxxyy where xx is the channel and yy is the channel time
+	/// 0xAABB where AA is the channel and BB is the channel time
 	list_chan.push_back( get_hex_bits (words[idx], 3, 2) );
 	list_time.push_back( get_hex_bits (words[idx], 1, 2) );
 	idx++;
       }
     }
-    if (idx != idx_end) Abort("idx != idx_end in ProcessBoardV1495TDC.");
+    if (idx != idx_end) {
+      cout << "ProcessBoardV1495TDC(): idx != idx_end (" << idx << " != " << idx_end << ") @ coda=" << dec_par.codaID << " roc=" << dec_par.rocID << "  board=" << hex << boardID << dec << "\n"
+           << "  idx_begin=" << idx_begin << " n_wd_fpga=" << n_wd_fpga << endl;
+      PrintWords(words, idx_begin, idx);
+      exit(1);
+      //Abort("idx != idx_end in ProcessBoardV1495TDC.");
+    }
     return idx_end;
 }
 
@@ -1109,28 +1216,28 @@ int MainDaqParser::ProcessBoardJyTDC2 (int* words, int idx_begin, int idx_roc_en
   return idx_events_end;
 }
 
+/**
+ * The STANDARD_PHYSICS output is enabled, according to vme_ts_tir_scale.crl as of 2022-01-28,
+ * but the contents seem not valid.  Thus they are skipped in this function.
+ */
 int MainDaqParser::ProcessBoardStdTriggerBit (int* words, int idx)
 {
-  EventData* ed = &(*list_ed)[dec_par.eventIDstd];
-  ed->n_trig_b++;
-  EventInfo* evt = &ed->event;
-
-  int triggerBits = words[idx];
-  evt->trigger_bits = triggerBits;
-  for (int i = 0; i <  5; i++) {
-    // This function doesn't support the bit order for old runs (# < 4923).
-    evt->MATRIX[i] = get_bin_bit (triggerBits, i  );
-    evt->NIM   [i] = get_bin_bit (triggerBits, i+5);
-  }
-  
-  return idx + 1;
+//  int evt_id      = words[idx];
+//  int triggerBits = words[idx+1];
+//  EventData* ed = &(*list_ed)[dec_par.eventIDstd];
+//  ed->n_trig_b++;
+//  EventInfo* evt = &ed->event;
+//  evt->trigger_bits = triggerBits;
+//  for (int i = 0; i <  5; i++) {
+//    // This function doesn't support the bit order for old runs (# < 4923).
+//    evt->MATRIX[i] = get_bin_bit (triggerBits, i  );
+//    evt->NIM   [i] = get_bin_bit (triggerBits, i+5);
+//  }
+  return idx + 2;
 }
 
 int MainDaqParser::ProcessBoardStdTriggerCount (int* words, int idx)
 {
-  // KN: Do we need to check this as done in the previous version???  14 means STANDARD_PHYSICS
-  //if (get_hex_bits (words[1], 7, 4) == 14)
-
   EventData* ed = &(*list_ed)[dec_par.eventIDstd];
   ed->n_trig_c++;
   EventInfo* evt = &ed->event;
@@ -1325,7 +1432,9 @@ int MainDaqParser::ProcessBoardStdJyTDC2 (int* words, int idx_begin, int idx_roc
 
 int MainDaqParser::PackOneSpillData()
 {
-  if (dec_par.verbose > 2) cout << "PackOneSpillData(): n=" << list_ed->size() << endl;
+  if (dec_par.verb > 2) cout << "PackOneSpillData(): n=" << list_ed->size() << endl;
+  m_timers["pack_one_spill_data"]->restart();
+  m_timer_sp_map->reset_and_start();
 
   if (dec_par.is_online) {
     dec_err.SetID(dec_par.runID, dec_par.spillID);
@@ -1357,23 +1466,32 @@ int MainDaqParser::PackOneSpillData()
 
     /// Run the mapping.  It should be done here (after the event selection)
     /// since it takes the longest process time per event.
+    m_timers["map_chan"]->restart();
     for (unsigned int ih = 0; ih < n_taiwan; ih++) {
       HitData* hd = &ed->list_hit[ih];
       if (! dec_par.chan_map_taiwan.Find(hd->roc, hd->board, hd->chan, hd->det, hd->ele)) {
-        if (dec_par.verbose > 2) cout << "  Unmapped Taiwan: " << hd->roc << " " << hd->board << " " << hd->chan << "\n";
+        if (dec_par.verb > 3) cout << "  Unmapped Taiwan: " << hd->roc << " " << hd->board << " " << hd->chan << "\n";
       }
     }
     for (unsigned int ih = 0; ih < n_v1495; ih++) {
       HitData* hd = &ed->list_hit_trig[ih];
       if (! dec_par.chan_map_v1495.Find(hd->roc, hd->board, hd->chan, hd->det, hd->ele, hd->lvl)) {
-        if (dec_par.verbose > 2) cout << "  Unmapped v1495: " << hd->roc << " " << hd->board << " " << hd->chan << "\n";
+        if (dec_par.verb > 3) cout << "  Unmapped v1495: " << hd->roc << " " << hd->board << " " << hd->chan << "\n";
       }
     }
+    m_timers["map_chan"]->stop();
   }
 
   EventDataMap* ptr = list_ed_now;
   list_ed_now = list_ed;
   list_ed = ptr;
+
+  m_timers["pack_one_spill_data"]->stop();
+  m_timer_sp_map->stop();
+
+  sd_now->time_input  = m_timer_sp_input ->get_accumulated_time();
+  sd_now->time_decode = m_timer_sp_decode->get_accumulated_time();
+  sd_now->time_map    = m_timer_sp_map   ->get_accumulated_time();
 
   return 0;
 }
