@@ -143,12 +143,14 @@ public:
   double getTotalTime(){ return totalTime; }
 
   ///Set the index of the final output tracklet list
-    void setOutputListID(unsigned int i) { outputListIdx = i; }
+  //void setOutputListID(unsigned int i) { outputListIdx = i; }
+  void setOutputListIndex(unsigned int i) { outputListIdx = i; }
 
     ///Tool, a simple-minded chi square fit
     void chi2fit(int n, double x[], double y[], double& a, double& b);
 
-private:
+  //private:
+protected:
     //verbosity following Fun4All convention
     int verbosity;
 
@@ -413,6 +415,8 @@ private:
   bool adjusted;
   
   double totalTime;
+
+  int setRawEventPrep(SRawEvent* event_input);
 };
 
 #endif

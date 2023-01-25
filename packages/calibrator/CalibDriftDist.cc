@@ -125,7 +125,7 @@ int CalibDriftDist::process_event(PHCompositeNode* topNode)
 
     int ele = hit->get_element_id();
     hit->set_pos(geom->getMeasurement(det, ele));
-    std::cout<<"still still in CalibDriftDist process_event.  index = "<<hit->get_hit_id()<<", detID = "<<hit->get_detector_id()<<", elementID = "<<hit->get_element_id()<<", tdcTime = "<<hit->get_tdc_time()<<", driftDistance = "<<fabs(hit->get_drift_distance())<<", pos = "<<hit->get_pos()<<", is_in_time = "<<hit->is_in_time()<<", get_tdc_time = "<<hit->get_tdc_time()<<", t1 = "<<t1<<", t0 = "<<t0<<std::endl; //WPM
+    //std::cout<<"still still in CalibDriftDist process_event.  index = "<<hit->get_hit_id()<<", detID = "<<hit->get_detector_id()<<", elementID = "<<hit->get_element_id()<<", tdcTime = "<<hit->get_tdc_time()<<", driftDistance = "<<fabs(hit->get_drift_distance())<<", pos = "<<hit->get_pos()<<", is_in_time = "<<hit->is_in_time()<<", get_tdc_time = "<<hit->get_tdc_time()<<", t1 = "<<t1<<", t0 = "<<t0<<std::endl; //WPM
   }
   return Fun4AllReturnCodes::EVENT_OK;
 }

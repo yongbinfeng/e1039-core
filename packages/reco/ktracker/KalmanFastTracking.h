@@ -21,8 +21,6 @@ Created: 05-24-2013
 #include <Math/Minimizer.h>
 #include <Math/Functor.h>
 
-#include "TMathBase.h"
-
 #include "SRawEvent.h"
 #include "KalmanTrack.h"
 #include "KalmanFitter.h"
@@ -61,9 +59,6 @@ public:
     //Build global tracks by connecting station 23 tracklets and station 1 tracklets
     virtual void buildGlobalTracks();
 
-  //Build global tracks by connecting station 23 tracklets and station 1 tracklets
-  void buildGlobalTracksDisplaced();
-
     //Fit tracklets
     int fitTracklet(Tracklet& tracklet);
 
@@ -74,21 +69,6 @@ public:
     bool muonID_search(Tracklet& tracklet);
     bool muonID_hodoAid(Tracklet& tracklet);
 
-    bool compareTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlim(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimU(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimV(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-
-    bool compareTrackletsSerious(Tracklet& tracklet1, Tracklet& tracklet2);
-  
-      bool compareTracklets_v2(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool compareTrackletsSlim_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimU_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-  bool compareTrackletsSlimV_v2(Tracklet& tracklet1, Tracklet& tracklet2, int pass);
-
-  bool checkTwoTracklets(Tracklet& tracklet1, Tracklet& tracklet2);
-  bool checkSingleTracklet(Tracklet& tracklet1);
-  
     void buildPropSegments();
 
     //Resolve left-right when possible
@@ -147,9 +127,6 @@ protected:
     //Tracklets in one event, id = 0, 1, 2 for station 0/1, 2, 3+/-, id = 3 for station 2&3 combined, id = 4 for global tracks
     //Likewise for the next part
     std::list<Tracklet> trackletsInSt[5];
-    std::list<Tracklet> trackletsInStSlimX[5];
-  std::list<Tracklet> trackletsInStSlimU[5];
-  std::list<Tracklet> trackletsInStSlimV[5];
 
     //Final SRecTrack list
     std::list<SRecTrack> stracks;

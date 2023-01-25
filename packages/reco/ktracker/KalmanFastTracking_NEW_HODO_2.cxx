@@ -474,12 +474,10 @@ void KalmanFastTracking_NEW_HODO_2::setRawEventDebug(SRawEvent* event_input)
     hitAll = event_input->getAllHits();
 }
 
-int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
-{
 
-  totalTime = 0;
-  
-	//reset timer
+int KalmanFastTracking_NEW_HODO_2::setRawEventPrep(SRawEvent* event_input)
+{
+    //reset timer
     for(auto iter=_timers.begin(); iter != _timers.end(); ++iter) 
     {
         iter->second->reset();
@@ -521,6 +519,10 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 #ifdef _DEBUG_HITPRINT
     for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
 #endif
+    if(verbosity >= 3) {
+      for(std::vector<Hit>::iterator iter = hitAll.begin(); iter != hitAll.end(); ++iter) iter->print();
+    }
+
 
     //Initialize hodo and masking IDs
     for(int i = 0; i < 4; i++)
@@ -566,10 +568,24 @@ int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
 #ifdef _DEBUG_ON
             LogInfo("Failed in prop tube segment building: " << propSegs[0].size() << ", " << propSegs[1].size());
 #endif
+	    if(verbosity >= 3) {
+	      LogInfo("Failed in prop tube segment building: " << propSegs[0].size() << ", " << propSegs[1].size());
+	    }
             //return TFEXIT_FAIL_ROUGH_MUONID;
         }
     }
+    
+    return 0;
+}
 
+int KalmanFastTracking_NEW_HODO_2::setRawEvent(SRawEvent* event_input)
+{
+
+  int ret = setRawEventPrep(event_input);
+  if (ret != 0) return ret;
+  
+  totalTime = 0;
+  
     
     //Get hit combinations in station 2
     _timers["st2"]->restart();

@@ -18,6 +18,7 @@
 #include <TCanvas.h>
 #include <TGraphErrors.h>
 #include <ktracker/KalmanFastTrackletting.h>
+#include <ktracker/KalmanFastTrackletting_NEW_HODO_2.h>
 #include "KScheduler.h"
 
 ClassImp(KJob)
@@ -156,13 +157,16 @@ void KScheduler::Init()
     #endif
 
     //Initialize the kfasttrackers
-    KalmanFastTracking* kFastTracker = 0;
+    //KalmanFastTracking* kFastTracker = 0;
+    KalmanFastTracking_NEW_HODO_2* kFastTracker = 0;
     for(i=0;i<NKFAST_TRACKERS;i++){
         // _ENABLE_KF KFT takes PHField* and 
         // TGeoManager* as args
         // only used in fitter
-        if (! use_tracklet_reco) kFastTracker = new KalmanFastTracking    (nullptr, nullptr, false);
-        else                     kFastTracker = new KalmanFastTrackletting(nullptr, nullptr, false);
+        //if (! use_tracklet_reco) kFastTracker = new KalmanFastTracking    (nullptr, nullptr, false);
+        //else                     kFastTracker = new KalmanFastTrackletting(nullptr, nullptr, false);
+	if (! use_tracklet_reco) kFastTracker = new KalmanFastTracking_NEW_HODO_2    (nullptr, nullptr, false);
+        else                     kFastTracker = new KalmanFastTrackletting_NEW_HODO_2(nullptr, nullptr, false);
         assert(kFastTracker);
         kFastTrkQueue.push(kFastTracker);
     }
@@ -300,7 +304,8 @@ KScheduler::~KScheduler(){
     delete kFTrkQueuePutMutex;
     delete kFTrkQueueTakeMutex;
 
-    KalmanFastTracking* ft = 0;
+    //KalmanFastTracking* ft = 0;
+    KalmanFastTracking_NEW_HODO_2* ft = 0;
     for(i=0; i<NKFAST_TRACKERS; i++){
         ft = kFastTrkQueue.front();
         kFastTrkQueue.pop();
@@ -792,7 +797,8 @@ void* KScheduler::fWorkerThread(void* wArgPtr){
 
     // worker tool pointers
     EventReducer* evReducer = NULL;
-    KalmanFastTracking* kFastTracker = NULL;
+    //KalmanFastTracking* kFastTracker = NULL;
+    KalmanFastTracking_NEW_HODO_2* kFastTracker = NULL;
 
     bool running = true;
 
