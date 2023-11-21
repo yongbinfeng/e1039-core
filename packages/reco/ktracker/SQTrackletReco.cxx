@@ -4,7 +4,7 @@
 #include <phool/recoConsts.h>
 #include <fun4all/Fun4AllReturnCodes.h>
 #include "KalmanFastTrackletting.h"
-#include "KalmanFastTrackletting_NEW_HODO_2.h"
+#include "KalmanFastTrackletting_Displaced.h"
 #include "EventReducer.h"
 #include "SQTrackletReco.h"
 
@@ -61,7 +61,7 @@ int SQTrackletReco::process_event(PHCompositeNode* topNode)
 int SQTrackletReco::InitFastTracking()
 {
   //_fastfinder = new KalmanFastTrackletting(_phfield, _t_geo_manager, false);
-  _fastfinder = new KalmanFastTrackletting_NEW_HODO_2(_phfield, _t_geo_manager, false);
+  _fastfinder = new KalmanFastTrackletting_Displaced(_phfield, _t_geo_manager, false);
 
   _fastfinder->Verbosity(Verbosity());
 

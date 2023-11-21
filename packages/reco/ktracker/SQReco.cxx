@@ -1,10 +1,7 @@
 #include "SQReco.h"
 
 #include "KalmanFastTracking.h"
-#include "KalmanFastTracking_NEW.h"
-#include "KalmanFastTracking_NEW_2.h"
-#include "KalmanFastTracking_NEW_HODO.h"
-#include "KalmanFastTracking_NEW_HODO_2.h"
+#include "KalmanFastTracking_Displaced.h"
 #include "EventReducer.h"
 #include "UtilSRawEvent.h"
 
@@ -255,7 +252,7 @@ int SQReco::InitGeom(PHCompositeNode* topNode)
 int SQReco::InitFastTracking()
 {
   //_fastfinder = new KalmanFastTracking(_phfield, _t_geo_manager, false);
-  _fastfinder = new KalmanFastTracking_NEW_HODO_2(_phfield, _t_geo_manager, false);
+  _fastfinder = new KalmanFastTracking_Displaced(_phfield, _t_geo_manager, false);
   
   _fastfinder->Verbosity(Verbosity());
 
@@ -358,8 +355,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
     _recEvent->setRawEvent(_rawEvent);
     _recEvent->setRecStatus(finderstatus);
   }
-  if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers(); //WPM
-  //_fastfinder->printTimers(); //WPM
+  if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT) _fastfinder->printTimers();
 
   _totalTime = _fastfinder->getTotalTime();
   //_rawEvent->setTotalTime(_totalTime);
@@ -416,14 +412,6 @@ int SQReco::process_event(PHCompositeNode* topNode)
     {
       LogDebug("fit wasnt ok?");
       SRecTrack recTrack = iter->getSRecTrack(_enable_KF && (_fitter_type == SQReco::LEGACY));
-      //if(Verbosity() >= Fun4AllBase::VERBOSITY_A_LOT){
-      //LogInfo("print a recTrack from SQReco");
-      //recTrack.print();
-      //}
-      
-      //recTrack.setKalmanStatus(-1); //WPM
-      
-      //fillRecTrack(recTrack); //WPM
     }
     else
     {
@@ -443,47 +431,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
   //>>>>>>>>>>>>>>>>>PARITCLE ID
   ParticleID();
   //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-  //Loop over hit vector
-  // for (int ihit = 0; ihit < _hit_vector->size(); ++ihit) {
-  //   SQHit* hit = _hit_vector->at(ihit);
-
-  //   std::cout<<"DETECTOR ID HIT: " << hit->get_detector_id() << std::endl;
-  //   if (hit->get_detector_id() == 100){ //100 is EMCAL ID
-    
-  //     int hit_elemID =  hit->get_element_id();
-  //     std::cout << "EMCAL HIT ELEM ID: " << hit_elemID << std::endl;
-
-  //   }
-  // }
-
-  //std::cout<<"filled rectracks"<<std::endl;
-  
-  /*int bestInd = -1;
-  int secondInd = -1;
-  double bestChiSq = 1000;
-  double secondChiSq = 1001;
-  for(unsigned int st = 0; st<temporarySTracks.size(); st++){
-    if(temporarySTracks.at(st).getChisq() < bestChiSq){
-      secondChiSq = bestChiSq;
-      secondInd = bestInd;
-      
-      bestInd = st;
-      bestChiSq = temporarySTracks.at(st).getChisq();
-    } else if(temporarySTracks.at(st).getChisq() < secondChiSq){
-      secondChiSq = temporarySTracks.at(st).getChisq();
-      secondInd = st;
-    }
-  }
-  if(bestInd > -1){
-    fillRecTrack(temporarySTracks.at(bestInd));
-  }
-  if(secondInd > -1){
-    fillRecTrack(temporarySTracks.at(secondInd));
-  }*/
   LogDebug("Leaving SQReco::process_event: " << _event << ", finder status " << finderstatus << ", " << nTracklets << " track candidates, " << nFittedTracks << " fitted tracks");
-
-
 
   std::list<Tracklet>& rec_trackletsSt3 = _fastfinder->getTrackletList(2);
   for(auto iter = rec_trackletsSt3.begin(); iter != rec_trackletsSt3.end(); ++iter)
@@ -496,10 +444,8 @@ int SQReco::process_event(PHCompositeNode* topNode)
     {
       if(_fitter_type == SQReco::LEGACY){
         fitOK = fitSt3TrackletCand(*iter, _kfitter);
-	//std::cout<<"it was legacy"<<std::endl;
       } else{
         fitOK = fitSt3TrackletCand(*iter, _gfitter);
-	//std::cout<<"it wasn't legacy"<<std::endl;
       }
     }
 
@@ -507,7 +453,6 @@ int SQReco::process_event(PHCompositeNode* topNode)
     {
       SRecTrack recTrack = iter->getSRecTrack(_enable_KF && (_fitter_type == SQReco::LEGACY));
       recTrack.setKalmanStatus(-1);
-      
       fillRecSt3Tracklet(recTrack);
     }
   }
@@ -526,9 +471,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
           new((*_tracklets)[nTracklets]) Tracklet(*iter);
           ++nTracklets;
         }
-
         if(is_eval_dst_enabled()){
-	  //iter->print();
 	  _tracklet_vector->push_back(&(*iter));
 	}
       }
@@ -594,9 +537,6 @@ void SQReco::ParticleID(){
 
     Double_t track_x_CAL = track_x_st3 + (track_px_st3 / track_pz_st3) * (1930. - track_z_st3);
     Double_t track_y_CAL = track_y_st3 + (track_py_st3 / track_pz_st3) * (1930. - track_z_st3);
-
-    std::cout<< "track_x_CAL: " << track_x_CAL << std::endl;
-    std::cout<< "track_y_CAL: " << track_y_CAL << std::endl;
 
     //Loop over hit vector to determine the energy
     Double_t ClusterEnergy = 0.;
@@ -769,21 +709,9 @@ bool SQReco::fitTrackCand(Tracklet& tracklet, SQGenFit::GFFitter* fitter)
   //Set prop tube slopes
   strack.setNHitsInPT(tracklet.seg_x.getNHits(), tracklet.seg_y.getNHits());
   strack.setPTSlope(tracklet.seg_x.a, tracklet.seg_y.a);
-
-  std::cout<<"where am i? "<<tracklet.vtxHypos.size()<<std::endl;
-  if(tracklet.vtxHypos.size()>0){
-    //strack.setVtxHypos(tracklet.vtxHypos);
-    for(unsigned int h = 0; h < tracklet.vtxHypos.size(); h++){
-      std::cout<<tracklet.vtxHypos.at(h)<<std::endl;
-      //strack.trackletVtxHypos.push_back(tracklet.vtxHypos.at(h));
-    }
-  }
   
-  LogDebug("turns out i'm dong gfitting?  about to fill rectrack.  chisq = "<<strack.getChisq());
-  std::cout<<"pushback"<<std::endl;
   temporarySTracks.push_back(strack);
   //fillRecTrack(strack);
-  std::cout<<"pushedback"<<std::endl;
   
   return true;
 }

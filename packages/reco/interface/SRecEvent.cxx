@@ -240,8 +240,7 @@ void SRecTrack::setVertexFast(TVector3 mom, TVector3 pos)
 
 bool SRecTrack::isVertexValid() const
 {
-  std::cout<<"checking isVertexValid.  fChisqVertex = "<<fChisqVertex<<" and fVertexPos.Z() = "<<fVertexPos.Z()<<" note that Z_UPSTREAM = "<<Z_UPSTREAM<<" and Z_DOWNSTREAM = "<<Z_DOWNSTREAM<<std::endl;
-  //if(fChisqVertex > 50.) return false; //WPM
+  //if(fChisqVertex > 50.) return false;
     if(fChisqVertex > 300.) return false;
     if(fVertexPos.Z() < Z_UPSTREAM || fVertexPos.Z() > Z_DOWNSTREAM) return false;
 
@@ -382,12 +381,6 @@ void SRecTrack::adjustKMag(double kmagStr)
 int SRecTrack::isValid() const
 {
     //Vertex valid
-  /* //WPM
-  if(!isVertexValid()){
-    std::cout<<"isVertexValid was false"<<std::endl;
-    return false;
-  }
-  */
     //Number of hits cut
     Int_t nHits = getNHits();
     if(nHits < 14) return false;
@@ -396,7 +389,6 @@ int SRecTrack::isValid() const
     //if(fTriggerID == 0) return false;
 
     //Total chisq, may change to cut on prob
-    std::cout<<"SRecTrack getChisq = "<<getChisq()<<std::endl;
     if(getChisq()/(nHits - 5) > 15.) return false;
 
     //Check the px polarity

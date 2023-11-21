@@ -724,31 +724,27 @@ double Tracklet::similarity_st1(const Tracklet& elem) const
     {
       if((*first).hit.detectorID < 7) n1st1++;
       if((*second).hit.detectorID < 7) n2st1++;
-      //if( (*first).hit.detectorID > 6 && (*second).hit.detectorID ) break;
-        if((*first) < (*second))
+      if((*first) < (*second))
         {
-            ++first;
+	  ++first;
         }
-        else if((*second) < (*first))
+      else if((*second) < (*first))
         {
-            ++second;
+	  ++second;
         }
-        else
+      else
         {
-            if((*first) == (*second) && (*first).hit.detectorID < 7) nCommonHits++;
-            ++first;
-            ++second;
+	  if((*first) == (*second) && (*first).hit.detectorID < 7) nCommonHits++;
+	  ++first;
+	  ++second;
         }
     }
-
-    //std::cout<<"nCommonHits = "<<nCommonHits<<", n1st1 = "<<n1st1<<", n2st1 = "<<n2st1<<" nCommonHits/double(n1st1) = "<<double(nCommonHits)/double(n1st1)<<" nCommonHits/double(n2st1) = "<<double(nCommonHits)/double(n2st1)<<" double(double(nCommonHits)/double(n1st1)) > 0.1 = "<<(double(double(nCommonHits)/double(n1st1)) > 0.1)<<std::endl;
+    
     if(n1st1<n2st1){
       return double(double(nCommonHits)/double(n1st1));
     } else{
       return double(double(nCommonHits)/double(n2st1));
     }
-    //if(double(double(nCommonHits)/double(n1st1)) > 0.17) return true;
-    //return false;
 }
 
 
@@ -768,76 +764,32 @@ bool Tracklet::similarityAllowed(const Tracklet& elem) const
     {
       if((*first).hit.detectorID < 7) n1st1++;
       if((*second).hit.detectorID < 7) n2st1++;
-      //if( (*first).hit.detectorID > 6 && (*second).hit.detectorID ) break;
-        if((*first) < (*second))
+      if((*first) < (*second))
         {
-            ++first;
+	  ++first;
         }
-        else if((*second) < (*first))
+      else if((*second) < (*first))
         {
-            ++second;
+	  ++second;
         }
-        else
+      else
         {
 	  if((*first) == (*second) && (*first).hit.detectorID < 7){
 	    nCommonHits++;
 	    wiresMatch.at((*first).hit.detectorID - 1) = true;
-	    //LogInfo("match in "<<(*first).hit.detectorID);
 	  }
-            ++first;
-            ++second;
+	  ++first;
+	  ++second;
         }
     }
-
+    
     if(wiresMatch.at(0) && wiresMatch.at(1)) allowed = false;
     if(wiresMatch.at(2) && wiresMatch.at(3)) allowed = false;
     if(wiresMatch.at(4) && wiresMatch.at(5)) allowed = false;
     if(double(double(nCommonHits)/double(n1st1)) > .17 || double(double(nCommonHits)/double(n2st1)) > .17) allowed = false;
 
-    //std::cout<<"nCommonHits = "<<nCommonHits<<", n1st1 = "<<n1st1<<", n2st1 = "<<n2st1<<" nCommonHits/double(n1st1) = "<<double(nCommonHits)/double(n1st1)<<" nCommonHits/double(n2st1) = "<<double(nCommonHits)/double(n2st1)<<" double(double(nCommonHits)/double(n1st1)) > 0.1 = "<<(double(double(nCommonHits)/double(n1st1)) > 0.1)<<std::endl;
     return allowed;
-    //if(double(double(nCommonHits)/double(n1st1)) > 0.17) return true;
-    //return false;
 }
-
-/*bool Tracklet::elementSimilarity(const Tracklet& elem) const
-{
-
-  int nCommonHits = 0;
-  for(std::list<SignedHit>::iterator hit1 = hits.begin(); hit1 != hits.end(); ++hit1){
-    for(std::list<SignedHit>::iterator hit2 = elem.hits.begin(); hit2 != elem.hits.end(); ++hit2){
-      if(hit1.detectorID == hit2.detectorID){
-	if( std::abs( hit1.elementID - hit2.elementID) < 2){
-	  
-	}
-      }
-    }
-  }
-  
-    std::list<SignedHit>::const_iterator first = hits.begin();
-    std::list<SignedHit>::const_iterator second = elem.hits.begin();
-
-    while(first != hits.end() && second != elem.hits.end())
-    {
-        if((*first) < (*second))
-        {
-            ++first;
-        }
-        else if((*second) < (*first))
-        {
-            ++second;
-        }
-        else
-        {
-            if((*first) == (*second)) nCommonHits++;
-            ++first;
-            ++second;
-        }
-    }
-
-    if(nCommonHits/double(elem.getNHits()) > 0.33333) return true;
-    return false;
-}*/
 
 double Tracklet::getMomentum() const
 {
@@ -890,6 +842,7 @@ int Tracklet::getCharge() const
   }
 }
 
+//The following is needed for displaced tracking, where hte above formula does not work
 void Tracklet::setCharge(int chrg)
 {
   _chargeSet = true;
@@ -953,8 +906,6 @@ Tracklet Tracklet::operator+(const Tracklet& elem) const
     tracklet.ty = (ty/err_ty/err_ty + elem.ty/elem.err_ty/elem.err_ty)*tracklet.err_ty*tracklet.err_ty;
     tracklet.x0 = (x0/err_x0/err_x0 + elem.x0/elem.err_x0/elem.err_x0)*tracklet.err_x0*tracklet.err_x0;
     tracklet.y0 = (y0/err_y0/err_y0 + elem.y0/elem.err_y0/elem.err_y0)*tracklet.err_y0*tracklet.err_y0;
-
-    //std::cout<<"ADDING tracklets.  What is the momentum: "<<tracklet.getMomentum()<<std::endl; //WPM
     
     tracklet.invP = 1./tracklet.getMomentum();
     tracklet.err_invP = 0.25*tracklet.invP;
@@ -1182,23 +1133,14 @@ double Tracklet::calcChisq_noDrift()
         int index = detectorID - 1;
 
         double sigma;
-        //if(iter->sign == 0 || COARSE_MODE) 
 	sigma = p_geomSvc->getPlaneSpacing(detectorID)/sqrt(12.);
-            //sigma = fabs(iter->hit.driftDistance)/sqrt(12.);
-        //else
-	//  sigma = p_geomSvc->getPlaneResolution(detectorID);
-
-        //double p = iter->hit.pos + iter->sign*fabs(iter->hit.driftDistance);
+	
         if(KMAG_ON && stationID == nStations && detectorID <= 12)
         {
-	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx_st1, ty, x0_st1, y0);
-	  //residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
 	  residual[index] = p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx_st1, ty, x0_st1, y0);
         }
         else
         {
-	  //residual[index] = p - p_geomSvc->getInterception(detectorID, tx, ty, x0, y0);
-	  //residual[index] = iter->sign*fabs(iter->hit.driftDistance) - p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
 	  residual[index] = p_geomSvc->getDCA(detectorID, iter->hit.elementID, tx, ty, x0, y0);
         }
 
@@ -1262,15 +1204,12 @@ void Tracklet::getSlopesU(Hit hit1, Hit hit2){
   //We need to know the slopes of the two wires in X-Y space
   double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
   double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
-
-  //std::cout<<"in GETSLOPESU.  w1 ID is: "<<twoHits.at(0).detectorID<<", which has slope "<<w1Slope<<".  w2 ID is: "<<twoHits.at(1).detectorID<<", which has slope "<<w2Slope<<std::endl; //WPM_Jan24
   
   //Brute force calculation of U-Z lines, various information about wire positioning in X-Y space, and finding hit position in (X, Y, Z)
   linedef testline1;
   testline1.slopeU = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
   testline1.initialU = twoHits.at(0).pos + twoHits.at(0).driftDistance;
   testline1.initialZ = p_geomSvc->getPlanePosition(twoHits.at(0).detectorID);
-  //std::cout<<"quick check here.  detID is "<<twoHits.at(0).detectorID<<" and p_geomSvc->getPlanePosition(twoHits.at(0).detectorID) = "<<p_geomSvc->getPlanePosition(twoHits.at(0).detectorID)<<std::endl; //WPM
   testline1.wire1Slope = w1Slope;
   testline1.wire2Slope = w2Slope;
   testline1.wireHit1Pos = (twoHits.at(0).pos + twoHits.at(0).driftDistance); //position in U-plane
@@ -1354,8 +1293,6 @@ void Tracklet::getSlopesV(Hit hit1, Hit hit2){
 
   double w1Slope = -p_geomSvc->getCostheta(twoHits.at(0).detectorID)/p_geomSvc->getSintheta(twoHits.at(0).detectorID);
   double w2Slope = -p_geomSvc->getCostheta(twoHits.at(1).detectorID)/p_geomSvc->getSintheta(twoHits.at(1).detectorID);
-
-  //std::cout<<"in GETSLOPESV.  w1 ID is: "<<twoHits.at(0).detectorID<<", which has slope "<<w1Slope<<".  w2 ID is: "<<twoHits.at(1).detectorID<<", which has slope "<<w2Slope<<std::endl; //WPM_Jan24
   
   linedef testline1;
   testline1.slopeV = ( (twoHits.at(1).pos + twoHits.at(1).driftDistance) - (twoHits.at(0).pos + twoHits.at(0).driftDistance) )/zDist;
@@ -1556,7 +1493,6 @@ void Tracklet::print(std::ostream& os)
         if(iter->sign < 0) os << "R: ";
         if(iter->sign == 0) os << "U: ";
 
-        //os << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << "  " << residual[iter->hit.detectorID-1] << " = ";
 	os << iter->hit.index << " " << p_geomSvc->getDetectorName(iter->hit.detectorID) << "(" << iter->hit.detectorID << ") " << iter->hit.elementID << "  " << iter->hit.pos + iter->sign*iter->hit.driftDistance << " " << residual[iter->hit.detectorID-1] << " = ";
     }
     os << endl;

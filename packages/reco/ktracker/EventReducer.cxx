@@ -78,9 +78,9 @@ EventReducer::~EventReducer()
 
 int EventReducer::reduceEvent(SRawEvent* rawEvent)
 {
-
-  int evID = rawEvent->getEventID()+1; //WPM
-  //rndm.SetSeed(evID); //WPM
+  //Can use these lines for reproducible hit dropping
+  //int evID = rawEvent->getEventID()+1;
+  //rndm.SetSeed(evID);
   
     int nHits_before = rawEvent->getNChamberHitsAll();
 
@@ -105,14 +105,9 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 	  //rndm.SetSeed(evID+iter->index);
 	  if(iter->detectorID <= nChamberPlanes)    //chamber hits
 	    {
-	      //if(iter->index < 100) std::cout<<"signal hit in "<<iter->detectorID<<std::endl; //WPM
-	      
 	      if(realization && rndm.Rndm() > chamEff){
-		//std::cout<<"hit "<<iter->index<<" did not make it"<<std::endl; //WPM
 		continue;
 	      }
-	      //if(iter->index < 100) std::cout<<"the hit survived"<<std::endl; //WPM
-	      //if(realization && rndm.Rndm() > 1.5) continue;
 	      //if(hodomask && (!iter->isHodoMask())) continue;
 	      //if(triggermask && (!iter->isTriggerMask())) continue;
 	    }
@@ -122,12 +117,9 @@ int EventReducer::reduceEvent(SRawEvent* rawEvent)
 	      if(triggermask_local && p_geomSvc->getPlaneType(iter->detectorID) == 1) continue;
 	    }
 	  
-	  //std::cout<<"DD before = "<<iter->driftDistance<<std::endl; //WPM
 	  if(realization && iter->detectorID <= nChamberPlanes){
 	    double res = rndm.Gaus(0., chamResol);
-	    //iter->driftDistance += rndm.Gaus(0., chamResol);
 	    iter->driftDistance += res;
-	    //std::cout<<"hit index "<<iter->index<<" in detID "<<iter->detectorID<<" at elm "<<iter->elementID<<" had driftDistance "<<iter->driftDistance<<", but got bumped by "<<res<<std::endl; //WPM
 	  }
 	}
         if(iter->detectorID >= nChamberPlanes+1 && iter->detectorID <= nChamberPlanes+nHodoPlanes)

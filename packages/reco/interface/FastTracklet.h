@@ -318,25 +318,18 @@ public:
   std::vector<Tracklet*> allowedVTracklets;
 
   struct UXCombo {
-
-    //Tracklet* trackletU;
     int trackletUIndex;
     std::vector<std::pair<int, int>> hodoMatches;
     double tx;
     double ty;
     double y0;
-    
   };
   std::vector<UXCombo> allowedUXCombos;
 
   struct VUXCombo {
-
-    //Tracklet* trackletU;
-    //Tracklet* trackletV;
     int trackletUIndex;
     int trackletVIndex;
     std::vector<std::pair<int, int>> hodoMatches;
-    
   };
   std::vector<VUXCombo> allowedVUXCombos;
   
@@ -352,22 +345,22 @@ public:
 
   TVector3 planeNorm;
 
-    double err_tx;
-    double err_ty;
-    double err_x0;
-    double err_y0;
-    double err_invP;
-
-    //Residuals of all pos
-    double residual[nChamberPlanes];
-
-    bool _chargeSet = false;
-    int _charge = 0;
-    void setCharge(int chrg);
-
+  double err_tx;
+  double err_ty;
+  double err_x0;
+  double err_y0;
+  double err_invP;
+  
+  //Residuals of all pos
+  double residual[nChamberPlanes];
+  
+  bool _chargeSet = false;
+  int _charge = 0;
+  void setCharge(int chrg);
+  
   std::vector<double> vtxHypos;
   
-    ClassDef(Tracklet, 4)
+  ClassDef(Tracklet, 4)
 };
 
 class TrackletVector : public PHObject

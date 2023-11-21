@@ -34,7 +34,7 @@
 #include <ktracker/SRawEvent.h>
 #include <ktracker/TriggerAnalyzer.h>
 #include <ktracker/KalmanFastTracking.h>
-#include <ktracker/KalmanFastTracking_NEW_HODO_2.h>
+#include <ktracker/KalmanFastTracking_Displaced.h>
 #include <ktracker/UtilSRawEvent.h>
 
 #include <interface_main/SQHit.h>
@@ -214,7 +214,7 @@ class KScheduler{
     std::queue<EventReducer*> eventReducerQueue;
     // fast trackers...
     //std::queue<KalmanFastTracking*> kFastTrkQueue;
-    std::queue<KalmanFastTracking_NEW_HODO_2*> kFastTrkQueue;
+    std::queue<KalmanFastTracking_Displaced*> kFastTrkQueue;
 
     ClassDef(KScheduler,1)
 };
