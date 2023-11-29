@@ -4871,8 +4871,8 @@ bool KalmanFastTracking_Displaced::resolveStation1Hits()
 	passes2++;
       }
       
-      best1.print();
-      best2.print();
+      //best1.print();
+      //best2.print();
       trackletsInSt[4].clear();
       trackletsInSt[4].push_back(best1);
       trackletsInSt[4].push_back(best2);
