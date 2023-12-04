@@ -406,7 +406,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
       else
         fitOK = fitTrackCand(*iter, _gfitter); // convert DC only tracklets to fitted tracklets, putting it into temporary stracks
     }
-
+    
     //fit is ok most of the time
     if(!fitOK)
     {
@@ -421,6 +421,7 @@ int SQReco::process_event(PHCompositeNode* topNode)
     if(is_eval_enabled()) new((*_tracklets)[nTracklets]) Tracklet(*iter);
     if(is_eval_dst_enabled()) _tracklet_vector->push_back(&(*iter));
     ++nTracklets;
+
   }
   
   std::sort (temporarySTracks.begin(), temporarySTracks.end(), compRecTrack);
@@ -428,8 +429,11 @@ int SQReco::process_event(PHCompositeNode* topNode)
     fillRecTrack(temporarySTracks.at(st));
   }
 
+
   //>>>>>>>>>>>>>>>>>PARITCLE ID
-  ParticleID();
+  if(_input_type == SQReco::E1039){
+    ParticleID();
+  }
   //<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   LogDebug("Leaving SQReco::process_event: " << _event << ", finder status " << finderstatus << ", " << nTracklets << " track candidates, " << nFittedTracks << " fitted tracks");
 
