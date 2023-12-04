@@ -31,7 +31,7 @@ execute_process(COMMAND root-config --libs   OUTPUT_VARIABLE ROOT_LINK    OUTPUT
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ROOT_CFLAGS}")
 
 add_library(calibrator SHARED  ${sources} calibrator_Dict.cc)
-target_link_libraries(calibrator -lfun4all -linterface_main)
+target_link_libraries(calibrator -lfun4all -linterface_main -lktracker -lktracker_interface)
 
 install(TARGETS calibrator    DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 install(FILES ${dist_headers} DESTINATION ${CMAKE_INSTALL_PREFIX}/include/${CMAKE_PROJECT_NAME}/)
