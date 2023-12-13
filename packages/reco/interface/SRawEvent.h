@@ -57,6 +57,8 @@ public:
     void setHodoMask(bool f = true) { f ? (flag |= hodoMask) : (f &= ~hodoMask); }
     void setTriggerMask(bool f = true) { f ? (flag |= triggerMask) : (flag &= ~triggerMask); }
 
+  void setPos(Float_t hitpos) {pos = hitpos;}
+  
     //Sign of this hit
     Int_t getSign() { return driftDistance > 0 ? 1 : -1; }
 
