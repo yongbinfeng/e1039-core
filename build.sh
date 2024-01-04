@@ -80,14 +80,14 @@ else # 'all' or 'resume'
     simulation/g4detectors
     simulation/g4eval
     generators/E906LegacyGen
-    packages/calibrator
-    packages/evt_filter
-    packages/dptrigger
-    #packages/db2g4
     packages/reco/interface
     packages/reco/SQGenFit
     packages/reco/kfitter
     packages/reco/ktracker
+    packages/calibrator
+    packages/evt_filter
+    packages/dptrigger
+    #packages/db2g4
     packages/kTThreads
     packages/embedding
     simulation/g4dst
