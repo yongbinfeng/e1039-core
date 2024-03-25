@@ -1342,15 +1342,15 @@ void KalmanDSTrk::removeBadHits(Tracklet& tracklet)
                 int planeType = p_geomSvc->getPlaneType(hit_remove->hit.detectorID);
                 if(planeType == 1)
                 {
-                    --tracklet.nXHits;
+                    --tracklet.nHits[0];
                 }
                 else if(planeType == 2)
                 {
-                    --tracklet.nUHits;
+                    --tracklet.nHits[1];
                 }
                 else
                 {
-                    --tracklet.nVHits;
+                    --tracklet.nHits[2];
                 }
 
                 //If both hit pairs are not included, the track can be rejected
@@ -1582,36 +1582,36 @@ void KalmanDSTrk::buildTrackletsInStation(int stationID, int listID, double* pos
                 if(xiter->first >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[xiter->first], LR1));
-                    tracklet_new.nXHits++;
+                    tracklet_new.nHits[0]++;
                 }
                 if(xiter->second >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[xiter->second], LR2));
-                    tracklet_new.nXHits++;
+                    tracklet_new.nHits[0]++;
                 }
 
                 //resolveLeftRight(*uiter, LR1, LR2);
                 if(uiter->first >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[uiter->first], LR1));
-                    tracklet_new.nUHits++;
+                    tracklet_new.nHits[1]++;
                 }
                 if(uiter->second >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[uiter->second], LR2));
-                    tracklet_new.nUHits++;
+                    tracklet_new.nHits[1]++;
                 }
 
                 //resolveLeftRight(*viter, LR1, LR2);
                 if(viter->first >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[viter->first], LR1));
-                    tracklet_new.nVHits++;
+                    tracklet_new.nHits[2]++;
                 }
                 if(viter->second >= 0)
                 {
                     tracklet_new.hits.push_back(SignedHit(hitAll[viter->second], LR2));
-                    tracklet_new.nVHits++;
+                    tracklet_new.nHits[2]++;
                 }
 
                 tracklet_new.sortHits();

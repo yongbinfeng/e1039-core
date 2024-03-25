@@ -130,27 +130,27 @@ void KalmanFastTrackletting_Displaced::buildTrackletsInStation(int stationID, in
           tracklet_new.stationID = stationID;
         
           tracklet_new.hits.push_back(SignedHit(hitAll[xiter->first], LR_X1));
-          tracklet_new.nXHits++;
+          tracklet_new.nHits[0]++;
 
           if(has_x_2nd) {
             tracklet_new.hits.push_back(SignedHit(hitAll[xiter->second], LR_X2));
-            tracklet_new.nXHits++;
+            tracklet_new.nHits[0]++;
           }
         
           tracklet_new.hits.push_back(SignedHit(hitAll[uiter->first], LR_U1));
-          tracklet_new.nUHits++;
+          tracklet_new.nHits[1]++;
 
           if(has_u_2nd) {
             tracklet_new.hits.push_back(SignedHit(hitAll[uiter->second], LR_U2));
-            tracklet_new.nUHits++;
+            tracklet_new.nHits[1]++;
           }
         
           tracklet_new.hits.push_back(SignedHit(hitAll[viter->first], LR_V1));
-          tracklet_new.nVHits++;
+          tracklet_new.nHits[2]++;
 
           if(has_v_2nd) {
             tracklet_new.hits.push_back(SignedHit(hitAll[viter->second], LR_V2));
-            tracklet_new.nVHits++;
+            tracklet_new.nHits[2]++;
           }
         
           tracklet_new.sortHits();
