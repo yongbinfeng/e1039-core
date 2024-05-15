@@ -15,6 +15,9 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
+#include "ROOT/RVec.hxx"
+
 using namespace std;
 
 DPTriggerRoad::DPTriggerRoad() : roadID(0), sigWeight(0.), bkgRate(0.), pXmin(0.)
@@ -97,11 +100,13 @@ std::ostream& operator << (std::ostream& os, const DPTriggerRoad& road)
   return os;
 }
 
+
 ////////////////////////////////////////////////////////////////
 
 DPTriggerAnalyzer::DPTriggerAnalyzer(const std::string& name) :
   SubsysReco(name),
   _road_set_file_name("trigger_67.txt"),
+  _dproad_set_file_name("DPTrigger_road16.txt"),
   _output_node_name(""),
   _use_trig_hit(false),
   _req_intime(false),
@@ -168,6 +173,71 @@ int DPTriggerAnalyzer::Init(PHCompositeNode *topNode)
   }
   //build the search matrix
   buildTriggerMatrix();
+
+  /*
+    For the Dark photon road set.
+    read the trigger map from a txt file and store it in a 5D vector
+    a[quadrant][dp11][dp12][dp21][dp22]
+    4 quadrants, 80x80 for dp1, 50x50 for dp2
+  */
+
+  /*
+  trigMaps.resize(4);
+  trigMaps[0].resize(80);
+  trigMaps[0][0].resize(80);
+  trigMaps[0][0][0].resize(50);
+  trigMaps[0][0][0][0].resize(50);
+
+  assert(trigMaps.size() == 4 && trigMaps[0].size() == 80 && trigMaps[0][0].size() == 80 && trigMaps[0][0][0].size() == 50 && trigMaps[0][0][0][0].size() == 50);
+  */
+
+  // initialize everything to 0
+  for (int quad=0; quad<4; quad++) {
+    for (int dp11=0; dp11<80; dp11++) {
+      for (int dp12=0; dp12<80; dp12++) {
+	for (int dp21=0; dp21<50; dp21++) {
+	  for (int dp22=0; dp22<50; dp22++) {
+	    trigMaps[quad][dp11][dp12][dp21][dp22] = 0;
+	  }
+	}
+      }
+    }
+  }
+  
+  // open the txt file and load the data
+  std::ifstream dpfin(gSystem->ExpandPathName(_dproad_set_file_name.c_str()), std::ifstream::in);
+  if (!dpfin.is_open())
+    {
+      std::cout << "Error opening file: " << _dproad_set_file_name.c_str() << std::endl;
+      exit(1);
+    }
+  
+  int nQuad = 0;
+  string dpline="";
+  while (std::getline(dpfin, dpline))
+    {
+      std::stringstream sline(dpline);
+      std::vector<string> tokens;
+      std::string token;
+      while (sline >> token)
+        {
+	  tokens.push_back(token);
+        }
+      if (tokens.size() > 0 && tokens[0] == "Quadrant")
+        {
+	  nQuad = std::stoi(tokens[1]);
+        }
+      else if (tokens.size() > 0)
+        {
+	  assert(tokens.size() == 5);
+	  int dp11 = std::stoi(tokens[0]);
+	  int dp12 = std::stoi(tokens[1]);
+	  int dp21 = std::stoi(tokens[2]);
+	  int dp22 = std::stoi(tokens[3]);
+	  uint val = std::stof(tokens[4]);
+	  trigMaps[nQuad][dp11][dp12][dp21][dp22] = val;	  
+        }
+    }
   
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -282,6 +352,46 @@ int DPTriggerAnalyzer::process_event(PHCompositeNode* topNode) {
   _event_header_out->set_trigger(SQEvent::MATRIX3, fpga3_on);
   _event_header_out->set_trigger(SQEvent::MATRIX4, fpga4_on);
   _event_header_out->set_trigger(SQEvent::MATRIX5, fpga5_on);
+
+  std::vector<std::vector<int>> elmDPs(8, std::vector<int>());
+
+  for(Int_t ihit = 0; ihit < _hit_vector->size(); ++ihit) {
+    SQHit *hit=_hit_vector->at(ihit);
+    //if (_req_intime && ! hit->is_in_time()) continue;
+    int detID = hit->get_detector_id();
+    int elmID = hit->get_element_id();
+    if ( detID < 55 || detID > 62 ) continue;
+    elmDPs[detID - 55].push_back(elmID - 1);
+  }
+
+  bool dp_trigger_fired=0;
+  for (std::size_t i = 0; i < 4 && !dp_trigger_fired; i++)
+    {
+      if (elmDPs[i].size() < 2 || elmDPs[i + 4].size() < 2)
+	continue;
+      std::sort(elmDPs[i].begin(), elmDPs[i].end());
+      std::sort(elmDPs[i + 4].begin(), elmDPs[i + 4].end());
+
+      for (std::size_t dp1a = 0; dp1a < elmDPs[i].size() && !dp_trigger_fired; dp1a++) {
+	int dp11 = elmDPs[i][dp1a];
+	for (std::size_t dp1b = dp1a+1; dp1b < elmDPs[i].size() && !dp_trigger_fired; dp1b++) {
+	  int dp12 = elmDPs[i][dp1b];
+	  if (dp12==dp11) continue;
+	  for (std::size_t dp2a = 0; dp2a < elmDPs[i + 4].size() && !dp_trigger_fired; dp2a++) {
+	    int dp21 = elmDPs[i + 4][dp2a];
+	    for (std::size_t dp2b = dp2a+1; dp2b < elmDPs[i + 4].size() && !dp_trigger_fired; dp2b++) {
+	      int dp22 = elmDPs[i + 4][dp2b];
+	      if (dp22==dp21) continue;
+	      if (trigMaps[i][dp11][dp12][dp21][dp22] > 0) {
+		dp_trigger_fired = 1;
+	      }
+	    }
+	  }
+	}
+      }
+    }
+
+  _event_header_out->set_trigger(SQEvent::NIM4, dp_trigger_fired);
 
   return Fun4AllReturnCodes::EVENT_OK;
 }

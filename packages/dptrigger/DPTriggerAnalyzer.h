@@ -9,6 +9,8 @@
 #include <string>
 #include <TString.h>
 #include <fun4all/SubsysReco.h>
+#include "ROOT/RVec.hxx"
+
 class SQRun;
 class SQEvent;
 class SQHitVector;
@@ -133,6 +135,7 @@ private:
 
     //! road set input file name
     std::string _road_set_file_name;
+    std::string _dproad_set_file_name;
     std::string _output_node_name;
     bool    _use_trig_hit;
     bool    _req_intime;
@@ -162,6 +165,13 @@ private:
     SQEvent* _event_header;
     SQEvent* _event_header_out; //< Node for output
     SQHitVector* _hit_vector;
+
+    //std::vector<std::vector<std::vector<std::vector<std::vector<float>>>>> trigMaps;
+
+    uint trigMaps[4][80][80][50][50];
+  //      std::vector<std::vector<std::vector<std::vector<std::vector<float>>>>> trigMaps; //(4, std::vector<std::vector<std::vector<std::vector<float>>>>(80, std::vector<std::vector<std::vector<float>>>(80, std::vector<std::vector<float>>(50, std::vector<float>(50, 0.0)))));
+
+  
 };
 
 class DPTriggerAnalyzer::MatrixNode
