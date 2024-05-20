@@ -32,9 +32,6 @@ void GFFitter::init(GFField* field, const TString& fitter_choice)
   genfit::MaterialEffects::getInstance()->init(new genfit::TGeoMaterialInterface());
 
   _fitterTy = fitter_choice;
-
-  std::cout<<"what is fitter_choice? "<<fitter_choice<<std::endl;
-  
   if(fitter_choice == "KalmanFitterRefTrack")
     _kmfitter = new genfit::KalmanFitterRefTrack();
   else if(fitter_choice == "KalmanFitter")
@@ -71,7 +68,6 @@ int GFFitter::processTrack(GFTrack& track, bool display)
   }
   catch(genfit::Exception& e)
   {
-    std::cout << "Track fitting failed: " << e.what() << std::endl; //WPM
     std::cerr << "Track fitting failed: " << e.what() << std::endl;
     return -2;
   }
