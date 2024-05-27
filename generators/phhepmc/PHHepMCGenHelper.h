@@ -2,7 +2,7 @@
 
 /*!
  * \file PHHepMCGenHelper.h
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -11,16 +11,14 @@
 #ifndef SIMULATION_CORESOFTWARE_SIMULATION_G4SIMULATION_PHHEPMC_PHHEPMCGENHELPER_H_
 #define SIMULATION_CORESOFTWARE_SIMULATION_G4SIMULATION_PHHEPMC_PHHEPMCGENHELPER_H_
 
-
-
 class PHCompositeNode;
 class PHHepMCGenEvent;
 class PHHepMCGenEventMap;
-class SQPrimaryVertexGen; //Abi
+class SQPrimaryVertexGen; // Abi
 
 namespace HepMC
 {
-class GenEvent;
+  class GenEvent;
 };
 
 #ifndef __CINT__
@@ -32,7 +30,7 @@ class GenEvent;
  */
 class PHHepMCGenHelper
 {
- public:
+public:
   PHHepMCGenHelper();
   virtual ~PHHepMCGenHelper();
 
@@ -94,25 +92,26 @@ class PHHepMCGenHelper
   }
 
 #ifndef __CINT__
-  gsl_rng * get_random_generator() {return RandomGenerator;}
+  gsl_rng *get_random_generator() { return RandomGenerator; }
 #endif
 
   void set_geneventmap(PHHepMCGenEventMap *geneventmap)
   {
     _geneventmap = geneventmap;
   }
- 
- //! to use the vertex from legacy generator
- void enableLegacyVtxGen() { _legacy_vertexgenerator = true; }
- 
- protected:
+
+  //! to use the vertex from legacy generator
+  void enableLegacyVtxGen() { _legacy_vertexgenerator = true; }
+  double get_LegacyPARatio() { return _paratio; }
+
+protected:
 #ifndef __CINT__
   gsl_rng *RandomGenerator;
 #endif
 
   double smear(const double position, const double width, VTXFUNC dist) const;
 
- private:
+private:
   VTXFUNC _vertex_func_x;
   VTXFUNC _vertex_func_y;
   VTXFUNC _vertex_func_z;
@@ -143,8 +142,9 @@ class PHHepMCGenHelper
   PHHepMCGenEventMap *_geneventmap;
 
   //! pointer to legay vertex generator; Abi
-  SQPrimaryVertexGen* _vertexGen;
+  SQPrimaryVertexGen *_vertexGen;
   bool _legacy_vertexgenerator;
+  double _paratio;
 };
 
 #endif /* SIMULATION_CORESOFTWARE_SIMULATION_G4SIMULATION_PHHEPMC_PHHEPMCGENHELPER_H_ */

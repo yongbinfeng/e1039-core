@@ -2,7 +2,7 @@
 
 /*!
  * \file PHHepMCGenHelper.cc
- * \brief 
+ * \brief
  * \author Jin Huang <jhuang@bnl.gov>
  * \version $Revision:   $
  * \date $Date: $
@@ -34,29 +34,13 @@
 using namespace std;
 
 PHHepMCGenHelper::PHHepMCGenHelper()
-  : _vertex_func_x(Gaus)
-  , _vertex_func_y(Gaus)
-  , _vertex_func_z(Gaus)
-  , _vertex_func_t(Gaus)
-  , _vertex_x(0)
-  , _vertex_y(0)
-  , _vertex_z(0)
-  , _vertex_t(0)
-  , _vertex_width_x(0)
-  , _vertex_width_y(0)
-  , _vertex_width_z(0)
-  , _vertex_width_t(0)
-  , _embedding_id(0)
-  , _reuse_vertex(false)
-  , _reuse_vertex_embedding_id(numeric_limits<int>::min())
-  , _geneventmap(nullptr)
-  , _legacy_vertexgenerator(false)
+    : _vertex_func_x(Gaus), _vertex_func_y(Gaus), _vertex_func_z(Gaus), _vertex_func_t(Gaus), _vertex_x(0), _vertex_y(0), _vertex_z(0), _vertex_t(0), _vertex_width_x(0), _vertex_width_y(0), _vertex_width_z(0), _vertex_width_t(0), _embedding_id(0), _reuse_vertex(false), _reuse_vertex_embedding_id(numeric_limits<int>::min()), _geneventmap(nullptr), _legacy_vertexgenerator(false), _paratio(0)
 {
 
   RandomGenerator = gsl_rng_alloc(gsl_rng_mt19937);
-  unsigned int seed = PHRandomSeed();  // fixed seed is handled in this function
-  gsl_rng_set(RandomGenerator, seed );
-  _vertexGen = new SQPrimaryVertexGen(); //Abi
+  unsigned int seed = PHRandomSeed(); // fixed seed is handled in this function
+  gsl_rng_set(RandomGenerator, seed);
+  _vertexGen = new SQPrimaryVertexGen(); // Abi
 }
 
 PHHepMCGenHelper::~PHHepMCGenHelper()
@@ -87,7 +71,7 @@ int PHHepMCGenHelper::create_node_tree(PHCompositeNode *topNode)
   assert(_geneventmap);
 
   //! for legacy vertex gen
-   _vertexGen->InitRun(topNode);//abi
+  _vertexGen->InitRun(topNode); // abi
 
   return Fun4AllReturnCodes::EVENT_OK;
 }
@@ -112,6 +96,14 @@ void PHHepMCGenHelper::move_vertex(PHHepMCGenEvent *genevent)
 
   assert(_vertex_width_x >= 0);
 
+  //! setting vertex from E906 legacy generator
+  if (_legacy_vertexgenerator)
+  {
+    TVector3 vtx = _vertexGen->generateVertex();
+    _paratio = _vertexGen->getPARatio();
+    genevent->moveVertex(vtx.X(), vtx.Y(), vtx.Z(), _vertex_func_t);
+  }
+
   if (_reuse_vertex)
   {
     assert(_geneventmap);
@@ -127,27 +119,18 @@ void PHHepMCGenHelper::move_vertex(PHHepMCGenEvent *genevent)
       exit(11);
     }
 
-  
-   genevent->moveVertex(
-   vtx_evt->get_collision_vertex().x(),
-   vtx_evt->get_collision_vertex().y(),
-   vtx_evt->get_collision_vertex().z(),
-   vtx_evt->get_collision_vertex().t());
- }
+    genevent->moveVertex(
+        vtx_evt->get_collision_vertex().x(),
+        vtx_evt->get_collision_vertex().y(),
+        vtx_evt->get_collision_vertex().z(),
+        vtx_evt->get_collision_vertex().t());
+  }
 
-   genevent->moveVertex(
+  genevent->moveVertex(
       (smear(_vertex_x, _vertex_width_x, _vertex_func_x)),
       (smear(_vertex_y, _vertex_width_y, _vertex_func_y)),
       (smear(_vertex_z, _vertex_width_z, _vertex_func_z)),
       (smear(_vertex_t, _vertex_width_t, _vertex_func_t)));
-
-  //!setting vertex from E906 legacy generator
-  if( _legacy_vertexgenerator)
-  {
-    TVector3 vtx        = _vertexGen->generateVertex();
-    genevent->moveVertex(vtx.X(), vtx.Y(), vtx.Z(), _vertex_func_t);
-  }
-
 }
 
 void PHHepMCGenHelper::set_vertex_distribution_function(VTXFUNC x, VTXFUNC y, VTXFUNC z, VTXFUNC t)
